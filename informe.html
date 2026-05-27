@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Informe Radar Mental — Sport Coaching 360</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0f1e;color:#e8eff8;min-height:100vh}
+.topbar{background:#0d1b3e;border-bottom:2px solid #00c2ff;padding:0.75rem 1rem;text-align:center}
+.topbar-logo{font-size:13px;font-weight:700;color:#00c2ff;letter-spacing:0.08em}
+.topbar-sub{font-size:11px;color:#8fa3bf;margin-top:2px}
+.container{max-width:680px;margin:0 auto;padding:1.5rem 1rem 3rem}
+.loading{text-align:center;padding:4rem 2rem}
+.loading-spinner{width:48px;height:48px;border:3px solid #1a3a6e;border-top:3px solid #00c2ff;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem}
+.loading-text{color:#8fa3bf;font-size:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error-card{background:#1a0a0a;border:1px solid #ef444455;border-radius:14px;padding:2rem;text-align:center;margin-top:2rem}
+.error-card h2{color:#ef4444;margin-bottom:8px}
+.error-card p{color:#8fa3bf;font-size:14px}
+.header-card{background:#141f3a;border:1px solid #1a3a6e;border-radius:16px;padding:1.5rem;margin-bottom:1rem}
+.coach-tag{display:inline-block;font-size:11px;font-weight:600;color:#c9a227;border:1px solid #c9a22733;padding:3px 12px;border-radius:20px;margin-bottom:10px;letter-spacing:0.05em}
+.player-name{font-size:24px;font-weight:700;color:#fff;margin-bottom:4px}
+.player-meta{font-size:13px;color:#8fa3bf}
+.player-meta span{color:#00c2ff;font-weight:600}
+.fecha{font-size:11px;color:#4a6a8a;margin-top:6px}
+.sem-card{display:flex;align-items:center;gap:14px;padding:1.1rem 1.25rem;border-radius:14px;border:1px solid #1a3a6e;background:#141f3a;margin-bottom:1rem}
+.sem-circle{width:56px;height:56px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;font-weight:700}
+.sem-title{font-size:16px;font-weight:700;color:#fff}
+.sem-desc{font-size:12px;color:#8fa3bf;margin-top:4px;line-height:1.5}
+.metrics-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1rem}
+.metric{background:#141f3a;border:1px solid #1a3a6e;border-radius:12px;padding:0.85rem 1rem}
+.metric-lbl{font-size:10px;color:#8fa3bf;letter-spacing:0.05em;font-weight:600}
+.metric-val{font-size:24px;font-weight:700;color:#00c2ff;margin-top:3px}
+.section-card{background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:1.25rem;margin-bottom:1rem}
+.section-title{font-size:11px;font-weight:700;color:#8fa3bf;letter-spacing:0.07em;margin-bottom:14px}
+.radar-wrap{background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:1.25rem;margin-bottom:1rem}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.bar-name{font-size:12px;color:#8fa3bf;width:150px;flex-shrink:0}
+.bar-track{flex:1;height:8px;background:#0d1b3e;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px}
+.bar-score{font-size:13px;font-weight:700;color:#e8eff8;width:32px;text-align:right}
+.disc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.disc-item{background:#0d1b3e;border-radius:10px;padding:12px 14px;border:1px solid #1a3a6e}
+.disc-letter{font-size:28px;font-weight:700;margin-bottom:2px}
+.disc-name{font-size:12px;color:#8fa3bf}
+.disc-pct{font-size:11px;color:#8fa3bf;margin-top:4px}
+.disc-bar{height:5px;border-radius:3px;margin-top:8px}
+.insight{border-left:3px solid;padding:12px 16px;border-radius:0 10px 10px 0;margin-bottom:8px}
+.ins-green{border-color:#22c55e;background:#0a2a0a}
+.ins-amber{border-color:#f59e0b;background:#1a1200}
+.ins-purple{border-color:#8b5cf6;background:#160a2a}
+.ins-lbl{font-size:11px;font-weight:700;margin-bottom:4px;letter-spacing:0.04em}
+.ins-green .ins-lbl{color:#22c55e}
+.ins-amber .ins-lbl{color:#f59e0b}
+.ins-purple .ins-lbl{color:#8b5cf6}
+.ins-text{font-size:13px;color:#e8eff8;line-height:1.5}
+.coach-notes{background:#0d1b3e;border:1px solid #c9a22733;border-radius:14px;padding:1.25rem;margin-bottom:1rem}
+.coach-notes h3{font-size:12px;font-weight:700;color:#c9a227;letter-spacing:0.06em;margin-bottom:10px}
+.coach-notes p{font-size:13px;color:#8fa3bf;line-height:1.6}
+.footer-brand{text-align:center;padding:1.5rem 0 0.5rem;font-size:11px;color:#8fa3bf}
+.footer-brand span{color:#00c2ff}
+.btn-pdf{display:block;width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;background:#00c2ff;color:#0a0f1e;margin:1rem 0 0.5rem;letter-spacing:0.03em}
+.btn-pdf:hover{background:#0ea5e9}
+@media print{
+  .topbar,.btn-pdf{display:none!important}
+  body{background:#fff!important;color:#000!important}
+  .container{padding:0!important;max-width:100%!important}
+  .header-card,.sem-card,.section-card,.radar-wrap,.arquetipo-card,.perfil-narrativo,.acciones-card,.semaforo-combinado,.coach-notes{background:#f8f8f8!important;border:1px solid #ccc!important;break-inside:avoid;margin-bottom:8px!important}
+  .metric{background:#f0f0f0!important;border:1px solid #ccc!important}
+  .metric-lbl,.section-title,.player-meta,.fecha,.disc-name,.disc-pct,.ins-text,.accion-desc,.coach-notes p{color:#444!important}
+  .player-name,.sem-title,.accion-title,.arquetipo-name{color:#111!important}
+  .metric-val{color:#0066aa!important}
+  .ins-green{background:#e8f5e8!important;border-color:#22c55e!important}
+  .ins-amber{background:#fff8e0!important;border-color:#f59e0b!important}
+  .ins-purple{background:#f0ecff!important;border-color:#8b5cf6!important}
+  .bar-track{background:#ddd!important}
+  .disc-item{background:#f0f0f0!important;border:1px solid #ccc!important}
+  .coach-tag{color:#aa8800!important;border-color:#aa8800!important}
+  .footer-brand{color:#666!important}
+  .footer-brand span{color:#0066aa!important}
+}
+.arquetipo-card{background:linear-gradient(135deg,#0d1b3e 0%,#141f3a 100%);border:1px solid #00c2ff44;border-radius:16px;padding:1.5rem;margin-bottom:1rem;position:relative;overflow:hidden}
+.arquetipo-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:#00c2ff}
+.arquetipo-tag{font-size:10px;font-weight:700;color:#00c2ff;letter-spacing:0.08em;margin-bottom:6px}
+.arquetipo-name{font-size:20px;font-weight:700;color:#fff;margin-bottom:8px}
+.arquetipo-desc{font-size:13px;color:#8fa3bf;line-height:1.6;margin-bottom:12px}
+.arquetipo-riesgo{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#f59e0b;background:#f59e0b15;padding:4px 12px;border-radius:20px;border:1px solid #f59e0b33}
+.perfil-narrativo{background:#0d1b3e;border:1px solid #1a3a6e;border-radius:14px;padding:1.25rem;margin-bottom:1rem}
+.perfil-narrativo h3{font-size:11px;font-weight:700;color:#8fa3bf;letter-spacing:0.07em;margin-bottom:10px}
+.perfil-narrativo p{font-size:14px;color:#e8eff8;line-height:1.7}
+.acciones-card{background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:1.25rem;margin-bottom:1rem}
+.acciones-card h3{font-size:11px;font-weight:700;color:#8fa3bf;letter-spacing:0.07em;margin-bottom:14px}
+.accion-item{display:flex;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #1a3a6e22}
+.accion-item:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.accion-num{width:28px;height:28px;border-radius:50%;background:#00c2ff;color:#0a0f1e;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.accion-content{}
+.accion-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:3px}
+.accion-desc{font-size:12px;color:#8fa3bf;line-height:1.5}
+.semaforo-combinado{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
+.combo-card{background:#141f3a;border:1px solid #1a3a6e;border-radius:12px;padding:10px 12px}
+.combo-label{font-size:10px;color:#8fa3bf;font-weight:600;letter-spacing:0.05em;margin-bottom:4px}
+.combo-val{font-size:13px;color:#e8eff8;font-weight:600}
+.btn-ia{display:block;width:100%;padding:14px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;background:linear-gradient(135deg,#7c3aed,#00c2ff);color:#fff;margin:1rem 0;letter-spacing:0.03em;position:relative}
+.btn-ia:hover{opacity:0.9}
+.btn-ia:disabled{opacity:0.6;cursor:not-allowed}
+.ia-block{background:#0d1b3e;border:1px solid #7c3aed44;border-radius:14px;padding:1.5rem;margin-bottom:1rem;display:none}
+.ia-block.visible{display:block}
+.ia-tag{font-size:10px;font-weight:700;color:#7c3aed;letter-spacing:0.08em;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.ia-tag::before{content:'✦';color:#00c2ff}
+.ia-section{margin-bottom:16px}
+.ia-section h4{font-size:11px;font-weight:700;color:#00c2ff;letter-spacing:0.06em;margin-bottom:8px;text-transform:uppercase}
+.ia-section p{font-size:13px;color:#e8eff8;line-height:1.7}
+.ia-loading{text-align:center;padding:2rem;color:#8fa3bf;font-size:13px}
+.ia-spinner{width:32px;height:32px;border:2px solid #1a3a6e;border-top:2px solid #7c3aed;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 10px}
+@media print{.btn-ia{display:none!important}.ia-block{border-color:#ccc!important;background:#f8f8f8!important}.ia-section h4{color:#333!important}.ia-section p{color:#111!important}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">SPORT COACHING PRO — INFORME INDIVIDUAL</div>
+  <div class="topbar-sub">Eduardo Meljin · sportcoachingpro.com</div>
+</div>
+
+<div class="container">
+  <div class="loading" id="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Cargando informe...</div>
+  </div>
+  <div id="content" style="display:none"></div>
+</div>
+
+<script>
+var DIMS=[
+  {key:'autoconocimiento',label:'Autoconocimiento',color:'#8b5cf6'},
+  {key:'motivacion',label:'Motivación interna',color:'#f59e0b'},
+  {key:'confianza',label:'Autoconfianza',color:'#0ea5e9'},
+  {key:'regulacion',label:'Regulación emocional',color:'#06b6d4'},
+  {key:'atencion',label:'Atención y foco',color:'#22c55e'},
+  {key:'metacognicion',label:'Metacognición',color:'#f97316'},
+  {key:'potencial',label:'Potencial',color:'#a78bfa'},
+  {key:'consistencia',label:'Consistencia',color:'#ec4899'},
+  {key:'liderazgo',label:'Liderazgo',color:'#f43f5e'},
+  {key:'competitividad',label:'Competitividad',color:'#7c3aed'},
+  {key:'desempeno',label:'Desempeño',color:'#0891b2'},
+  {key:'decision',label:'Toma de decisiones',color:'#059669'},
+];
+
+var DISC_INFO={
+  D:{name:'Dominante',color:'#ef4444',desc:'Decidido, competitivo, orientado al resultado. Bajo presión va al frente y toma la iniciativa. Riesgo: puede volverse impulsivo.'},
+  I:{name:'Influyente',color:'#f59e0b',desc:'Entusiasta, comunicativo, motor del grupo. Bajo presión busca cohesión y activa al equipo. Riesgo: puede dispersarse.'},
+  S:{name:'Estable',color:'#22c55e',desc:'Consistente, confiable, sostiene al equipo. Bajo presión mantiene la calma y ejecuta. Riesgo: puede ser pasivo.'},
+  C:{name:'Concienzudo',color:'#8b5cf6',desc:'Analítico, preciso, orientado al proceso. Bajo presión evalúa antes de actuar. Riesgo: puede paralizarse analizando.'},
+};
+
+function getBinId(){
+  var params=new URLSearchParams(window.location.search);
+  return params.get('id');
+}
+
+function formatFecha(iso){
+  if(!iso)return '';
+  var d=new Date(iso);
+  return d.toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+}
+
+function renderInforme(data){
+  INFORME_DATA=data;
+  var p=data.jugador;
+  var sem=data.semaforo;
+  var sorted=data.sorted;
+  var disc=data.disc;
+  var scores=data.scores;
+  var primary=data.primary_disc;
+  var discInfo=DISC_INFO[primary];
+  var total=Object.values(disc).reduce(function(a,b){return a+b;},0)||1;
+
+  var html='';
+
+  // Header
+  html+='<div class="header-card">';
+  if(data.logo_url){
+    html+='<div style="margin-bottom:12px"><img src="'+data.logo_url+'" style="height:52px;max-width:160px;object-fit:contain;border-radius:8px;border:1px solid #1a3a6e;padding:5px;background:#0d1b3e" onerror="this.style.display=\'none\'" /></div>';
+  }
+  html+='<div class="coach-tag">INFORME PSICO-DEPORTIVO — COACH</div>';
+  html+='<div class="player-name">'+p.nombre+'</div>';
+  html+='<div class="player-meta">';
+  if(p.pos)html+='<span>'+p.pos+'</span> · ';
+  if(p.club)html+=p.club;
+  if(p.cat)html+=' · Cat. '+p.cat;
+  if(p.edad)html+=' · '+p.edad+' años';
+  html+='</div>';
+  html+='<div class="fecha">Evaluado el '+formatFecha(data.fecha)+'</div>';
+  html+='</div>';
+
+  // Semáforo
+  html+='<div class="sem-card">';
+  html+='<div class="sem-circle" style="background:'+sem.color+'">'+sem.label.split(' ')[0]+'</div>';
+  html+='<div><div class="sem-title">'+sem.label.replace(/^[^\s]+\s+/,'')+'</div><div class="sem-desc">'+sem.desc+'</div></div>';
+  html+='</div>';
+
+  // Métricas
+  html+='<div class="metrics-row">';
+  html+='<div class="metric"><div class="metric-lbl">DISPONIBILIDAD</div><div class="metric-val">'+data.disponibilidad+'%</div></div>';
+  html+='<div class="metric"><div class="metric-lbl">INTERFERENCIA</div><div class="metric-val" style="color:#ef4444">'+data.interferencia+'%</div></div>';
+  html+='<div class="metric"><div class="metric-lbl">PERFIL DISC</div><div class="metric-val" style="font-size:15px"><span style="color:'+discInfo.color+';font-size:22px;font-weight:700">'+primary+'</span> <span style="font-size:12px;color:#8fa3bf">'+discInfo.name+'</span></div></div>';
+  html+='</div>';
+
+  // Radar
+  html+='<div class="radar-wrap">';
+  html+='<div class="section-title">RADAR MENTAL — 8 DIMENSIONES</div>';
+  html+='<canvas id="radarChart" height="320"></canvas>';
+  html+='</div>';
+
+  // 5 CAPAS DEL MDC
+  var capas=[
+    {nombre:'IDENTIDAD',key:['autoconocimiento','confianza'],color:'#8b5cf6',desc:'Quién sos cuando todo presiona'},
+    {nombre:'REGULACIÓN',key:['regulacion','consistencia'],color:'#0891b2',desc:'Cómo gestionás la emoción y la presión'},
+    {nombre:'ENERGÍA',key:['motivacion','liderazgo'],color:'#f59e0b',desc:'Motor interno que sostiene el esfuerzo'},
+    {nombre:'CAPACIDAD',key:['atencion','metacognicion','toma_decisiones'],color:'#22c55e',desc:'Cómo ejecutás bajo presión real'},
+    {nombre:'COMPETITIVIDAD',key:['competitividad','desempeno'],color:'#ef4444',desc:'Disposición a dar lo mejor cuando más importa'},
+  ];
+  var dims=data.dims||{};
+  html+='<div class="section-card"><div class="section-title">LAS 5 CAPAS DEL MDC — D = T − I</div>';
+  html+='<div style="font-size:11px;color:#8fa3bf;margin-bottom:12px">Cada capa es condición de la siguiente. La interferencia aparece en la capa más débil.</div>';
+  var capaMinScore=5,capaMinNombre='';
+  capas.forEach(function(capa,idx){
+    var scores=capa.key.map(function(k){return dims[k]||0;}).filter(function(v){return v>0;});
+    var avg=scores.length?scores.reduce(function(a,b){return a+b;},0)/scores.length:0;
+    if(avg>0&&avg<capaMinScore){capaMinScore=avg;capaMinNombre=capa.nombre;}
+    var pct=avg*20;
+    var col=avg>=4?'#22c55e':avg>=3?'#f59e0b':'#ef4444';
+    html+='<div style="margin-bottom:10px">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+    html+='<div style="display:flex;align-items:center;gap:8px">';
+    html+='<div style="width:8px;height:8px;border-radius:50%;background:'+capa.color+';flex-shrink:0"></div>';
+    html+='<span style="font-size:12px;font-weight:700;color:'+capa.color+'">'+capa.nombre+'</span>';
+    html+='<span style="font-size:10px;color:#8fa3bf">'+capa.desc+'</span>';
+    html+='</div>';
+    html+='<span style="font-size:13px;font-weight:700;color:'+col+'">'+avg.toFixed(1)+'</span>';
+    html+='</div>';
+    html+='<div style="height:6px;background:#0d1b3e;border-radius:3px;overflow:hidden">';
+    html+='<div style="width:'+pct+'%;height:100%;background:'+capa.color+';border-radius:3px;transition:width 0.6s"></div>';
+    html+='</div>';
+    html+='</div>';
+  });
+  if(capaMinNombre){
+    html+='<div style="margin-top:8px;padding:10px 14px;background:#ef444415;border:1px solid #ef444440;border-radius:10px;font-size:12px;color:#ef4444">';
+    html+='⚠ <strong>Interferencia principal detectada en: '+capaMinNombre+'</strong> — Esta es la capa que más limita la disponibilidad del jugador.';
+    html+='</div>';
+  }
+  html+='</div>';
+
+  // Barras
+  html+='<div class="section-card"><div class="section-title">PERFIL POR DIMENSIÓN</div>';
+  sorted.forEach(function(d){
+    html+='<div class="bar-row"><span class="bar-name">'+d.label+'</span><div class="bar-track"><div class="bar-fill" style="width:'+d.score*20+'%;background:'+d.color+'"></div></div><span class="bar-score">'+d.score.toFixed(1)+'</span></div>';
+  });
+  html+='</div>';
+
+  // DISC — mejorado
+  html+='<div class="section-card"><div class="section-title">PERFIL DE COMPORTAMIENTO — DISC</div>';
+  html+='<div style="font-size:11px;color:#8fa3bf;margin-bottom:10px">Cómo se comporta el jugador bajo presión y en el equipo</div>';
+  html+='<div class="disc-grid">';
+  Object.entries(disc).forEach(function(e){
+    var k=e[0],v=e[1];
+    var info=DISC_INFO[k];
+    var pct=Math.round(v/total*100);
+    html+='<div class="disc-item">';
+    html+='<div class="disc-letter" style="color:'+info.color+'">'+k+'</div>';
+    html+='<div class="disc-name">'+info.name+'</div>';
+    html+='<div class="disc-bar" style="width:'+pct+'%;background:'+info.color+';max-width:100%"></div>';
+    html+='<div class="disc-pct">'+pct+'%</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+  html+='<div class="insight ins-purple" style="margin-top:10px"><div class="ins-lbl">PERFIL DOMINANTE — '+primary+': '+discInfo.name+'</div><div class="ins-text">'+discInfo.desc+'</div></div>';
+  // Implicancias del DISC para el coach
+  var discCoach={
+    D:'Como coach: dale autonomía y desafíos. No lo microgestiones — necesita sentir que tiene poder de decisión. Bajo presión puede volverse impulsivo o dominante. Usá ese impulso a favor del equipo.',
+    I:'Como coach: necesita reconocimiento y conexión emocional. Le afecta el clima del vestuario. Cuando el grupo está mal, él lo magnifica. Cuando el grupo está bien, él lo amplifica.',
+    S:'Como coach: valorá su consistencia, no lo expongas de golpe a cambios bruscos. Necesita tiempo para adaptarse. En momentos de crisis es el que sostiene — no el que empuja, sino el que no se cae.',
+    C:'Como coach: dale información y estructura. No improvises con él. Necesita entender el por qué de cada decisión. Bajo presión puede paralizarse analizando — trabajá la toma de decisión con tiempo límite.'
+  };
+  html+='<div style="margin-top:8px;padding:10px 14px;background:#8b5cf615;border:1px solid #8b5cf640;border-radius:10px;font-size:12px;color:#c4b5fd;line-height:1.6">';
+  html+='<strong style="color:#8b5cf6">🎯 '+discCoach[primary]+'</strong>';
+  html+='</div>';
+  html+='</div>';
+
+  // Insights
+  var best=sorted[0],worst=sorted[sorted.length-1];
+  html+='<div class="insight ins-green"><div class="ins-lbl">FORTALEZA CLAVE</div><div class="ins-text">'+best.label+' ('+best.score.toFixed(1)+'/5) — Motor disponible. Capitalizar en competencia y entrenamiento.</div></div>';
+  html+='<div class="insight ins-amber" style="margin-top:8px"><div class="ins-lbl">ZONA A TRABAJAR</div><div class="ins-text">'+worst.label+' ('+worst.score.toFixed(1)+'/5) — Principal fuente de interferencia. Prioridad de intervención en el plan de trabajo.</div></div>';
+
+  // Interpretación automática
+  html += generarSeccionInterpretacion(data.dims, data.disc, primary);
+
+  // Triada de Rendimiento
+  var pot = data.dims.potencial || 0;
+  var comp = data.dims.competitividad || 0;
+  var desp = data.dims.desempeno || 0;
+  if(pot > 0 || comp > 0 || desp > 0) {
+    html += '<div class="section-card">';
+    html += '<div class="section-title">TRIADA DE RENDIMIENTO</div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
+    html += '<div style="background:#0d1b3e;border-radius:10px;padding:12px;border:1px solid #1a3a6e;text-align:center"><div style="font-size:11px;color:#8fa3bf;margin-bottom:4px">POTENCIAL</div><div style="font-size:28px;font-weight:700;color:#a78bfa">'+pot.toFixed(1)+'</div></div>';
+    html += '<div style="background:#0d1b3e;border-radius:10px;padding:12px;border:1px solid #1a3a6e;text-align:center"><div style="font-size:11px;color:#8fa3bf;margin-bottom:4px">COMPETITIVIDAD</div><div style="font-size:28px;font-weight:700;color:#7c3aed">'+comp.toFixed(1)+'</div></div>';
+    html += '<div style="background:#0d1b3e;border-radius:10px;padding:12px;border:1px solid #1a3a6e;text-align:center"><div style="font-size:11px;color:#8fa3bf;margin-bottom:4px">DESEMPEÑO</div><div style="font-size:28px;font-weight:700;color:#0891b2">'+desp.toFixed(1)+'</div></div>';
+    html += '</div>';
+    var triavg = (pot+comp+desp)/3;
+    var cuadrante = triavg >= 4.0 ? 'Alto Desempeño · Alto Potencial' : triavg >= 3.0 ? 'En Desarrollo · Potencial Creciente' : 'Bajo Desempeño · Necesita Activación';
+    var ccolor = triavg >= 4.0 ? '#22c55e' : triavg >= 3.0 ? '#f59e0b' : '#ef4444';
+    html += '<div style="background:'+ccolor+'22;border:1px solid '+ccolor+'44;border-radius:10px;padding:10px 14px;font-size:13px;color:'+ccolor+';font-weight:600;text-align:center">'+cuadrante+'</div>';
+    html += '</div>';
+  }
+
+  // Nota para el coach
+  html+='<div class="coach-notes" style="margin-top:1rem">';
+  html+='<h3>NOTA PARA EL COACH</h3>';
+  html+='<p>Este informe es el diagnóstico inicial del jugador. Los resultados deben interpretarse en contexto — no como etiquetas fijas sino como puntos de partida para el trabajo mental. La Disponibilidad (D = T − I) indica qué fracción del talento está siendo accesible. La interferencia se reduce con trabajo sostenido.</p>';
+  html+='</div>';
+
+  html+='<button class="btn-ia" id="btn-ia" onclick="generarAnalisisIA()">✦ Generar análisis completo con IA</button>';
+  html+='<div class="ia-block" id="ia-block"><div class="ia-loading" id="ia-loading"><div class="ia-spinner"></div>Analizando perfil mental...</div><div id="ia-content"></div></div>';
+  html+='<button class="btn-pdf" onclick="generarPDFInforme()">⬇ Descargar informe como PDF</button>';
+  html+='<div class="footer-brand"><span>Sport Coaching Pro</span> · Eduardo Meljin · sportcoachingpro.com</div>';
+
+  document.getElementById('content').innerHTML=html;
+  document.getElementById('loading').style.display='none';
+  document.getElementById('content').style.display='block';
+
+  // Auto-descarga si viene con ?pdf=1
+  var urlP=new URLSearchParams(window.location.search);
+  if(urlP.get('pdf')==='1'){
+    setTimeout(function(){ generarPDFInforme(); }, 1500);
+  }
+
+  // Radar chart
+  var ctx=document.getElementById('radarChart').getContext('2d');
+  new Chart(ctx,{
+    type:'radar',
+    data:{
+      labels:DIMS.map(function(d){return d.label;}),
+      datasets:[{
+        label:'Perfil mental',
+        data:scores,
+        fill:true,
+        backgroundColor:'rgba(0,194,255,0.12)',
+        borderColor:'#00c2ff',
+        pointBackgroundColor:DIMS.map(function(d){return d.color;}),
+        pointRadius:6,
+        borderWidth:2
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:10},color:'#8fa3bf',backdropColor:'transparent'},pointLabels:{font:{size:11},color:'#8fa3bf'},grid:{color:'rgba(255,255,255,0.06)'},angleLines:{color:'rgba(255,255,255,0.06)'}}},
+      plugins:{legend:{display:false}}
+    }
+  });
+}
+
+// ── MOTOR DE INTERPRETACIÓN ────────────────────────────────────
+function detectarArquetipo(dims){
+  var mot=dims.motivacion||0, reg=dims.regulacion||0, meta=dims.metacognicion||0;
+  var conf=dims.confianza||0, cons=dims.consistencia||0, pot=dims.potencial||0;
+  var lid=dims.liderazgo||0, aten=dims.atencion||0, auto=dims.autoconocimiento||0;
+  var avg=Object.values(dims).reduce(function(a,b){return a+b;},0)/Object.values(dims).length;
+
+  // El Motor: alta motivación, baja regulación
+  if(mot>=4.0 && reg<3.0){
+    return {
+      key:'motor',
+      nombre:'El Motor',
+      color:'#f97316',
+      desc:'Jugador con mucha energía interna y alto impulso competitivo, pero que se desregula bajo presión. Cuando el partido se pone tenso, la emoción le gana a la decisión. Su talento es visible pero inconsistente.',
+      riesgo:'Se quema o explota en los momentos clave',
+      perfil:'Este jugador tiene combustible de sobra. El problema no es la voluntad — es que esa energía todavía no tiene cauce. Necesita herramientas concretas para bajar la intensidad cuando sube demasiado, sin apagar el fuego.',
+      acciones:[
+        {titulo:'Protocolo de pausa activa',desc:'Enseñarle la técnica 4-4-4: 4 segundos inhalar, 4 sostener, 4 exhalar. Practicarlo en el entrenamiento hasta que sea automático en partido.'},
+        {titulo:'Señal de retorno',desc:'Acordar con él una palabra clave o gesto (ej: "base") que el técnico o un compañero le diga cuando note que se está yendo. La señal lo trae de vuelta sin que necesite procesar.'},
+        {titulo:'Diario post-entrenamiento',desc:'5 minutos después de cada práctica: ¿cuándo perdí el eje hoy? ¿qué lo disparó? Esto desarrolla el músculo del autoconocimiento sin presión competitiva.'},
+      ]
+    };
+  }
+
+  // El Técnico: alta metacognición, baja confianza
+  if(meta>=4.0 && conf<3.2){
+    return {
+      key:'tecnico',
+      nombre:'El Técnico',
+      color:'#8b5cf6',
+      desc:'Jugador con alta conciencia de sus procesos mentales, pero que duda de sí mismo. Se analiza demasiado y eso lo frena. Sabe qué le pasa pero no se anima a actuar. Piensa más de lo que confía.',
+      riesgo:'Se bloquea analizando en lugar de decidir',
+      perfil:'Este jugador tiene una inteligencia emocional por encima del promedio. El problema es que la usa para cuestionarse en lugar de para sostenerse. Necesita experiencias de éxito concretas que reconstruyan la confianza desde la acción, no desde el pensamiento.',
+      acciones:[
+        {titulo:'Registro de victorias pequeñas',desc:'Al terminar cada entrenamiento, anotar 1 acción que salió bien. No importa el tamaño. El objetivo es que el cerebro empiece a registrar evidencia de capacidad.'},
+        {titulo:'Decisión sin análisis',desc:'En ejercicios específicos, quitarle el tiempo de decisión: "Recibís y jugás en menos de 2 segundos." Esto entrena el instinto y corta el circuito de análisis paralizante.'},
+        {titulo:'Feedback de refuerzo inmediato',desc:'El técnico o AT debe elogiar decisiones específicas en el momento: no "bien" genérico sino "bien esa decisión de jugar de primera." Construye confianza desde afuera hasta que la tenga adentro.'},
+      ]
+    };
+  }
+
+  // El Inconsistente: alto potencial, baja consistencia
+  if(pot>=4.0 && cons<3.2){
+    return {
+      key:'inconsistente',
+      nombre:'El Inconsistente',
+      color:'#f59e0b',
+      desc:'Jugador con condiciones claras que aparecen y desaparecen. Hay partidos donde es el mejor y otros donde parece otro. Su talento no tiene duda — lo que falta es el hilo conductor entre una actuación y la siguiente.',
+      riesgo:'Rinde por momentos, no semana a semana',
+      perfil:'Este jugador tiene todo para destacar. El desafío no es el talento — es la estabilidad. Necesita rutinas, anclajes y estructura mental que le permitan reproducir su mejor versión con más frecuencia.',
+      acciones:[
+        {titulo:'Rutina pre-partido fija',desc:'Diseñar con él una secuencia de 10-15 minutos antes de cada partido: música, visualización, respiración, palabra clave. Siempre igual. Esto crea el estado mental óptimo por condicionamiento.'},
+        {titulo:'Meta de proceso semanal',desc:'No "jugar bien" sino algo medible: "Mantener la posición en las transiciones defensivas." Foco en el proceso elimina la dependencia del resultado para sentirse bien.'},
+        {titulo:'Revisión de actuación',desc:'El AT le hace 3 preguntas post-partido: ¿Qué sostuve? ¿Qué se cayó? ¿Qué hago diferente el próximo? Sin juicio — solo datos para el siguiente entrenamiento.'},
+      ]
+    };
+  }
+
+  // El Líder Silencioso: liderazgo alto, motivación media
+  if(lid>=3.8 && mot>=3.0 && mot<4.0){
+    return {
+      key:'lider_silencioso',
+      nombre:'El Líder Silencioso',
+      color:'#f43f5e',
+      desc:'Jugador con capacidad de influir en el grupo pero que no termina de asumir ese rol. Los compañeros lo siguen naturalmente, pero él no se ve como referente. Tiene el impacto sin la conciencia del mismo.',
+      riesgo:'No asume el liderazgo que el equipo ya le da',
+      perfil:'Este jugador ya es un referente aunque no lo sepa. El trabajo no es enseñarle a liderar — es que se reconozca como lo que ya es. Necesita visibilidad intencional y responsabilidades concretas que formalicen lo que ya ocurre naturalmente.',
+      acciones:[
+        {titulo:'Rol formal de referente',desc:'Asignarle una responsabilidad explícita: "Esta semana vos sos el encargado de la entrada en calor mental del grupo." Formalizar el rol activa la identidad.'},
+        {titulo:'Conversación de liderazgo',desc:'El DT le pregunta: "¿Qué ves del equipo que yo no veo?" Esto valida su mirada y le da permiso para opinar. Un líder necesita que le pregunten.'},
+        {titulo:'Mentoría de compañero',desc:'Asignarle un jugador del Grupo Rojo para acompañarlo informalmente. No como coach — como compañero que lo nota. Esto activa su liderazgo desde el lugar más natural para él.'},
+      ]
+    };
+  }
+
+  // El Invisible: todo promedio sin picos
+  if(avg>=2.8 && avg<=3.5){
+    return {
+      key:'invisible',
+      nombre:'El Invisible',
+      color:'#8fa3bf',
+      desc:'Jugador sin dimensiones críticas en rojo pero tampoco con fortalezas que sobresalgan. Cumple, no genera problemas, pero tampoco aparece cuando el equipo lo necesita. El riesgo no es la crisis — es la mediocridad cómoda.',
+      riesgo:'No aparece en los momentos que definen',
+      perfil:'Este jugador necesita ser sacudido con cariño. No tiene bloqueos graves — tiene una zona de confort que lo estabiliza pero no lo hace crecer. El desafío es encontrar el motor interno que todavía no activó.',
+      acciones:[
+        {titulo:'Pregunta del propósito',desc:'Una conversación individual con el DT: "¿Por qué jugás al fútbol? ¿Cuál es el partido que soñás jugar?" No para presionarlo — para conectarlo con algo que lo mueva.'},
+        {titulo:'Desafío progresivo',desc:'Diseñar situaciones de entrenamiento donde tenga que asumir: ejercicios donde él es el organizador, la referencia, el que decide. Sacarle la red de seguridad del anonimato.'},
+        {titulo:'Reconocimiento específico',desc:'Cada vez que aparezca en un momento difícil, nombrarlo en el grupo. "Lo que hizo X en esa jugada es lo que necesitamos todos." La visibilidad construye identidad.'},
+      ]
+    };
+  }
+
+  // El Disponible: perfil equilibrado y alto
+  return {
+    key:'disponible',
+    nombre:'El Disponible',
+    color:'#22c55e',
+    desc:'Jugador con un perfil mental equilibrado y sin interferencias significativas. Su talento está disponible la mayor parte del tiempo. Es un activo del equipo dentro y fuera del campo.',
+    riesgo:'Puede estancarse si no se le sube el nivel de exigencia',
+    perfil:'Este jugador ya tiene la base. El trabajo no es corregir — es potenciar. Necesita desafíos más grandes, responsabilidades de liderazgo y objetivos que lo saquen de la zona donde ya es cómodo.',
+    acciones:[
+      {titulo:'Rol de liderazgo activo',desc:'Asignarle responsabilidades formales dentro del grupo: capitán de rutina, referente de alguna línea, mentor de un compañero en desarrollo.'},
+      {titulo:'Objetivos de élite',desc:'Subir el techo: no "jugar bien" sino "ser el mejor en esta dimensión específica de la categoría." Darle una vara que lo estire.'},
+      {titulo:'Seguimiento de mantenimiento',desc:'Re-evaluar cada 6 semanas. No para intervenir — para verificar que las fortalezas se mantienen y que ninguna dimensión empieza a bajar sin ser detectada.'},
+    ]
+  };
+}
+
+function generarSeccionInterpretacion(dims, disc, primary){
+  var arq = detectarArquetipo(dims);
+  var discInfo = DISC_INFO[primary];
+
+  var html = '';
+
+  // Arquetipo
+  html += '<div class="arquetipo-card">';
+  html += '<div class="arquetipo-tag">ARQUETIPO DE RENDIMIENTO MENTAL</div>';
+  html += '<div class="arquetipo-name" style="color:'+arq.color+'">'+arq.nombre+'</div>';
+  html += '<div class="arquetipo-desc">'+arq.desc+'</div>';
+  html += '<div class="arquetipo-riesgo">⚠ '+arq.riesgo+'</div>';
+  html += '</div>';
+
+  // Perfil narrativo
+  html += '<div class="perfil-narrativo">';
+  html += '<h3>LECTURA DEL COACH</h3>';
+  html += '<p>'+arq.perfil+'</p>';
+  html += '</div>';
+
+  // Combinación arquetipo + DISC
+  html += '<div class="semaforo-combinado">';
+  html += '<div class="combo-card"><div class="combo-label">ARQUETIPO MENTAL</div><div class="combo-val" style="color:'+arq.color+'">'+arq.nombre+'</div></div>';
+  html += '<div class="combo-card"><div class="combo-label">ESTILO DE COMPORTAMIENTO</div><div class="combo-val" style="color:'+discInfo.color+'">'+primary+' — '+discInfo.name+'</div></div>';
+  html += '</div>';
+
+  // Acciones concretas
+  html += '<div class="acciones-card">';
+  html += '<h3>ACCIONES PARA ESTA SEMANA</h3>';
+  arq.acciones.forEach(function(a, i){
+    html += '<div class="accion-item">';
+    html += '<div class="accion-num">'+(i+1)+'</div>';
+    html += '<div class="accion-content">';
+    html += '<div class="accion-title">'+a.titulo+'</div>';
+    html += '<div class="accion-desc">'+a.desc+'</div>';
+    html += '</div></div>';
+  });
+  html += '</div>';
+
+  return html;
+}
+// ── FIN MOTOR DE INTERPRETACIÓN ───────────────────────────────
+
+
+var INFORME_DATA = null;
+
+async function generarAnalisisIA(){
+  if(!INFORME_DATA) return;
+  var btn = document.getElementById('btn-ia');
+  var block = document.getElementById('ia-block');
+  var loading = document.getElementById('ia-loading');
+  var content = document.getElementById('ia-content');
+  btn.disabled = true;
+  btn.textContent = '✦ Generando análisis...';
+  block.classList.add('visible');
+  loading.style.display = 'block';
+  content.innerHTML = '';
+
+  var d = INFORME_DATA;
+  var p = d.jugador;
+  var sorted = d.sorted || [];
+  var disc = d.disc || {};
+  var total = Object.values(disc).reduce(function(a,b){return a+b;},0)||1;
+  var discPcts = Object.entries(disc).map(function(e){return e[0]+': '+Math.round(e[1]/total*100)+'%';}).join(', ');
+  var dimsTexto = sorted.map(function(x){return x.label+': '+x.score.toFixed(1);}).join(' | ');
+
+  var prompt = `Sos un especialista en psicología deportiva y rendimiento, experto en el Modelo de Disponibilidad Competitiva (MDC: D = T − I) creado por Eduardo Meljin.
+Escribís en español neutro profesional, con voseo rioplatense pero sin modismos informales ni lenguaje coloquial. Sos directo, técnico, claro y humano. Nunca usás términos vulgares ni expresiones de jerga. Tu tono es el de un informe profesional que leerá un cuerpo técnico y eventualmente el propio jugador.
+
+Datos del jugador:
+- Nombre: ${p.nombre}
+- Posición: ${p.pos||'No especificada'}
+- Club: ${p.club||'No especificado'}
+- Categoría: ${p.cat||'No especificada'}
+- Edad: ${p.edad||'No especificada'} años
+- Disponibilidad: ${d.disponibilidad}% | Interferencia: ${d.interferencia}%
+- Semáforo: ${d.semaforo.label}
+- Perfil DISC dominante: ${d.primary_disc}
+- DISC completo: ${discPcts}
+- Dimensiones (de mayor a menor): ${dimsTexto}
+
+Generá un análisis psico-deportivo completo con estas secciones exactas en JSON:
+{
+  "disponibilidad_general": "2-3 oraciones sobre el nivel general de disponibilidad y qué significa para este jugador",
+  "lectura_tecnica": "3-4 oraciones analizando el perfil de dimensiones: qué sobresale, qué baja, qué patrón forman",
+  "perfil_disc": "2-3 oraciones sobre cómo se comporta este jugador bajo presión según su DISC",
+  "fortaleza_clave": "1 oración concisa sobre la dimensión más alta y cómo capitalizarla",
+  "zona_a_trabajar": "1 oración concisa sobre la dimensión más baja y por qué es prioritaria",
+  "lectura_del_coach": "3-4 oraciones en cursiva, dirigidas al DT, con la lectura cualitativa más importante",
+  "accion_1_titulo": "título corto",
+  "accion_1_desc": "descripción práctica de 2 oraciones",
+  "accion_2_titulo": "título corto",
+  "accion_2_desc": "descripción práctica de 2 oraciones",
+  "accion_3_titulo": "título corto",
+  "accion_3_desc": "descripción práctica de 2 oraciones",
+  "sintesis_mdc": "2-3 oraciones con la síntesis D = T − I aplicada a este jugador específico"
+}
+Respondé SOLO con el JSON, sin texto adicional, sin markdown.`;
+
+  try {
+    var resp = await fetch('https://analisis-scp.eduardomeljin.workers.dev', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:1500,
+        messages:[{role:'user',content:prompt}]
+      })
+    });
+    var data = await resp.json();
+    var text = data.content && data.content[0] && data.content[0].text || '';
+    var clean = text.replace(/```json|```/g,'').trim();
+    var ai = JSON.parse(clean);
+
+    var html = '<div class="ia-tag">ANÁLISIS GENERADO CON IA — Sport Coaching Pro</div>';
+    html += '<div class="ia-section"><h4>Disponibilidad general</h4><p>'+ai.disponibilidad_general+'</p></div>';
+    html += '<div class="ia-section"><h4>Lectura técnica</h4><p>'+ai.lectura_tecnica+'</p></div>';
+    html += '<div class="ia-section"><h4>Perfil DISC</h4><p>'+ai.perfil_disc+'</p></div>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">';
+    html += '<div style="background:#0a2a0a;border:1px solid #22c55e44;border-radius:10px;padding:14px;min-height:80px"><div style="font-size:10px;font-weight:700;color:#22c55e;margin-bottom:8px;letter-spacing:0.05em">✦ FORTALEZA CLAVE</div><p style="font-size:13px;color:#e8eff8;line-height:1.6;margin:0">'+ai.fortaleza_clave+'</p></div>';
+    html += '<div style="background:#1a1200;border:1px solid #f59e0b44;border-radius:10px;padding:14px;min-height:80px"><div style="font-size:10px;font-weight:700;color:#f59e0b;margin-bottom:8px;letter-spacing:0.05em">⚠ ZONA A TRABAJAR</div><p style="font-size:13px;color:#e8eff8;line-height:1.6;margin:0">'+ai.zona_a_trabajar+'</p></div>';
+    html += '</div>';
+    html += '<div class="ia-section"><h4>Lectura del coach</h4><p><em>'+ai.lectura_del_coach+'</em></p></div>';
+    html += '<div class="ia-section"><h4>Acciones para esta semana</h4>';
+    [[ai.accion_1_titulo,ai.accion_1_desc],[ai.accion_2_titulo,ai.accion_2_desc],[ai.accion_3_titulo,ai.accion_3_desc]].forEach(function(a,i){
+      html += '<div style="display:flex;gap:10px;margin-bottom:12px"><div style="width:24px;height:24px;border-radius:50%;background:#00c2ff;color:#0a0f1e;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(i+1)+'</div><div><div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:2px">'+a[0]+'</div><div style="font-size:12px;color:#8fa3bf;line-height:1.5">'+a[1]+'</div></div></div>';
+    });
+    html += '</div>';
+    html += '<div style="background:#160a2a;border:1px solid #7c3aed44;border-radius:10px;padding:14px"><div style="font-size:10px;font-weight:700;color:#7c3aed;margin-bottom:6px">SÍNTESIS MDC — D = T − I</div><p style="font-size:13px;color:#e8eff8;line-height:1.6">'+ai.sintesis_mdc+'</p></div>';
+
+    loading.style.display = 'none';
+    content.innerHTML = html;
+    window.IA_DATA = ai;
+    btn.textContent = '✦ Análisis generado — regenerar';
+    btn.disabled = false;
+  } catch(e){
+    loading.style.display = 'none';
+    content.innerHTML = '<p style="color:#ef4444;font-size:13px">Error al generar el análisis. Intentá nuevamente.</p>';
+    btn.textContent = '✦ Generar análisis completo con IA';
+    btn.disabled = false;
+  }
+}
+
+function showError(){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('content').innerHTML='<div class="error-card"><h2>Informe no encontrado</h2><p>El link puede haber expirado o ser incorrecto. Pedile al jugador que complete el test nuevamente.</p></div>';
+  document.getElementById('content').style.display='block';
+}
+
+var params = new URLSearchParams(window.location.search);
+var supaId = params.get('id');
+
+if(supaId) {
+  // Load from Supabase by ID
+  fetch('https://gltqhcnusblfovhxljcs.supabase.co/rest/v1/resultados?id=eq.'+supaId+'&select=*', {
+    headers: {
+      'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI',
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI'
+    }
+  }).then(function(r){ return r.json(); })
+  .then(function(data){
+    if(!data||!data.length){ showError(); return; }
+    var r = data[0];
+    // Map Supabase fields to informe format
+    var informe = {
+      jugador: { nombre: r.jugador_nombre, edad: r.jugador_edad, pos: r.jugador_pos, club: r.jugador_club, cat: r.jugador_cat },
+      fecha: r.fecha,
+      semaforo: { color: r.semaforo_color, label: r.semaforo_label, desc: r.semaforo_label },
+      disponibilidad: r.disponibilidad,
+      interferencia: r.interferencia,
+      scores: r.scores,
+      dims: r.dims,
+      disc: r.disc,
+      primary_disc: r.primary_disc,
+      sorted: r.sorted,
+      logo_url: r.logo_url || null
+    };
+    renderInforme(informe);
+    INFORME_DATA = informe;
+  }).catch(function(){ showError(); });
+} else {
+  showError();
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+var INFORME_DATA=null;
+
+function guardarDatosInforme(data){INFORME_DATA=data;}
+
+// ── HELPERS GRÁFICOS ─────────────────────────────────────────────────────────
+function hexRgb(hex){
+  hex=hex.replace('#','');
+  return[parseInt(hex.slice(0,2),16),parseInt(hex.slice(2,4),16),parseInt(hex.slice(4,6),16)];
+}
+
+// Fan de triángulos rellenos desde un centro — funciona correctamente en jsPDF
+// CRÍTICO: setFillColor debe ir dentro del loop, justo antes de cada triangle()
+function drawFilledFan(doc, cx, cy, pts, r, g, b){
+  var n=pts.length;
+  for(var i=0;i<n;i++){
+    var a=pts[i], bb=pts[(i+1)%n];
+    doc.setFillColor(r,g,b);
+    doc.triangle(cx,cy,a[0],a[1],bb[0],bb[1],'F');
+  }
+}
+
+// ── RADAR SPIDER ─────────────────────────────────────────────────────────────
+function dibujarRadar(doc, cx, cy, r, labels, values, maxVal){
+  var n=labels.length;
+  var step=Math.PI*2/n;
+  var off=-Math.PI/2;
+
+  // Fondo: anillos de exterior a interior (de oscuro a claro para que se vean)
+  for(var lvl=maxVal;lvl>=1;lvl--){
+    var rr=r*(lvl/maxVal);
+    var pts=[];
+    for(var i=0;i<n;i++){ var a=off+step*i; pts.push([cx+Math.cos(a)*rr,cy+Math.sin(a)*rr]); }
+    var shade=lvl%2===0?[228,236,252]:[240,245,255];
+    drawFilledFan(doc,cx,cy,pts,shade[0],shade[1],shade[2]);
+  }
+
+  // Bordes de anillos
+  for(var lvl=1;lvl<=maxVal;lvl++){
+    var rr=r*(lvl/maxVal);
+    var pts=[];
+    for(var i=0;i<n;i++){ var a=off+step*i; pts.push([cx+Math.cos(a)*rr,cy+Math.sin(a)*rr]); }
+    doc.setDrawColor(190,208,235);doc.setLineWidth(0.22);
+    for(var i=0;i<n;i++){ var ni=(i+1)%n; doc.line(pts[i][0],pts[i][1],pts[ni][0],pts[ni][1]); }
+  }
+
+  // Ejes radiales
+  doc.setDrawColor(180,200,228);doc.setLineWidth(0.28);
+  for(var i=0;i<n;i++){
+    var a=off+step*i;
+    doc.line(cx,cy,cx+Math.cos(a)*r,cy+Math.sin(a)*r);
+  }
+
+  // Polígono de datos — relleno celeste sólido
+  var dataPts=values.map(function(v,i){
+    var a=off+step*i;
+    var rr=r*(Math.min(Math.max(v,0),maxVal)/maxVal);
+    return[cx+Math.cos(a)*rr,cy+Math.sin(a)*rr];
+  });
+  drawFilledFan(doc,cx,cy,dataPts,100,200,240);
+
+  // Contorno del polígono de datos
+  doc.setDrawColor(0,170,220);doc.setLineWidth(1.1);
+  for(var i=0;i<dataPts.length;i++){
+    var ni=(i+1)%dataPts.length;
+    doc.line(dataPts[i][0],dataPts[i][1],dataPts[ni][0],dataPts[ni][1]);
+  }
+
+  // Puntos coloreados en vértices
+  var dCol=['#00c2ff','#8b5cf6','#22c55e','#f59e0b','#ef4444','#0891b2','#a855f7','#f97316','#06b6d4','#10b981','#fbbf24','#6366f1'];
+  dataPts.forEach(function(pt,i){
+    var rgb=hexRgb(dCol[i%dCol.length]);
+    doc.setFillColor(rgb[0],rgb[1],rgb[2]);
+    doc.circle(pt[0],pt[1],1.5,'F');
+    doc.setFillColor(255,255,255);
+    doc.circle(pt[0],pt[1],0.5,'F');
+  });
+
+  // Valores numéricos junto a cada punto
+  doc.setFont('helvetica','bold');doc.setFontSize(6.2);
+  dataPts.forEach(function(pt,i){
+    var a=off+step*i;
+    var rgb=hexRgb(dCol[i%dCol.length]);
+    doc.setTextColor(rgb[0],rgb[1],rgb[2]);
+    // Offset radial hacia afuera del centro para no tapar el punto
+    var ox=Math.cos(a)*4, oy=Math.sin(a)*4;
+    doc.text(values[i].toFixed(1),pt[0]+ox,pt[1]+oy+1,{align:'center'});
+  });
+
+  // Etiquetas exteriores — sin recorte
+  var lR=r+10;
+  doc.setFont('helvetica','normal');doc.setFontSize(6.0);doc.setTextColor(40,60,100);
+  labels.forEach(function(lbl,i){
+    var a=off+step*i;
+    var lx=cx+Math.cos(a)*lR;
+    var ly=cy+Math.sin(a)*lR;
+    var align='center';
+    if(Math.cos(a)<-0.25) align='right';
+    else if(Math.cos(a)>0.25) align='left';
+    doc.text(lbl,lx,ly+1.5,{align:align});
+  });
+}
+
+// ── CAPAS MDC (barras horizontales) ─────────────────────────────────────────
+function dibujarCapasMDC(doc, x, y, w, capas){
+  var rowH=12;
+  var barStart=x+58;
+  var barMaxW=w-62;
+
+  capas.forEach(function(capa,idx){
+    var rgb=hexRgb(capa.color);
+    var ry=y+idx*rowH;
+
+    // Fondo de fila
+    doc.setFillColor(idx%2===0?238:230, idx%2===0?243:238, idx%2===0?252:250);
+    doc.rect(x,ry,w,rowH-0.6,'F');
+
+    // Acento lateral color de capa
+    doc.setFillColor(rgb[0],rgb[1],rgb[2]);
+    doc.rect(x,ry,4,rowH-0.6,'F');
+
+    // Barra fondo
+    doc.setFillColor(208,218,238);
+    doc.roundedRect(barStart,ry+3.5,barMaxW,5,1,1,'F');
+
+    // Barra relleno — proporcional al score
+    var fw=Math.max((capa.avg/5)*barMaxW,1.5);
+    doc.setFillColor(rgb[0],rgb[1],rgb[2]);
+    doc.roundedRect(barStart,ry+3.5,fw,5,1,1,'F');
+
+    // Nombre
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+    doc.setTextColor(rgb[0],rgb[1],rgb[2]);
+    doc.text(capa.nombre,x+6,ry+7.5);
+
+    // Descripción
+    doc.setFont('helvetica','normal');doc.setFontSize(5.5);
+    doc.setTextColor(100,118,148);
+    doc.text(capa.desc,barStart+2,ry+8);
+
+    // Score con semáforo
+    var sc=capa.avg>=4?[34,197,94]:capa.avg>=3?[245,158,11]:[239,68,68];
+    doc.setFont('helvetica','bold');doc.setFontSize(9);
+    doc.setTextColor(sc[0],sc[1],sc[2]);
+    doc.text(capa.avg.toFixed(1),x+w-3,ry+8,{align:'right'});
+  });
+
+  // Flecha roja → capa de menor score
+  var minIdx=0;
+  capas.forEach(function(c,i){ if(c.avg>0&&(capas[minIdx].avg<=0||c.avg<capas[minIdx].avg)) minIdx=i; });
+  var ay=y+minIdx*rowH+rowH/2;
+  doc.setDrawColor(239,68,68);doc.setLineWidth(0.9);
+  doc.line(x+w+2,ay,x+w+8,ay);
+  doc.setFillColor(239,68,68);
+  doc.triangle(x+w+8,ay-2,x+w+8,ay+2,x+w+12,ay,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(6.5);
+  doc.setTextColor(239,68,68);
+  doc.text('INTERFERENCIA',x+w+14,ay+1.5);
+}
+
+// ── TORTA DISC ───────────────────────────────────────────────────────────────
+function dibujarTortaDISC(doc, cx, cy, r, disc){
+  var order=['D','I','S','C'];
+  var colors={D:[220,50,50],I:[230,140,10],S:[30,180,80],C:[120,70,220]};
+  var names={D:'Dominante',I:'Influyente',S:'Estable',C:'Concienzudo'};
+  var total=Object.values(disc).reduce(function(a,b){return a+b;},0)||1;
+  var STEPS=60;
+  var startA=-Math.PI/2;
+
+  order.forEach(function(k){
+    var val=disc[k]||0; if(!val)return;
+    var pct=val/total;
+    var endA=startA+pct*Math.PI*2;
+    var col=colors[k];
+    var steps=Math.max(5,Math.round(pct*STEPS));
+
+    // Sector: fan de triángulos — setFillColor DENTRO del loop
+    for(var s=0;s<steps;s++){
+      var a1=startA+(endA-startA)*s/steps;
+      var a2=startA+(endA-startA)*(s+1)/steps;
+      doc.setFillColor(col[0],col[1],col[2]);
+      doc.triangle(
+        cx, cy,
+        cx+Math.cos(a1)*r, cy+Math.sin(a1)*r,
+        cx+Math.cos(a2)*r, cy+Math.sin(a2)*r,
+        'F'
+      );
+    }
+
+    // Separador blanco
+    doc.setDrawColor(255,255,255);doc.setLineWidth(1.0);
+    doc.line(cx,cy,cx+Math.cos(startA)*r,cy+Math.sin(startA)*r);
+
+    // Etiqueta dentro del sector
+    if(pct>0.05){
+      var midA=startA+pct*Math.PI;
+      var lx=cx+Math.cos(midA)*(r*0.58);
+      var ly=cy+Math.sin(midA)*(r*0.58);
+      doc.setFont('helvetica','bold');doc.setFontSize(10);
+      doc.setTextColor(255,255,255);
+      doc.text(k,lx,ly+1.5,{align:'center'});
+      doc.setFontSize(7);
+      doc.text(Math.round(pct*100)+'%',lx,ly+6,{align:'center'});
+    }
+    startA=endA;
+  });
+
+  // Borde exterior
+  doc.setDrawColor(160,180,215);doc.setLineWidth(0.6);
+  doc.circle(cx,cy,r,'S');
+
+  // Leyenda derecha
+  var legX=cx+r+8, legY=cy-r+2;
+  order.forEach(function(k,i){
+    var col=colors[k];
+    var pct=Math.round(((disc[k]||0)/total)*100);
+    doc.setFillColor(col[0],col[1],col[2]);
+    doc.roundedRect(legX,legY+i*11,5,5,0.8,0.8,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);
+    doc.setTextColor(col[0],col[1],col[2]);
+    doc.text(k,legX+7,legY+i*11+4.2);
+    doc.setFont('helvetica','normal');doc.setFontSize(7);
+    doc.setTextColor(45,65,105);
+    doc.text(names[k]+'  '+pct+'%',legX+13,legY+i*11+4.2);
+  });
+}
+
+function generarPDFInforme(){
+  if(!window.jspdf){alert('Libreria PDF cargando, intenta en unos segundos.');return;}
+  if(!INFORME_DATA){alert('Carga el informe primero.');return;}
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+
+  // Normalizar texto para PDF (quitar tildes y caracteres especiales)
+  function n(str){
+    if(!str)return'';
+    return String(str)
+      .replace(/á/g,'a').replace(/é/g,'e').replace(/í/g,'i').replace(/ó/g,'o').replace(/ú/g,'u')
+      .replace(/Á/g,'A').replace(/É/g,'E').replace(/Í/g,'I').replace(/Ó/g,'O').replace(/Ú/g,'U')
+      .replace(/ñ/g,'n').replace(/Ñ/g,'N').replace(/ü/g,'u').replace(/Ü/g,'U')
+      .replace(/[^\x00-\x7F]/g,'?');
+  }
+  var p=INFORME_DATA.jugador;
+  var sem=INFORME_DATA.semaforo;
+  var sorted=INFORME_DATA.sorted;
+  var disc=INFORME_DATA.disc;
+  var primary=INFORME_DATA.primary_disc;
+  var discInfo=DISC_INFO[primary]||{};
+  var disponibilidad=INFORME_DATA.disponibilidad||0;
+
+  function color(hex){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return[r,g,b];}
+  function semCol(pct){return pct>=75?[34,197,94]:pct>=50?[245,158,11]:[239,68,68];}
+  function barra(x,y,label,val,max,col){
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(60,80,120);
+    doc.text(label.substring(0,22),x,y+3.5);
+    doc.setFillColor(245,248,255);doc.roundedRect(x+55,y,65,5,1,1,'F');
+    if(val!=null){var w=Math.max(Math.round((val/max)*65),1);doc.setFillColor(...col);doc.roundedRect(x+55,y,w,5,1,1,'F');doc.setTextColor(...col);doc.setFont('helvetica','bold');doc.text(val.toFixed(1)+'/'+max,x+123,y+3.8);}
+    return y+8;
+  }
+  function seccion(x,y,titulo){
+    doc.setFillColor(230,237,250);doc.rect(x,y,182,6,'F');
+    doc.setFillColor(0,194,255);doc.rect(x,y,2,6,'F');
+    doc.setTextColor(10,40,100);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text(n(titulo),x+5,y+4.2);
+    return y+10;
+  }
+
+  // Header
+  doc.setFillColor(10,40,100);doc.rect(0,0,210,34,'F');
+  doc.setFillColor(0,194,255);doc.rect(0,34,210,1.5,'F');
+  doc.setTextColor(0,194,255);doc.setFontSize(9);doc.setFont('helvetica','bold');doc.text(n('SPORT COACHING PRO'),14,11);
+  doc.setTextColor(30,40,60);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(n('Eduardo Meljin - sportcoachingpro.com'),14,17);
+  doc.setTextColor(255,255,255);doc.setFontSize(15);doc.setFont('helvetica','bold');doc.text(n(p.nombre||'-'),14,28);
+  // Info derecha
+  doc.setTextColor(60,80,120);doc.setFontSize(7.5);doc.setFont('helvetica','normal');
+  var meta=[];
+  if(p.pos)meta.push(p.pos);if(p.club)meta.push(p.club);if(p.cat)meta.push('Cat. '+p.cat);
+  doc.text(n(meta.join(' - ')),140,11);
+  doc.text(n('INFORME PSICO-DEPORTIVO'),140,17);
+  if(INFORME_DATA.fecha){var fd=new Date(INFORME_DATA.fecha);doc.text(fd.toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'}),140,23);}
+  var y=44;
+
+  // Cards disponibilidad y disc
+  var scol=semCol(disponibilidad);
+  doc.setFillColor(245,248,255);doc.roundedRect(14,y,55,20,2,2,'F');
+  doc.setFillColor(...scol);doc.rect(14,y,2,20,'F');
+  doc.setTextColor(...scol);doc.setFontSize(20);doc.setFont('helvetica','bold');doc.text(disponibilidad+'%',41,y+13,'center');
+  doc.setTextColor(60,80,120);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(n('DISPONIBILIDAD MDC'),41,y+18.5,'center');
+
+  if(discInfo){
+    var dcol=color(discInfo.color||'#8b5cf6');
+    doc.setFillColor(245,248,255);doc.roundedRect(73,y,55,20,2,2,'F');
+    doc.setFillColor(...dcol);doc.rect(73,y,2,20,'F');
+    doc.setTextColor(...dcol);doc.setFontSize(18);doc.setFont('helvetica','bold');doc.text(primary||'—',100,y+12,'center');
+    doc.setTextColor(60,80,120);doc.setFontSize(7);doc.setFont('helvetica','normal');doc.text(n('DISC - ')+(discInfo.name||''),100,y+18.5,'center');
+  }
+
+  // Semaforo descripcion
+  var rawLabel=(sem&&sem.label)||'-';
+  // Sacar todo lo que no sea ASCII básico y quedarse con la parte descriptiva
+  var semLabel=rawLabel.replace(/[^\x20-\x7E\xC0-\xFF]/g,'').replace(/^\s*[\-?]+\s*/,'').trim();
+  if(!semLabel)semLabel=rawLabel.replace(/[^\w\s\-áéíóúÁÉÍÓÚñÑ]/g,'').trim();
+  semLabel=n(semLabel);
+  doc.setFillColor(245,248,255);doc.roundedRect(132,y,64,20,2,2,'F');
+  doc.setFillColor(...scol);doc.rect(132,y,2,20,'F');
+  doc.setTextColor(...scol);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+  var semParts=doc.splitTextToSize(semLabel,58);
+  semParts.slice(0,2).forEach(function(l,i){doc.text(l,164,y+8+i*5,'center');});
+  doc.setTextColor(30,40,60);doc.setFontSize(6);doc.setFont('helvetica','normal');
+  var semDesc=n((sem&&sem.desc)||'');
+  var semDescLines=doc.splitTextToSize(semDesc,58);
+  semDescLines.slice(0,1).forEach(function(l,i){doc.text(l,164,y+17,'center');});
+  y+=26;
+
+  // ── PÁGINA 1: RADAR (ocupa el resto de la página) ───────────────────────────
+  y=seccion(14,y,'PERFIL MENTAL POR DIMENSION (/5)');
+  var radarLabels=DIMS.map(function(d){return d.label;});
+  var radarValues=DIMS.map(function(d){return (INFORME_DATA.dims&&INFORME_DATA.dims[d.key])||0;});
+  var radarCX=105, radarCY=y+50, radarR=42;
+  dibujarRadar(doc,radarCX,radarCY,radarR,radarLabels,radarValues,5);
+
+  // ── PÁGINA 2: BARRAS + CAPAS MDC + TORTA DISC ───────────────────────────────
+  doc.addPage(); y=20;
+
+  // Barras por dimensión
+  y=seccion(14,y,'PERFIL POR DIMENSION (/5)');
+  (sorted||[]).forEach(function(d){
+    var col=color(d.color||'#00c2ff');
+    y=barra(14,y,d.label,d.score,5,col);
+  });
+  y+=5;
+
+  // 5 Capas MDC
+  y=seccion(14,y,'LAS 5 CAPAS DEL MDC — D = T - I');
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(100,120,160);
+  doc.text(n('Cada capa es condicion de la siguiente. La interferencia aparece en la capa mas debil.'),19,y);
+  y+=6;
+
+  var capasData=[
+    {nombre:'IDENTIDAD',     key:['autoconocimiento','confianza'],              color:'#8b5cf6', desc:'Quien sos cuando todo presiona'},
+    {nombre:'REGULACION',    key:['regulacion','consistencia'],                 color:'#0891b2', desc:'Como gestionar la emocion y presion'},
+    {nombre:'ENERGIA',       key:['motivacion','liderazgo'],                    color:'#f59e0b', desc:'Motor interno que sostiene el esfuerzo'},
+    {nombre:'CAPACIDAD',     key:['atencion','metacognicion','toma_decisiones'],color:'#22c55e', desc:'Como ejecutas bajo presion real'},
+    {nombre:'COMPETITIVIDAD',key:['competitividad','desempeno'],                color:'#ef4444', desc:'Disposicion a dar lo mejor cuando mas importa'},
+  ];
+  var dims=INFORME_DATA.dims||{};
+  var capasConScore=capasData.map(function(c){
+    var scores=c.key.map(function(k){return dims[k]||0;}).filter(function(v){return v>0;});
+    var avg=scores.length?scores.reduce(function(a,b){return a+b;},0)/scores.length:0;
+    return{nombre:c.nombre,avg:avg,color:c.color,desc:c.desc};
+  });
+  dibujarCapasMDC(doc,14,y,158,capasConScore);
+  y+=capasData.length*12+6;
+
+  // Alerta interferencia
+  var capasValidas=capasConScore.filter(function(c){return c.avg>0;});
+  if(capasValidas.length){
+    var capaMin=capasValidas.reduce(function(a,b){return b.avg<a.avg?b:a;});
+    doc.setFillColor(255,232,232);doc.roundedRect(14,y,182,10,2,2,'F');
+    doc.setFillColor(239,68,68);doc.rect(14,y,2.5,10,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(190,20,20);
+    doc.text(n('INTERFERENCIA PRINCIPAL: '+capaMin.nombre+' ('+capaMin.avg.toFixed(1)+'/5) — Esta capa limita la disponibilidad.'),19,y+6.5);
+    y+=14;
+  }
+  y+=4;
+
+  // Torta DISC
+  if(y>210){doc.addPage();y=20;}
+  y=seccion(14,y,'PERFIL DISC - DISTRIBUCION');
+  var tortaCX=55, tortaCY=y+32, tortaR=28;
+  dibujarTortaDISC(doc,tortaCX,tortaCY,tortaR,disc||{});
+  y+=72;
+
+  // Análisis IA si existe
+  // Análisis IA estructurado
+  var iaContent=document.getElementById('ia-content');
+  if(iaContent&&iaContent.innerHTML&&iaContent.innerHTML.trim().length>20&&window.IA_DATA){
+    var ai=window.IA_DATA;
+    y+=4;
+    if(y>180){doc.addPage();y=20;}
+    y=seccion(14,y,'ANALISIS IA - LECTURA DEL COACH');
+
+    function pdfTextBlock(label,texto,col){
+      if(!texto)return;
+      if(y>250){doc.addPage();y=20;}
+      if(label){
+        doc.setFillColor(245,248,255);doc.roundedRect(14,y,182,5,1,1,'F');
+        doc.setTextColor(col||140,typeof col==='object'?col[1]:163,typeof col==='object'?col[2]:191);
+        doc.setFontSize(7);doc.setFont('helvetica','bold');
+        doc.text(n(label),19,y+3.5);y+=7;
+      }
+      var lines=doc.splitTextToSize(n(texto),168);
+      doc.setTextColor(30,40,60);doc.setFontSize(7.5);doc.setFont('helvetica','normal');
+      lines.forEach(function(l){doc.text(l,19,y);y+=4.5;if(y>270){doc.addPage();y=20;}});
+      y+=3;
+    }
+
+    pdfTextBlock('DISPONIBILIDAD GENERAL',ai.disponibilidad_general);
+    pdfTextBlock('LECTURA TECNICA',ai.lectura_tecnica);
+    pdfTextBlock('PERFIL DISC',ai.perfil_disc);
+
+    // Fortaleza y zona
+    if(ai.fortaleza_clave||ai.zona_a_trabajar){
+      if(y>240){doc.addPage();y=20;}
+      doc.setFillColor(235,252,240);doc.roundedRect(14,y,87,16,2,2,'F');
+      doc.setFillColor(34,197,94);doc.rect(14,y,2,16,'F');
+      doc.setTextColor(34,197,94);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('FORTALEZA CLAVE',19,y+5);
+      doc.setTextColor(30,40,60);doc.setFont('helvetica','normal');doc.setFontSize(7);
+      var fLines=doc.splitTextToSize(n(ai.fortaleza_clave||''),77);
+      fLines.slice(0,2).forEach(function(l,i){doc.text(l,19,y+10+i*4);});
+      doc.setFillColor(255,248,230);doc.roundedRect(109,y,87,16,2,2,'F');
+      doc.setFillColor(245,158,11);doc.rect(109,y,2,16,'F');
+      doc.setTextColor(245,158,11);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('ZONA A TRABAJAR',114,y+5);
+      doc.setTextColor(30,40,60);doc.setFont('helvetica','normal');
+      var zLines=doc.splitTextToSize(n(ai.zona_a_trabajar||''),77);
+      zLines.slice(0,2).forEach(function(l,i){doc.text(l,114,y+10+i*4);});
+      y+=20;
+    }
+
+    pdfTextBlock('LECTURA DEL COACH',ai.lectura_del_coach);
+
+    // Acciones
+    if(y>230){doc.addPage();y=20;}
+    doc.setFillColor(245,248,255);doc.roundedRect(14,y,182,5,1,1,'F');
+    doc.setTextColor(0,194,255);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('ACCIONES PARA ESTA SEMANA',19,y+3.5);y+=7;
+    [[ai.accion_1_titulo,ai.accion_1_desc],[ai.accion_2_titulo,ai.accion_2_desc],[ai.accion_3_titulo,ai.accion_3_desc]].forEach(function(a,i){
+      if(!a[0])return;
+      if(y>255){doc.addPage();y=20;}
+      doc.setFillColor(0,194,255);doc.circle(18,y+3,3,'F');
+      doc.setTextColor(13,27,62);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text(String(i+1),18,y+4.5,'center');
+      doc.setTextColor(30,40,60);doc.setFontSize(8);doc.setFont('helvetica','bold');doc.text(n(a[0]),24,y+4);
+      y+=7;
+      var dLines=doc.splitTextToSize(n(a[1]||''),168);
+      doc.setTextColor(30,40,60);doc.setFontSize(7.5);doc.setFont('helvetica','normal');
+      dLines.forEach(function(l){doc.text(l,24,y);y+=4.5;if(y>270){doc.addPage();y=20;}});
+      y+=3;
+    });
+
+    // Síntesis MDC
+    if(ai.sintesis_mdc){
+      if(y>250){doc.addPage();y=20;}
+      doc.setFillColor(245,240,255);doc.roundedRect(14,y,182,5,1,1,'F');
+      doc.setFillColor(124,58,237);doc.rect(14,y,2,5,'F');
+      doc.setTextColor(124,58,237);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('SINTESIS MDC - D = T - I',19,y+3.5);y+=7;
+      var sLines=doc.splitTextToSize(n(ai.sintesis_mdc),168);
+      doc.setTextColor(30,40,60);doc.setFontSize(7.5);doc.setFont('helvetica','normal');
+      sLines.forEach(function(l){doc.text(l,19,y);y+=4.5;if(y>270){doc.addPage();y=20;}});
+    }
+  }
+
+  // Nota coach — solo si no hay análisis IA
+  if(!window.IA_DATA){
+    y+=4;
+    if(y>240){doc.addPage();y=20;}
+    doc.setFillColor(245,248,255);doc.roundedRect(14,y,182,14,2,2,'F');
+    doc.setFillColor(124,58,237);doc.rect(14,y,2,14,'F');
+    doc.setTextColor(124,58,237);doc.setFontSize(7.5);doc.setFont('helvetica','bold');doc.text(n('SINTESIS MDC - D = T - I'),19,y+5);
+    doc.setTextColor(30,40,60);doc.setFont('helvetica','normal');
+    var sintesis='Disponibilidad: '+disponibilidad+'% | DISC: '+primary+' ('+((discInfo&&discInfo.name)||'')+'). La interferencia reduce el talento disponible. Trabajar con foco sostenido.';
+    var sLines=doc.splitTextToSize(sintesis,168);
+    sLines.forEach(function(l,i){doc.text(n(l),19,y+10+i*4);});
+    y+=16;
+  }
+
+  // Footer
+  doc.setFillColor(230,237,250);doc.rect(0,282,210,15,'F');
+  doc.setTextColor(80,100,130);doc.setFontSize(6.5);doc.setFont('helvetica','normal');
+  doc.text(n('Sport Coaching Pro - Eduardo Meljin - sportcoachingpro.com'),14,289);
+  doc.text(n('Modelo de Disponibilidad Competitiva (MDC) - D = T - I - Uso exclusivo del cuerpo tecnico'),14,293.5);
+
+  doc.save('Informe_'+(p.nombre||'jugador').replace(/\s+/g,'_')+'.pdf');
+}
+</script>
+</body>
+</html>

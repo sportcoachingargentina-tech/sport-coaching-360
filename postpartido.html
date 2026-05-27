@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Post Partido — Sport Coaching 360</title>
+<meta property="og:title" content="✅ Evaluación Post Partido — Sport Coaching Pro" id="og-title">
+<meta property="og:description" content="Completá tu autoevaluación mental post partido. Sport Coaching Pro · Eduardo Meljin" id="og-desc">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0f1e;color:#e8eff8;min-height:100vh}
+.topbar{background:#0d1b3e;border-bottom:2px solid #00c2ff;padding:0.75rem 1rem;text-align:center}
+.topbar-logo{font-size:13px;font-weight:700;color:#00c2ff;letter-spacing:0.08em}
+.topbar-sub{font-size:11px;color:#8fa3bf;margin-top:2px}
+.app{max-width:600px;margin:0 auto;padding:1.5rem 1rem 4rem}
+.screen{display:none}.screen.active{display:block}
+.cover{padding:2rem 0}
+.cover-tag{display:inline-block;font-size:11px;font-weight:600;color:#00c2ff;border:1px solid #00c2ff33;padding:4px 14px;border-radius:20px;margin-bottom:1.25rem;letter-spacing:0.06em}
+.cover h1{font-size:24px;font-weight:700;color:#fff;margin-bottom:8px;line-height:1.2}
+.cover h1 span{color:#00c2ff}
+.cover p{font-size:14px;color:#8fa3bf;margin-bottom:2rem;line-height:1.6}
+.partido-info{background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:1.25rem;margin-bottom:1.5rem}
+.partido-info .pi-label{font-size:11px;color:#8fa3bf;font-weight:600;letter-spacing:0.05em;margin-bottom:4px}
+.partido-info .pi-val{font-size:16px;font-weight:700;color:#fff}
+.partido-info .pi-sub{font-size:13px;color:#00c2ff;margin-top:2px}
+.cover-card{background:#141f3a;border:1px solid #1a3a6e;border-radius:16px;padding:1.5rem;margin-bottom:1.5rem}
+.cover-card h2{font-size:12px;font-weight:600;color:#8fa3bf;letter-spacing:0.05em;margin-bottom:1rem;text-transform:uppercase}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:12px;color:#8fa3bf;margin-bottom:5px}
+.fg input,.fg select{width:100%;padding:10px 12px;border:1px solid #1a3a6e;border-radius:10px;font-size:14px;background:#0d1b3e;color:#e8eff8;-webkit-appearance:none}
+.fg input:focus,.fg select:focus{outline:none;border-color:#00c2ff}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-start{width:100%;padding:14px;background:#00c2ff;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#0a0f1e;cursor:pointer;margin-top:8px}
+.progress-wrap{margin-bottom:1.25rem}
+.progress-top{display:flex;justify-content:space-between;font-size:11px;color:#8fa3bf;margin-bottom:6px}
+.progress-bar{height:4px;background:#141f3a;border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;border-radius:2px;background:#00c2ff;transition:width 0.4s ease}
+.q-block{background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:1.25rem;margin-bottom:1rem}
+.q-num{font-size:11px;color:#8fa3bf;font-weight:600;margin-bottom:6px;letter-spacing:0.04em}
+.q-text{font-size:15px;font-weight:600;color:#fff;line-height:1.5;margin-bottom:1rem}
+.scale-wrap{display:flex;gap:6px;justify-content:space-between}
+.scale-btn{flex:1;padding:10px 4px;border:1px solid #1a3a6e;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;background:#0d1b3e;color:#8fa3bf;text-align:center;transition:all 0.15s;min-width:0;-webkit-tap-highlight-color:transparent;user-select:none}
+.scale-btn:active,.scale-btn.selected{border-color:#00c2ff;background:#0a2050;color:#00c2ff}
+.scale-labels{display:flex;justify-content:space-between;font-size:10px;color:#8fa3bf;margin-top:6px;padding:0 2px}
+.section-title{font-size:11px;font-weight:700;color:#00c2ff;letter-spacing:0.08em;margin:1.5rem 0 0.75rem;text-transform:uppercase}
+.physical-block{background:#141f3a;border:1px solid #f59e0b33;border-radius:14px;padding:1.25rem;margin-bottom:1rem}
+.physical-block .q-num{color:#f59e0b}
+.physical-scale .scale-btn.selected{border-color:#f59e0b;background:#1a1200;color:#f59e0b}
+.textarea-block{background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:1.25rem;margin-bottom:1rem}
+.textarea-block textarea{width:100%;background:#0d1b3e;border:1px solid #1a3a6e;border-radius:10px;color:#e8eff8;font-size:14px;padding:10px 12px;min-height:80px;resize:vertical;font-family:inherit}
+.textarea-block textarea:focus{outline:none;border-color:#00c2ff}
+.nav{display:flex;gap:10px;margin-top:1rem}
+.btn-prev{padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid #1a3a6e;background:#141f3a;color:#8fa3bf}
+.btn-prev:disabled{opacity:0.35;cursor:default}
+.btn-next{flex:1;padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;background:#00c2ff;color:#0a0f1e}
+.btn-next:disabled{background:#1a3a6e;color:#8fa3bf;cursor:default}
+.thanks{text-align:center;padding:3rem 1rem}
+.thanks h2{font-size:22px;font-weight:700;color:#fff;margin-bottom:10px}
+.thanks p{font-size:14px;color:#8fa3bf;line-height:1.6}
+.thanks .check{font-size:48px;margin-bottom:1rem}
+.error-msg{text-align:center;padding:3rem 1rem;color:#ef4444}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-logo">SPORT COACHING PRO</div>
+  <div class="topbar-sub">Eduardo Meljin · sportcoachingpro.com</div>
+</div>
+<div class="app">
+
+  <!-- COVER -->
+  <div class="screen active" id="s-cover">
+    <div class="cover">
+      <div class="cover-tag" id="cover-tag">POST PARTIDO</div>
+      <h1>Evaluación <span>post partido</span></h1>
+      <p>Completá esta evaluación con honestidad. Son tus percepciones — no hay respuestas correctas o incorrectas.</p>
+      <div class="partido-info" id="partido-info" style="display:none">
+        <div class="pi-label">PARTIDO</div>
+        <div class="pi-val" id="pi-rival">—</div>
+        <div class="pi-sub" id="pi-fecha">—</div>
+      </div>
+      <div class="cover-card">
+        <h2>Tus datos</h2>
+        <div class="fg"><label>Nombre y apellido</label><input id="f-nombre" placeholder="Ej: Juan Pérez"/></div>
+        <div class="fg-row">
+          <div class="fg"><label>Posición</label>
+            <select id="f-pos">
+              <option value="">Seleccioná</option>
+              <option>Arquero</option><option>Defensor</option>
+              <option>Mediocampista</option><option>Delantero</option>
+              <option>──────────</option>
+              <option>Líder / Director</option><option>Coordinador</option>
+              <option>Colaborador</option><option>Otro</option>
+            </select>
+          </div>
+          <div class="fg"><label>Minutos jugados</label><input id="f-minutos" type="number" min="0" max="120" placeholder="Ej: 90"/></div>
+        </div>
+      </div>
+      <button class="btn-start" onclick="startForm()">COMENZAR EVALUACIÓN</button>
+    </div>
+  </div>
+
+  <!-- PREGUNTAS -->
+  <div class="screen" id="s-form">
+    <div class="progress-wrap">
+      <div class="progress-top">
+        <span id="prog-label">Pregunta 1 de 18</span>
+        <span id="prog-pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+    <div id="q-container"></div>
+    <div class="nav">
+      <button class="btn-prev" id="btn-prev" onclick="navQ(-1)" disabled>← Atrás</button>
+      <button class="btn-next" id="btn-next" onclick="navQ(1)" disabled>Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- GRACIAS -->
+  <div class="screen" id="s-thanks">
+    <div class="thanks">
+      <div class="check">✅</div>
+      <h2>¡Gracias!</h2>
+      <p>Tu evaluación post partido fue registrada correctamente.<br>El cuerpo técnico la va a usar para mejorar el trabajo individual y grupal.</p>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="screen" id="s-error">
+    <div class="error-msg">
+      <p style="font-size:32px;margin-bottom:1rem">⚠️</p>
+      <p id="error-txt">Link inválido o partido no encontrado.</p>
+    </div>
+  </div>
+
+</div>
+<script>
+const SB='https://gltqhcnusblfovhxljcs.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI';
+
+async function q(path,o){
+  const r=await fetch(SB+'/rest/v1/'+path,{
+    method:o&&o.m||'GET',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=representation',...(o&&o.h||{})},
+    body:o&&o.b?JSON.stringify(o.b):undefined
+  });
+  if(!r.ok)return null;
+  const t=await r.text();
+  return t?JSON.parse(t):null;
+}
+
+const PREGUNTAS_FISIO=[
+  {t:'¿Cuántas horas dormiste anoche?',n:'Sueño (horas)',min:'Menos de 5h',max:'9h o más'},
+  {t:'¿Cómo fue la calidad de tu sueño?',n:'Calidad del sueño',min:'Muy mal',max:'Excelente'},
+  {t:'¿Cómo llegás de energía al partido?',n:'Energía pre partido',min:'Sin energía',max:'Cargado'},
+  {t:'¿Cómo fue tu alimentación antes del partido?',n:'Alimentación',min:'Muy mal',max:'Muy bien'},
+];
+
+const PREGUNTAS_MENTAL=[
+  'Tras un error: ¿Logré que mi siguiente acción fuera positiva?',
+  'Bajo presión máxima, ¿pude elegir el pase o la marca con total consciencia de lo que hacía?',
+  'Logré mantenerme concentrado en mi posición y tarea asignada sin distraerme por factores externos',
+  'Después de un gol o foul, pude retomar la intensidad física y mental de inmediato',
+  '¿Sentí mis movimientos fluidos, ligeros y con una respiración rítmica durante todo el partido?',
+  'Mantuve un lenguaje corporal de dominio (pecho abierto, mirada alta) incluso cuando el resultado era adverso',
+  'Acepté mis errores o los de mis compañeros sin que eso me generara frustración o enojo',
+  'Tras perder una pelota, reaccioné con mayor velocidad y agresividad para recuperarla',
+  'Ejecuté mis acciones técnicas con total convencimiento, sin dudar ni un segundo',
+  'Busqué activamente generar pases progresivos o duelos individuales para romper el esquema rival',
+  'Sentí placer y disfruté de las acciones que realicé durante el juego',
+  'Sentí que mi nivel de energía y ganas de jugar estuvieron en el punto justo',
+  'Logré mantenerme en eje y enfocado ante situaciones adversas o errores',
+  'Sentí total seguridad en las decisiones tácticas que tomamos como equipo',
+  'Sentí que tuve el control absoluto de mi zona frente a los duelos con el rival'
+];
+
+const PREGUNTAS_FISICO=[
+  '¿Sentiste dolor en la competición?',
+  '¿Sentiste dolor post competición?',
+  '¿Sentiste fatiga post competición?'
+];
+
+const TOTAL_Q=PREGUNTAS_FISIO.length+PREGUNTAS_MENTAL.length+PREGUNTAS_FISICO.length+1;
+var answers=new Array(PREGUNTAS_FISIO.length+PREGUNTAS_MENTAL.length+PREGUNTAS_FISICO.length).fill(null);
+var hrv_value=null;
+var textoLibre='';
+var textoError='';
+var current=0;
+var partidoData=null;
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+async function init(){
+  const params=new URLSearchParams(window.location.search);
+  const cod=params.get('partido');
+  if(!cod){showScreen('s-error');document.getElementById('error-txt').textContent='Link inválido — falta el código de partido.';return;}
+  const res=await q('partidos?codigo=eq.'+cod+'&limit=1');
+  if(!res||!res.length){showScreen('s-error');document.getElementById('error-txt').textContent='Partido no encontrado.';return;}
+  partidoData=res[0];
+  const rival=partidoData.rival||'—';
+  const fecha=partidoData.fecha?new Date(partidoData.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'}):'—';
+  document.getElementById('pi-rival').textContent='vs '+rival;
+  document.getElementById('pi-fecha').textContent=fecha;
+  document.getElementById('partido-info').style.display='block';
+  if(partidoData.grupo_nombre) document.getElementById('cover-tag').textContent=partidoData.grupo_nombre.toUpperCase()+' — POST PARTIDO';
+  // OG dinámico
+  document.getElementById('og-title').content='Post partido · vs '+rival+' — '+(partidoData.grupo_nombre||'Sport Coaching Pro');
+  document.getElementById('og-desc').content=fecha+' · Completá tu evaluación post partido';
+  document.title='Post partido · vs '+rival+' — Sport Coaching 360';
+}
+
+function startForm(){
+  const nombre=document.getElementById('f-nombre').value.trim();
+  const pos=document.getElementById('f-pos').value;
+  const min=document.getElementById('f-minutos').value;
+  if(!nombre){alert('Ingresá tu nombre y apellido.');return;}
+  if(!pos){alert('Seleccioná tu posición.');return;}
+  showScreen('s-form');
+  renderQ();
+}
+
+function makeScale(idx,labels){
+  const sel=answers[idx];
+  let btns='';
+  for(let v=1;v<=10;v++){
+    btns+=`<div class="scale-btn${sel===v?' selected':''}" onclick="selectAns(${idx},${v})">${v}</div>`;
+  }
+  const lmin=labels?labels[0]:'Nada / Nunca';
+  const lmax=labels?labels[1]:'Totalmente / Siempre';
+  return `<div class="scale-wrap">${btns}</div><div class="scale-labels"><span>${lmin}</span><span>${lmax}</span></div>`;
+}
+
+function renderQ(){
+  const nF=PREGUNTAS_FISIO.length;
+  const nM=PREGUNTAS_MENTAL.length;
+  const nFis=PREGUNTAS_FISICO.length;
+  const totalPregs=nF+nM+nFis;
+  const pct=Math.round((current/TOTAL_Q)*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-pct').textContent=pct+'%';
+
+  let html='';
+  if(current<nF){
+    const q=PREGUNTAS_FISIO[current];
+    document.getElementById('prog-label').textContent=`Fisiológico · ${current+1} de ${nF}`;
+    html=`<div class="q-block" style="border-color:#22c55e44">
+      <div class="q-num" style="color:#22c55e">FISIOLÓGICO · ${current+1} DE ${nF}</div>
+      <div class="q-text">${q.t}</div>
+      ${makeScale(current,[q.min,q.max])}
+    </div>`;
+    if(current===nF-1){
+      html+=`<div class="q-block" style="border-color:#22c55e33;margin-top:8px">
+        <div class="q-num" style="color:#22c55e">HRV — OPCIONAL</div>
+        <div class="q-text" style="font-size:13px">Si tenés dispositivo (Polar, Garmin, Whoop), ingresá tu HRV de hoy:</div>
+        <input id="hrv-input" type="number" min="0" max="200" placeholder="Ej: 65"
+          value="${hrv_value||''}"
+          style="width:100%;padding:10px 12px;border:1px solid #22c55e44;border-radius:10px;font-size:16px;background:#0d1b3e;color:#e8eff8;margin-top:8px"
+          oninput="hrv_value=this.value?parseInt(this.value):null">
+        <div style="font-size:11px;color:#8fa3bf;margin-top:6px">Opcional — si no tenés dispositivo dejalo vacío</div>
+      </div>`;
+    }
+  } else if(current<nF+nM){
+    const mi=current-nF;
+    const q=PREGUNTAS_MENTAL[mi];
+    document.getElementById('prog-label').textContent=`Mental · ${mi+1} de ${nM}`;
+    html=`<div class="q-block">
+      <div class="q-num">MENTAL · ${mi+1} DE ${nM}</div>
+      <div class="q-text">${q}</div>
+      ${makeScale(current,['Nunca','Siempre'])}
+    </div>`;
+  } else if(current<totalPregs){
+    const fi=current-nF-nM;
+    const q=PREGUNTAS_FISICO[fi];
+    document.getElementById('prog-label').textContent=`Físico · ${fi+1} de ${nFis}`;
+    html=`<div class="q-block physical-block">
+      <div class="q-num">FÍSICO · ${fi+1} DE ${nFis}</div>
+      <div class="q-text">${q}</div>
+      ${makeScale(current,['Nada','Mucho'])}
+    </div>`;
+  } else {
+    html=`<div class="textarea-block">
+      <div class="q-num">OPCIONAL</div>
+      <div class="q-text">¿Hubo algún momento del partido que te afectó especialmente?</div>
+      <textarea id="texto-libre" placeholder="Contalo en tus palabras..." oninput="textoLibre=this.value">${textoLibre}</textarea>
+    </div>
+    <div class="textarea-block" style="margin-top:8px;border-color:#8b5cf644">
+      <div class="q-num" style="color:#8b5cf6">RESETEO POST ERROR — OPCIONAL</div>
+      <div class="q-text" style="font-size:13px">¿Cómo procesaste los errores del partido? ¿Lograste resetear y seguir, o alguno te quedó dando vueltas?</div>
+      <textarea id="texto-error" placeholder="Contalo con honestidad — es para ayudarte a trabajarlo..." oninput="textoError=this.value">${textoError}</textarea>
+    </div>`;
+  }
+  document.getElementById('q-container').innerHTML=html;
+
+  const isTexto=current>=totalPregs;
+  document.getElementById('btn-prev').disabled=current===0;
+  const bn=document.getElementById('btn-next');
+  bn.textContent=current===TOTAL_Q-1?'ENVIAR EVALUACIÓN':'Siguiente →';
+  bn.disabled=(!isTexto&&answers[current]===null);
+}
+
+function selectAns(idx,val){
+  answers[idx]=val;
+  const btns=document.querySelectorAll('.scale-btn');
+  btns.forEach((b,i)=>{b.classList.toggle('selected',i+1===val);});
+  document.getElementById('btn-next').disabled=false;
+}
+
+function navQ(dir){
+  const nF=PREGUNTAS_FISIO.length;
+  const nM=PREGUNTAS_MENTAL.length;
+  const nFis=PREGUNTAS_FISICO.length;
+  const totalPregs=nF+nM+nFis;
+  if(dir===1&&current<totalPregs&&answers[current]===null)return;
+  if(dir===1&&current===TOTAL_Q-1){enviar();return;}
+  current=Math.max(0,Math.min(TOTAL_Q-1,current+dir));
+  renderQ();
+}
+
+async function enviar(){
+  const nombre=document.getElementById('f-nombre').value.trim();
+  const pos=document.getElementById('f-pos').value;
+  const min=parseInt(document.getElementById('f-minutos').value)||0;
+  const tl=document.getElementById('texto-libre')?document.getElementById('texto-libre').value:'';
+  const nF=PREGUNTAS_FISIO.length;
+  const nM=PREGUNTAS_MENTAL.length;
+
+  const data={
+    partido_id:partidoData.id,
+    partido_codigo:partidoData.codigo,
+    grupo_codigo:partidoData.grupo_codigo,
+    jugador_nombre:nombre,
+    jugador_pos:pos,
+    tiempo_jugado:min,
+    // Fisiológico
+    fisio_sueno:answers[0],
+    fisio_calidad_sueno:answers[1],
+    fisio_energia:answers[2],
+    fisio_alimentacion:answers[3],
+    fisio_hrv:hrv_value||null,
+    // Mental
+    q1:answers[nF],q2:answers[nF+1],q3:answers[nF+2],q4:answers[nF+3],q5:answers[nF+4],
+    q6:answers[nF+5],q7:answers[nF+6],q8:answers[nF+7],q9:answers[nF+8],q10:answers[nF+9],
+    q11:answers[nF+10],q12:answers[nF+11],q13:answers[nF+12],q14:answers[nF+13],q15:answers[nF+14],
+    // Físico post
+    dolor_comp:answers[nF+nM],dolor_post:answers[nF+nM+1],fatiga_post:answers[nF+nM+2],
+    texto_libre:tl||null,
+    texto_error:document.getElementById('texto-error')?document.getElementById('texto-error').value.trim()||null:null
+  };
+
+  const res=await q('postpartido_jugador',{m:'POST',b:data});
+  if(res){
+    // Generar alertas automáticamente
+    await generarAlertas(data);
+    showScreen('s-thanks');
+  }
+  else{alert('Error al guardar. Intentá nuevamente.');}
+}
+
+async function generarAlertas(data){
+  const nF=PREGUNTAS_FISIO.length;
+  const mentalActual=([data.q1,data.q2,data.q3,data.q4,data.q5,data.q6,data.q7,data.q8,data.q9,data.q10,data.q11,data.q12,data.q13,data.q14,data.q15].filter(v=>v!=null).reduce((a,b)=>a+b,0)/15);
+
+  // Buscar último post partido del mismo jugador para comparar
+  const historial=await q('postpartido_jugador?jugador_nombre=ilike.*'+encodeURIComponent(data.jugador_nombre)+'*&order=partido_codigo.desc&limit=5');
+  if(historial&&historial.length>1){
+    const anterior=historial[1];
+    const mentalAnterior=[anterior.q1,anterior.q2,anterior.q3,anterior.q4,anterior.q5,anterior.q6,anterior.q7,anterior.q8,anterior.q9,anterior.q10,anterior.q11,anterior.q12,anterior.q13,anterior.q14,anterior.q15].filter(v=>v!=null);
+    if(mentalAnterior.length){
+      const avgAnterior=mentalAnterior.reduce((a,b)=>a+b,0)/mentalAnterior.length;
+      const caida=((avgAnterior-mentalActual)/avgAnterior)*100;
+      if(caida>=20){
+        await q('alertas',{m:'POST',b:{
+          tipo:'caida',
+          jugador_nombre:data.jugador_nombre,
+          grupo_codigo:data.grupo_codigo,
+          partido_codigo:data.partido_codigo,
+          detalle:'Mental bajó de '+avgAnterior.toFixed(1)+' a '+mentalActual.toFixed(1)+' — caída del '+Math.round(caida)+'%',
+          nivel:caida>=40?'alta':'media',
+          estado:'activa'
+        }});
+      }
+    }
+  }
+}
+
+init();
+</script>
+</body>
+</html>
