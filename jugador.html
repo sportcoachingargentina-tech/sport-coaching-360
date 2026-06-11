@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mi Perfil — Sport Coaching 360</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#060d1a;color:#e8eff8;min-height:100vh}
+
+    .header{background:#0d1b3e;border-bottom:2px solid #1a3a6e;padding:14px 20px;display:flex;align-items:center;gap:12px}
+    .header-logo{font-size:22px}
+    .header-title{font-size:14px;font-weight:700;color:#00c2ff;letter-spacing:0.05em}
+    .header-sub{font-size:11px;color:#4a6280;margin-top:1px}
+
+    .container{max-width:480px;margin:0 auto;padding:16px}
+
+    /* Card jugador */
+    .player-card{background:#0d1b3e;border:1px solid #1a3a6e;border-radius:16px;padding:20px;margin-bottom:16px;text-align:center}
+    .player-avatar{width:64px;height:64px;border-radius:50%;background:#1a3a6e;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#00c2ff;margin:0 auto 12px}
+    .player-name{font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
+    .player-info{font-size:12px;color:#8fa3bf}
+
+    /* MDC grande */
+    .mdc-card{background:#0d1b3e;border-radius:16px;padding:20px;margin-bottom:16px;text-align:center;border:2px solid transparent}
+    .mdc-card.verde{border-color:#22c55e}
+    .mdc-card.amarillo{border-color:#f59e0b}
+    .mdc-card.rojo{border-color:#ef4444}
+    .mdc-label{font-size:10px;font-weight:700;color:#4a6280;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px}
+    .mdc-valor{font-size:64px;font-weight:900;line-height:1}
+    .mdc-semaforo{font-size:13px;font-weight:700;margin-top:6px;letter-spacing:0.05em}
+    .mdc-formula{font-size:11px;color:#4a6280;margin-top:8px;font-style:italic}
+    .mdc-barra{height:10px;background:#1a3a6e;border-radius:8px;overflow:hidden;margin-top:12px}
+    .mdc-barra-fill{height:100%;border-radius:8px;transition:width 1.2s ease}
+
+    /* Modo motivacional */
+    .modo-card{background:#0d1b3e;border-radius:16px;padding:16px;margin-bottom:16px}
+    .modo-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .modo-icon{font-size:28px}
+    .modo-titulo{font-size:14px;font-weight:800}
+    .modo-sub{font-size:11px;color:#8fa3bf;margin-top:1px}
+    .modo-desc{font-size:12px;color:#c0d0e8;line-height:1.5;margin-bottom:10px}
+    .modo-frase{font-size:13px;font-style:italic;font-weight:600;padding:10px 14px;border-radius:8px;text-align:center}
+
+    /* Dimensiones */
+    .dims-card{background:#0d1b3e;border-radius:16px;padding:16px;margin-bottom:16px}
+    .dims-titulo{font-size:11px;font-weight:700;color:#4a6280;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:12px}
+    .dim-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .dim-name{font-size:12px;color:#e8eff8;width:130px;flex-shrink:0}
+    .dim-barra{flex:1;height:7px;background:#1a3a6e;border-radius:6px;overflow:hidden}
+    .dim-fill{height:100%;border-radius:6px}
+    .dim-val{font-size:12px;font-weight:700;width:36px;text-align:right;flex-shrink:0}
+
+    /* Objetivos */
+    .obj-card{background:#0d1b3e;border-radius:16px;padding:16px;margin-bottom:16px}
+    .obj-item{background:#060d1a;border:1px solid #7c3aed44;border-radius:10px;padding:12px;margin-bottom:8px}
+    .obj-titulo{font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:6px}
+    .obj-bar-wrap{display:flex;align-items:center;gap:8px}
+    .obj-bar{flex:1;height:6px;background:#1a3a6e;border-radius:6px;overflow:hidden}
+    .obj-bar-fill{height:100%;background:#7c3aed;border-radius:6px}
+    .obj-pct{font-size:11px;color:#a78bfa;font-weight:700;width:36px;text-align:right}
+    .obj-meta{font-size:10px;color:#4a6280;margin-top:4px}
+
+    /* DISC */
+    .disc-card{background:#0d1b3e;border-radius:16px;padding:16px;margin-bottom:16px;text-align:center}
+    .disc-badge{display:inline-block;padding:8px 24px;border-radius:12px;font-size:28px;font-weight:900;margin-bottom:8px}
+    .disc-name{font-size:14px;font-weight:700;margin-bottom:6px}
+    .disc-desc{font-size:12px;color:#8fa3bf;line-height:1.5}
+
+    /* Footer */
+    .footer{text-align:center;padding:20px;font-size:11px;color:#2a4060}
+    .footer strong{color:#00c2ff}
+
+    .loading{text-align:center;padding:60px 20px;color:#4a6280;font-size:14px}
+    .error{text-align:center;padding:40px 20px;color:#ef4444;font-size:13px;background:#0d1b3e;border-radius:12px;margin:20px}
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">⚡</div>
+  <div>
+    <div class="header-title">SPORT COACHING 360</div>
+    <div class="header-sub">Perfil de Rendimiento Mental</div>
+  </div>
+</div>
+
+<div class="container" id="app">
+  <div class="loading">Cargando tu perfil...</div>
+</div>
+
+<script>
+const SB_URL = 'https://gltqhcnusblfovhxljcs.supabase.co';
+const SK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI';
+
+async function q(path) {
+  try {
+    const r = await fetch(SB_URL + '/rest/v1/' + path, {
+      headers: { 'apikey': SK, 'Authorization': 'Bearer ' + SK, 'Content-Type': 'application/json' }
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+const DISC_INFO = {
+  D: { name: 'Dominante', color: '#ef4444', desc: 'Orientado a resultados, decisivo y directo. Rinde mejor con autonomía y desafíos concretos.' },
+  I: { name: 'Influyente', color: '#f59e0b', desc: 'Entusiasta, sociable y optimista. Se activa con el reconocimiento y el ambiente positivo del equipo.' },
+  S: { name: 'Estable', color: '#22c55e', desc: 'Consistente, leal y colaborativo. Rinde mejor con estructura clara y un entorno de confianza.' },
+  C: { name: 'Concienzudo', color: '#00c2ff', desc: 'Analítico, preciso y metódico. Se destaca cuando tiene información completa y tiempo para procesar.' },
+};
+
+const DIMS_LABELS = {
+  motivacion: 'Motivación', concentracion: 'Concentración', confianza: 'Confianza',
+  control_emocional: 'Control emocional', manejo_presion: 'Manejo de presión',
+  comunicacion: 'Comunicación', liderazgo: 'Liderazgo', adaptabilidad: 'Adaptabilidad',
+  consistencia: 'Consistencia', vision_juego: 'Visión de juego',
+  bienestar: 'Bienestar', resiliencia: 'Resiliencia',
+};
+
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+  const app = document.getElementById('app');
+
+  if (!token) {
+    app.innerHTML = '<div class="error">Link inválido. Pedile al coordinador que te reenvíe tu perfil.</div>';
+    return;
+  }
+
+  // Cargar resultado por token
+  const data = await q('resultados?token_perfil=eq.' + token + '&limit=1&select=id,jugador_nombre,jugador_pos,jugador_club,jugador_cat,disponibilidad,semaforo_color,semaforo_label,primary_disc,dims,sorted,modo_motivacional,grupo_codigo');
+
+  if (!data || !data.length) {
+    app.innerHTML = '<div class="error">No encontramos tu perfil. Pedile al coordinador que lo comparta nuevamente.</div>';
+    return;
+  }
+
+  const r = data[0];
+
+  // Cargar objetivos activos
+  const objetivos = await q('objetivos_jugador?jugador_nombre=eq.' + encodeURIComponent(r.jugador_nombre) + '&estado=eq.activo&limit=5') || [];
+
+  renderPerfil(r, objetivos);
+}
+
+function renderPerfil(r, objetivos) {
+  const app = document.getElementById('app');
+  const disp = r.disponibilidad || 0;
+  const semCol = disp >= 80 ? '#22c55e' : disp >= 65 ? '#f59e0b' : '#ef4444';
+  const semClass = disp >= 80 ? 'verde' : disp >= 65 ? 'amarillo' : 'rojo';
+  const semLabel = disp >= 80 ? '🟢 DISPONIBLE' : disp >= 65 ? '🟡 PRECAUCIÓN' : '🔴 RIESGO';
+  const disc = r.primary_disc || null;
+  const discInfo = disc ? DISC_INFO[disc] : null;
+  const initials = (r.jugador_nombre || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  const esProm = r.modo_motivacional === 'promocion';
+  const modoColor = esProm ? '#22c55e' : '#7c3aed';
+
+  // Dimensiones
+  const dims = r.dims || {};
+  const dimsArr = Object.entries(DIMS_LABELS).map(([k, label]) => ({
+    key: k, label, val: dims[k] ? Math.round(dims[k] * 20) : null // convert 1-5 to %
+  })).filter(d => d.val !== null).sort((a, b) => b.val - a.val);
+  const top3 = dimsArr.slice(0, 3);
+  const bot3 = dimsArr.slice(-3).reverse();
+
+  let html = '';
+
+  // Card jugador
+  html += `<div class="player-card">
+    <div class="player-avatar">${initials}</div>
+    <div class="player-name">${r.jugador_nombre || '—'}</div>
+    <div class="player-info">${[r.jugador_pos, r.jugador_club, r.jugador_cat ? 'Cat. ' + r.jugador_cat : ''].filter(Boolean).join(' · ')}</div>
+  </div>`;
+
+  // MDC
+  html += `<div class="mdc-card ${semClass}">
+    <div class="mdc-label">Disponibilidad Competitiva</div>
+    <div class="mdc-valor" style="color:${semCol}">${disp}%</div>
+    <div class="mdc-semaforo" style="color:${semCol}">${semLabel}</div>
+    <div class="mdc-formula">D = T − I · Disponibilidad = Talento − Interferencia</div>
+    <div class="mdc-barra">
+      <div class="mdc-barra-fill" style="width:${disp}%;background:linear-gradient(90deg,${semCol}88,${semCol})"></div>
+    </div>
+  </div>`;
+
+  // Modo Motivacional
+  if (r.modo_motivacional) {
+    const modoDesc = esProm
+      ? 'Tu motor es el logro y el desafío. Te activás cuando el contexto te exige más y buscás superar tus límites.'
+      : 'Tu motor es la seguridad y la certeza. Rendís mejor cuando tenés tu rol claro y pocas variables impredecibles.';
+    const modoBaja = esProm
+      ? 'Bajo presión podés acelerar demasiado o asumir riesgos innecesarios. El desafío puede volverse ansiedad.'
+      : 'Bajo presión podés paralizarte ante la ambigüedad. Necesitás saber exactamente qué se espera de vos.';
+    const modoFrase = esProm ? '"Este partido es tu momento. Decidí sin miedo."' : '"Hacé lo que entrenamos. Tu rol está claro."';
+
+    html += `<div class="modo-card" style="border:1px solid ${modoColor}44">
+      <div class="modo-header">
+        <div class="modo-icon">${esProm ? '🚀' : '🛡'}</div>
+        <div>
+          <div class="modo-titulo" style="color:${modoColor}">Modo ${esProm ? 'Promoción' : 'Prevención'}</div>
+          <div class="modo-sub">${esProm ? 'Motor de logro y crecimiento' : 'Motor de seguridad y estructura'}</div>
+        </div>
+      </div>
+      <div class="modo-desc">${modoDesc}</div>
+      <div class="modo-desc" style="color:#8fa3bf;font-size:11px;margin-bottom:10px">⚠ ${modoBaja}</div>
+      <div class="modo-frase" style="background:${modoColor}22;color:${modoColor};border:1px solid ${modoColor}44">${modoFrase}</div>
+    </div>`;
+  }
+
+  // Fortalezas
+  if (top3.length) {
+    html += `<div class="dims-card">
+      <div class="dims-titulo">💪 Tus fortalezas</div>`;
+    top3.forEach(d => {
+      const col = d.val >= 80 ? '#22c55e' : d.val >= 60 ? '#f59e0b' : '#ef4444';
+      html += `<div class="dim-row">
+        <div class="dim-name">${d.label}</div>
+        <div class="dim-barra"><div class="dim-fill" style="width:${d.val}%;background:${col}"></div></div>
+        <div class="dim-val" style="color:${col}">${d.val}%</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Áreas de trabajo
+  if (bot3.length) {
+    html += `<div class="dims-card">
+      <div class="dims-titulo">🎯 Áreas de trabajo</div>`;
+    bot3.forEach(d => {
+      const col = d.val >= 80 ? '#22c55e' : d.val >= 60 ? '#f59e0b' : '#ef4444';
+      html += `<div class="dim-row">
+        <div class="dim-name">${d.label}</div>
+        <div class="dim-barra"><div class="dim-fill" style="width:${d.val}%;background:${col}"></div></div>
+        <div class="dim-val" style="color:${col}">${d.val}%</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Objetivos de realización
+  if (objetivos.length) {
+    html += `<div class="obj-card">
+      <div class="dims-titulo">🎯 Objetivos de realización activos</div>`;
+    objetivos.forEach(obj => {
+      const evals = obj.evaluaciones || [];
+      const ultPct = evals.length ? evals[evals.length - 1].pct || 0 : 0;
+      const progreso = evals.length ? Math.round(evals.length / obj.partidos_meta * 100) : 0;
+      html += `<div class="obj-item">
+        <div class="obj-titulo">${obj.objetivo}</div>
+        <div class="obj-bar-wrap">
+          <div class="obj-bar"><div class="obj-bar-fill" style="width:${ultPct}%"></div></div>
+          <div class="obj-pct">${ultPct}%</div>
+        </div>
+        <div class="obj-meta">${evals.length} de ${obj.partidos_meta} partidos evaluados · Último: ${ultPct}% efectividad</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // DISC
+  if (discInfo) {
+    html += `<div class="disc-card">
+      <div class="dims-titulo" style="text-align:center;margin-bottom:12px">Perfil DISC</div>
+      <div class="disc-badge" style="background:${discInfo.color}22;color:${discInfo.color}">${disc}</div>
+      <div class="disc-name" style="color:${discInfo.color}">${discInfo.name}</div>
+      <div class="disc-desc">${discInfo.desc}</div>
+    </div>`;
+  }
+
+  // Footer
+  html += `<div class="footer">
+    Generado por <strong>Sport Coaching 360</strong><br>
+    La Mente Competitiva · Eduardo Meljin<br>
+    sportcoachingpro.com
+  </div>`;
+
+  app.innerHTML = html;
+}
+
+init();
+</script>
+</body>
+</html>
