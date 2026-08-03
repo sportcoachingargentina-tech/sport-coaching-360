@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Racha — Sport Coaching Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-deep:#17122B; --bg-mid:#241B42; --bg-card:#2C2153;
+    --coral:#FF7A3D; --mint:#33D69F; --gold:#FFC93D; --pink:#FF3D8A; --ice:#4DD0E1;
+    --text:#F5F0FF; --muted:#A99FC7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{
+    font-family:'Nunito',sans-serif; background:radial-gradient(ellipse at 50% -10%, var(--bg-mid), var(--bg-deep) 70%);
+    color:var(--text); min-height:100vh; display:flex; flex-direction:column; touch-action:manipulation;
+  }
+  h1,h2,.num{font-family:'Fredoka',sans-serif}
+
+  .screen{display:none; flex:1; flex-direction:column; align-items:center; justify-content:center; padding:1.5rem; text-align:center; min-height:100vh}
+  .screen.active{display:flex}
+
+  /* ── COVER ── */
+  #s-cover .badge{font-size:11px;font-weight:700;color:var(--coral);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px}
+  #s-cover h1{font-size:44px;font-weight:700;color:var(--text);margin-bottom:10px;letter-spacing:-0.01em}
+  #s-cover h1 span{color:var(--coral)}
+  #s-cover p{font-size:15px;color:var(--muted);max-width:320px;line-height:1.6;margin-bottom:1.6rem}
+  .ring-preview{width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,var(--coral),#c94e12);box-shadow:0 0 40px #FF7A3D66;margin-bottom:1.6rem;animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  .fg{width:100%;max-width:300px;margin-bottom:1rem;text-align:left}
+  .fg label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;font-weight:600}
+  .fg input{width:100%;padding:13px 16px;border-radius:14px;border:2px solid #ffffff18;background:#ffffff0c;color:var(--text);font-size:15px;font-family:inherit}
+  .fg input:focus{outline:none;border-color:var(--coral)}
+  .btn-big{padding:16px 44px;border-radius:50px;border:none;font-family:'Fredoka',sans-serif;font-size:18px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,var(--coral),#e85a1f);color:#fff;box-shadow:0 8px 24px #FF7A3D44}
+  .legend{display:flex;gap:16px;margin-top:1.4rem;font-size:11px;color:var(--muted)}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+
+  /* ── JUEGO ── */
+  #s-game{padding:0; justify-content:flex-start}
+  .hud{display:flex;justify-content:space-between;align-items:center;width:100%;padding:0.7rem 1.1rem;flex-shrink:0;position:relative;z-index:6}
+  .hud-item{text-align:left}
+  .hud-label{font-size:9px;color:var(--muted);font-weight:700;letter-spacing:0.08em;text-transform:uppercase}
+  .hud-val{font-size:44px;font-weight:700;color:var(--text);line-height:1;text-shadow:0 0 18px currentColor}
+  .hud-val.streak{color:var(--gold)}
+  .hud-val.bump{animation:bump 0.35s ease-out}
+  @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+  .play-area{flex:1;width:100%;position:relative;overflow:hidden}
+  .target{position:absolute; border-radius:50%; cursor:pointer; display:flex;align-items:center;justify-content:center;font-size:1.6em}
+  .target.hot{background:radial-gradient(circle at 35% 32%, #ffd9a8, var(--coral) 55%, #c94e12 100%);box-shadow:0 0 0 6px #ffffff10, 0 0 40px #FF7A3D77}
+  .target.cold{background:radial-gradient(circle at 35% 32%, #d5f5f8, var(--ice) 55%, #1a8a99 100%);box-shadow:0 0 0 6px #ffffff10, 0 0 40px #4DD0E177}
+  .target::after{content:'';position:absolute;inset:-14px;border-radius:50%;border:2px solid #ffffff30}
+  .feedback{position:absolute;font-family:'Fredoka',sans-serif;font-weight:600;font-size:22px;pointer-events:none;animation:floatUp 0.6s ease-out forwards;z-index:5}
+  @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-46px) scale(1.3)}}
+  .miss-flash{position:absolute;inset:0;background:#ffffff08;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:1}
+
+  /* ── OVERLAY (apuesta / desafío extra) ── */
+  .overlay{position:absolute;inset:0;background:#17122Bee;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;z-index:10;text-align:center}
+  .overlay h3{font-size:19px;font-weight:600;margin-bottom:8px}
+  .overlay p{font-size:13px;color:var(--muted);margin-bottom:1.4rem;max-width:280px;line-height:1.5}
+  .overlay-btns{display:flex;gap:10px}
+  .btn-op{padding:13px 20px;border-radius:14px;border:2px solid #ffffff1c;background:#ffffff0a;color:var(--text);font-family:'Fredoka',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
+  .btn-op.gold{background:linear-gradient(135deg,var(--gold),#e0a800);border-color:transparent;color:#241B42}
+
+  /* ── MOMENTO DE ELECCIÓN ── */
+  #s-choice{background:linear-gradient(180deg, transparent, #00000030)}
+  .choice-card{background:var(--bg-card);border-radius:28px;padding:2rem 1.7rem;max-width:360px;width:100%;border:1px solid #ffffff14}
+  .choice-card .num{font-size:46px;font-weight:600;color:var(--gold)}
+  .choice-card .num-label{font-size:12px;color:var(--muted);margin-bottom:1.2rem;font-weight:600}
+  .choice-card h2{font-size:19px;font-weight:600;margin-bottom:8px}
+  .choice-card p{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:1.2rem}
+  .selftalk-row{display:flex;gap:8px;justify-content:center;margin-bottom:1.4rem}
+  .selftalk-btn{flex:1;padding:11px 4px;border-radius:12px;border:2px solid #ffffff16;background:#ffffff08;font-size:20px;cursor:pointer}
+  .selftalk-btn.picked{border-color:var(--gold);background:#FFC93D22}
+  .choice-btns{display:flex;flex-direction:column;gap:12px}
+  .btn-choice{padding:16px;border-radius:16px;border:2px solid #ffffff1c;background:#ffffff0a;color:var(--text);font-family:'Fredoka',sans-serif;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.15s}
+  .btn-choice.primario{background:linear-gradient(135deg,var(--mint),#1fae7d);border-color:transparent;box-shadow:0 6px 18px #33D69F33}
+  .btn-choice:active{transform:scale(0.97)}
+
+  /* ── RESULTADOS ── */
+  #s-result .trophy{font-size:52px;margin-bottom:0.8rem}
+  #s-result h1{font-size:28px;margin-bottom:4px}
+  #s-result .sub{color:var(--muted);font-size:13px;margin-bottom:1.4rem}
+  .stat-row{display:flex;gap:8px;width:100%;max-width:380px;margin-bottom:1.2rem;flex-wrap:wrap}
+  .stat-box{flex:1;min-width:78px;background:var(--bg-card);border-radius:14px;padding:12px 6px;border:1px solid #ffffff14}
+  .stat-box .v{font-family:'Fredoka',sans-serif;font-size:20px;font-weight:600;color:var(--coral)}
+  .stat-box .l{font-size:9px;color:var(--muted);font-weight:700;margin-top:2px;text-transform:uppercase;letter-spacing:0.03em}
+  .coach-box{background:var(--bg-card);border-radius:18px;padding:1.2rem;max-width:400px;width:100%;text-align:left;border:1px solid #ffffff14;margin-bottom:1rem;max-height:34vh;overflow-y:auto}
+  .coach-box .tag{font-size:10px;font-weight:700;color:var(--gold);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px}
+  .coach-box pre{white-space:pre-wrap;font-family:'Nunito',sans-serif;font-size:12px;color:var(--muted);line-height:1.6}
+</style>
+</head>
+<body>
+
+  <!-- COVER -->
+  <div class="screen active" id="s-cover">
+    <div class="badge">SPORT COACHING PRO · PROTOTIPO</div>
+    <div class="ring-preview"></div>
+    <h1>Racha<span>.</span></h1>
+    <p>Tocá el círculo naranja cuando se ilumine. El celeste NO se toca. Va a ir cada vez más rápido — vos decidís hasta dónde llegar.</p>
+    <div class="fg">
+      <label>Tu nombre</label>
+      <input id="f-nombre" placeholder="Ej: Bautista">
+    </div>
+    <div class="fg">
+      <label>Tu club</label>
+      <input id="f-club" placeholder="Ej: Club Deportivo Maipú">
+    </div>
+    <button class="btn-big" onclick="irAInstrucciones()">JUGAR</button>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--coral)"></span> Tocar</span>
+      <span><span class="dot" style="background:var(--ice)"></span> No tocar</span>
+    </div>
+  </div>
+
+  <!-- INSTRUCCIONES -->
+  <div class="screen" id="s-intro">
+    <div class="badge">CÓMO SE JUEGA</div>
+    <div style="display:flex;flex-direction:column;gap:14px;width:100%;max-width:320px;margin-bottom:2rem">
+      <div style="display:flex;align-items:center;gap:14px;background:var(--bg-card);border-radius:16px;padding:14px 16px;text-align:left">
+        <div style="font-size:30px;flex-shrink:0">🟠</div>
+        <div style="font-size:14px;color:var(--text);line-height:1.4">Tocá el círculo <strong>naranja</strong> apenas se prenda, antes de que se achique del todo.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;background:var(--bg-card);border-radius:16px;padding:14px 16px;text-align:left">
+        <div style="font-size:30px;flex-shrink:0">🔵</div>
+        <div style="font-size:14px;color:var(--text);line-height:1.4">Si aparece uno <strong>celeste</strong>, no lo toques — dejalo pasar.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;background:var(--bg-card);border-radius:16px;padding:14px 16px;text-align:left">
+        <div style="font-size:30px;flex-shrink:0">🎯</div>
+        <div style="font-size:14px;color:var(--text);line-height:1.4">En cualquier momento vas a poder elegir <strong>seguir</strong> o <strong>parar</strong> — no hay opción mala.</div>
+      </div>
+    </div>
+    <button class="btn-big" onclick="empezar()">¡EMPEZAR!</button>
+  </div>
+
+  <!-- JUEGO -->
+  <div class="screen" id="s-game">
+    <div class="hud">
+      <div class="hud-item">
+        <div class="hud-label">Nivel</div>
+        <div class="hud-val" id="hud-nivel">1</div>
+      </div>
+      <div class="hud-item" style="text-align:right">
+        <div class="hud-label">Racha</div>
+        <div class="hud-val streak" id="hud-racha">0</div>
+      </div>
+    </div>
+    <div class="play-area" id="play-area">
+      <div class="miss-flash" id="miss-flash"></div>
+    </div>
+  </div>
+
+  <!-- MOMENTO DE ELECCIÓN -->
+  <div class="screen" id="s-choice">
+    <div class="choice-card">
+      <div class="num" id="ch-nivel">3</div>
+      <div class="num-label">nivel alcanzado</div>
+
+      <div class="selftalk-row" id="selftalk-row">
+        <button class="selftalk-btn" onclick="elegirSelftalk(this,'positivo')">💪</button>
+        <button class="selftalk-btn" onclick="elegirSelftalk(this,'neutro')">😐</button>
+        <button class="selftalk-btn" onclick="elegirSelftalk(this,'negativo')">😤</button>
+      </div>
+      <p style="margin-top:-6px;font-size:11px">¿Cómo te sentiste ahí? (opcional)</p>
+
+      <h2>¿Seguís o parás acá?</h2>
+      <p>Se está poniendo difícil. Las dos opciones están perfectas — vos elegís.</p>
+      <div class="choice-btns">
+        <button class="btn-choice primario" onclick="elegir('seguir')">Seguir intentando</button>
+        <button class="btn-choice" onclick="elegir('parar')">Parar acá</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTADOS -->
+  <div class="screen" id="s-result">
+    <div class="trophy">🏆</div>
+    <h1 id="res-titulo">¡Bien jugado!</h1>
+    <div class="sub" id="res-sub">Llegaste al nivel 5</div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="v" id="res-nivel">—</div><div class="l">Nivel máx.</div></div>
+      <div class="stat-box"><div class="v" id="res-aciertos">—</div><div class="l">Aciertos</div></div>
+      <div class="stat-box"><div class="v" id="res-precision">—</div><div class="l">Precisión</div></div>
+    </div>
+    <div class="coach-box">
+      <div class="tag">✦ Solo para el cuerpo técnico</div>
+      <pre id="res-coach">—</pre>
+    </div>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// RACHA — prototipo de evaluación basada en juego.
+// 5 mecánicas, todas leyendo comportamiento real, no autoreporte:
+//  1. Persistencia / riesgo de abandono → elección seguir/parar
+//  2. Cognitivo → reacción + control de impulsos (círculo frío = Go/No-Go)
+//  3. Emocional → tiempo de reacción justo después de fallar (tilt)
+//  4. Confianza → apuesta opcional de "camino difícil, doble puntos"
+//  5. Motivación → desafío extra 100% opcional al final
+// + autodiálogo: un tap liviano (no texto, no audio) en el momento de elección
+// ═══════════════════════════════════════════════════════════════
+
+let nivel=1, racha=0, aciertos=0, fallos=0, fallosSeguidos=0, falsosPositivos=0, friosMostrados=0;
+let targetTimeout=null, targetStart=0, jugando=false, esApuesta=false;
+let nombre='';
+let club='';
+const SB='https://gltqhcnusblfovhxljcs.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI';
+const eventos=[]; // log completo — cada tiro, cada decisión, con milisegundos
+const reaccionesAciertos=[]; // para calcular promedio general
+let selftalkPick=null;
+const t0=Date.now();
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+function irAInstrucciones(){
+  nombre=document.getElementById('f-nombre').value.trim()||'Jugador';
+  club=document.getElementById('f-club').value.trim()||null;
+  showScreen('s-intro');
+}
+
+function empezar(){
+  showScreen('s-game');
+  jugando=true;
+  spawnTarget();
+}
+
+function bumpHud(id,valor){
+  const el=document.getElementById(id);
+  el.textContent=valor;
+  el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+}
+
+function paramsNivel(n){
+  const size=Math.max(46, 92-n*4);
+  const vida=Math.max(650, 1500-n*70);
+  return {size,vida};
+}
+
+// A partir del nivel 2 pueden aparecer círculos fríos (no tocar) — Go/No-Go
+function decideTipo(){
+  if(nivel<2) return 'hot';
+  return Math.random()<0.28 ? 'cold' : 'hot';
+}
+
+function spawnTarget(esApuestaGanada){
+  if(!jugando) return;
+  const area=document.getElementById('play-area');
+  const {size,vida}=paramsNivel(nivel);
+  const finalSize = esApuestaGanada ? Math.round(size*0.72) : size; // apuesta = target más chico
+  const finalVida = esApuestaGanada ? Math.round(vida*0.8) : vida;
+  const maxX=area.clientWidth-finalSize-16, maxY=area.clientHeight-finalSize-16;
+  const x=16+Math.random()*Math.max(maxX,10), y=16+Math.random()*Math.max(maxY,10);
+
+  const tipo = esApuestaGanada ? 'hot' : decideTipo();
+  if(tipo==='cold') friosMostrados++;
+
+  const el=document.createElement('div');
+  el.className='target '+tipo;
+  el.textContent = tipo==='cold' ? '❄️' : '🔥';
+  el.style.width=finalSize+'px'; el.style.height=finalSize+'px'; el.style.fontSize=Math.round(finalSize*0.5)+'px';
+  el.style.left=x+'px'; el.style.top=y+'px';
+  el.style.transition='transform '+finalVida+'ms linear, opacity '+finalVida+'ms linear';
+  area.appendChild(el);
+  requestAnimationFrame(()=>{ el.style.transform='scale(0.15)'; el.style.opacity='0.15'; });
+
+  targetStart=Date.now();
+  esApuesta=!!esApuestaGanada;
+  el.onclick=()=>tap(el,finalSize,tipo,esApuestaGanada);
+
+  targetTimeout=setTimeout(()=>{
+    if(el.parentNode){
+      el.remove();
+      if(tipo==='hot') miss(x+finalSize/2,y+finalSize/2);
+      else { eventos.push({t:Date.now()-t0,tipo:'frio_ignorado',nivel}); spawnTarget(); } // ignorar el frío está BIEN
+    }
+  }, finalVida);
+}
+
+function tap(el,size,tipo,eraApuesta){
+  if(!jugando) return;
+  clearTimeout(targetTimeout);
+  const reaccion=Date.now()-targetStart;
+  const x=parseFloat(el.style.left)+size/2, y=parseFloat(el.style.top)+size/2;
+  el.remove();
+
+  if(tipo==='cold'){
+    // Tocó el que NO había que tocar → falla de control de impulsos
+    falsosPositivos++; racha=0;
+    eventos.push({t:Date.now()-t0,tipo:'falso_positivo',nivel,reaccion_ms:reaccion});
+    bumpHud('hud-racha',racha);
+    feedback(x,y,'¡Ups!','#4DD0E1');
+    setTimeout(spawnTarget, 300);
+    return;
+  }
+
+  aciertos++; racha++; fallosSeguidos=0;
+  reaccionesAciertos.push(reaccion);
+  const justoTrasFallo = eventos.length && eventos[eventos.length-1].tipo==='fallo';
+  eventos.push({t:Date.now()-t0, tipo:'acierto', nivel, reaccion_ms:reaccion, apuesta:!!eraApuesta, tras_fallo:!!justoTrasFallo});
+  feedback(x,y, eraApuesta?'+2':'+1', eraApuesta?'#FFC93D':'#33D69F');
+  bumpHud('hud-racha',racha);
+
+  if(racha%5===0){
+    nivel++;
+    bumpHud('hud-nivel',nivel);
+    feedback(x,y-40,'¡Nivel '+nivel+'!','#FFC93D');
+    setTimeout(()=>ofrecerApuesta(), 500);
+    return;
+  }
+  setTimeout(spawnTarget, 260);
+}
+
+// ── Apuesta de confianza: opcional, target más chico y rápido pero vale doble ──
+function ofrecerApuesta(){
+  if(!jugando) return;
+  const area=document.getElementById('play-area');
+  const ov=document.createElement('div');
+  ov.className='overlay'; ov.id='ov-apuesta';
+  ov.innerHTML='<h3>🎯 ¿Te la jugás?</h3><p>El próximo puede ser más chico y rápido — vale el doble de puntos. Vos elegís.</p>'+
+    '<div class="overlay-btns">'+
+      '<button class="btn-op gold" onclick="responderApuesta(true)">Me la juego</button>'+
+      '<button class="btn-op" onclick="responderApuesta(false)">Normal</button>'+
+    '</div>';
+  area.appendChild(ov);
+}
+function responderApuesta(acepto){
+  const ov=document.getElementById('ov-apuesta'); if(ov) ov.remove();
+  const justoTrasFallo = eventos.length && (eventos[eventos.length-1].tipo==='fallo'||eventos[eventos.length-1].tipo==='falso_positivo');
+  eventos.push({t:Date.now()-t0, tipo:'apuesta', nivel, acepto, tras_fallo:!!justoTrasFallo});
+  spawnTarget(acepto);
+}
+
+function miss(x,y){
+  if(!jugando) return;
+  fallos++; fallosSeguidos++; racha=0;
+  eventos.push({t:Date.now()-t0, tipo:'fallo', nivel, fallos_seguidos:fallosSeguidos});
+  bumpHud('hud-racha',racha);
+  feedback(x,y,'—','#FF3D8A');
+
+  const flash=document.getElementById('miss-flash');
+  flash.style.opacity='1'; setTimeout(()=>flash.style.opacity='0',150);
+
+  if(fallosSeguidos>=2){
+    mostrarEleccion();
+  } else {
+    setTimeout(spawnTarget, 350);
+  }
+}
+
+function feedback(x,y,txt,color){
+  const area=document.getElementById('play-area');
+  const f=document.createElement('div');
+  f.className='feedback'; f.textContent=txt; f.style.color=color;
+  f.style.left=x+'px'; f.style.top=y+'px';
+  area.appendChild(f);
+  setTimeout(()=>f.remove(),650);
+}
+
+let choiceShownAt=0;
+function mostrarEleccion(){
+  jugando=false;
+  document.getElementById('ch-nivel').textContent=nivel;
+  selftalkPick=null;
+  document.querySelectorAll('.selftalk-btn').forEach(b=>b.classList.remove('picked'));
+  choiceShownAt=Date.now();
+  showScreen('s-choice');
+}
+
+function elegirSelftalk(btn,valor){
+  selftalkPick=valor;
+  document.querySelectorAll('.selftalk-btn').forEach(b=>b.classList.remove('picked'));
+  btn.classList.add('picked');
+}
+
+function elegir(opcion){
+  const hesitacion=Date.now()-choiceShownAt;
+  eventos.push({t:Date.now()-t0, tipo:'decision', opcion, nivel, hesitacion_ms:hesitacion, autodialogo:selftalkPick});
+
+  if(opcion==='seguir'){
+    fallosSeguidos=0;
+    jugando=true;
+    showScreen('s-game');
+    spawnTarget();
+  } else {
+    ofrecerDesafioExtra();
+  }
+}
+
+// ── Desafío extra: 100% opcional, mide motivación de logro ──
+function ofrecerDesafioExtra(){
+  showScreen('s-game');
+  const area=document.getElementById('play-area');
+  const ov=document.createElement('div');
+  ov.className='overlay'; ov.id='ov-extra';
+  ov.innerHTML='<h3>🔥 ¿Un intento más?</h3><p>Ya terminaste — esto es 100% opcional. ¿Querés ir por un último tiro para superar tu récord?</p>'+
+    '<div class="overlay-btns">'+
+      '<button class="btn-op gold" onclick="responderExtra(true)">¡Dale!</button>'+
+      '<button class="btn-op" onclick="responderExtra(false)">No, ya está</button>'+
+    '</div>';
+  area.appendChild(ov);
+}
+function responderExtra(acepto){
+  eventos.push({t:Date.now()-t0, tipo:'desafio_extra', acepto});
+  const ov=document.getElementById('ov-extra'); if(ov) ov.remove();
+  if(!acepto){ terminarJuego(); return; }
+  jugando=true;
+  spawnExtraFinal();
+}
+function spawnExtraFinal(){
+  const area=document.getElementById('play-area');
+  const size=54, vida=750;
+  const maxX=area.clientWidth-size-16, maxY=area.clientHeight-size-16;
+  const x=16+Math.random()*Math.max(maxX,10), y=16+Math.random()*Math.max(maxY,10);
+  const el=document.createElement('div');
+  el.className='target hot';
+  el.textContent='🔥';
+  el.style.width=size+'px'; el.style.height=size+'px'; el.style.fontSize=Math.round(size*0.5)+'px';
+  el.style.left=x+'px'; el.style.top=y+'px';
+  el.style.transition='transform '+vida+'ms linear, opacity '+vida+'ms linear';
+  area.appendChild(el);
+  requestAnimationFrame(()=>{ el.style.transform='scale(0.15)'; el.style.opacity='0.15'; });
+  targetStart=Date.now();
+  el.onclick=()=>{
+    clearTimeout(targetTimeout);
+    aciertos++; el.remove();
+    eventos.push({t:Date.now()-t0, tipo:'acierto_extra'});
+    feedback(x+size/2,y+size/2,'+1','#FFC93D');
+    setTimeout(terminarJuego, 400);
+  };
+  targetTimeout=setTimeout(()=>{ if(el.parentNode){el.remove(); fallos++;} terminarJuego(); }, vida);
+}
+
+function terminarJuego(){
+  jugando=false;
+  const duracion=Math.round((Date.now()-t0)/1000);
+  const totalTiros=aciertos+fallos;
+  const precision=totalTiros>0?Math.round(aciertos/totalTiros*100):0;
+
+  // ── 1. Persistencia / riesgo de abandono ──
+  const decisiones=eventos.filter(e=>e.tipo==='decision');
+  const vecesSeguir=decisiones.filter(d=>d.opcion==='seguir').length;
+  const primerParar=decisiones.find(d=>d.opcion==='parar');
+  const nivelDeParada=primerParar?primerParar.nivel:nivel;
+  const indicePersistencia=Math.min(100, Math.round((vecesSeguir*15) + (nivelDeParada*6)));
+  let riesgo='bajo';
+  if(vecesSeguir===0 && nivelDeParada<=2) riesgo='alto';
+  else if(vecesSeguir<=1 && nivelDeParada<=3) riesgo='medio';
+
+  // ── 2. Cognitivo: control de impulsos (Go/No-Go) ──
+  const impulsividadPct = friosMostrados>0 ? Math.round((falsosPositivos/friosMostrados)*100) : null;
+  const controlImpulsos = impulsividadPct==null ? null : Math.max(0,100-impulsividadPct);
+
+  // ── 3. Emocional: tilt (reacción justo después de fallar) ──
+  const promGeneral = reaccionesAciertos.length ? reaccionesAciertos.reduce((a,b)=>a+b,0)/reaccionesAciertos.length : null;
+  const aciertosTrasFallo = eventos.filter(e=>e.tipo==='acierto' && e.tras_fallo).map(e=>e.reaccion_ms);
+  const promTrasFallo = aciertosTrasFallo.length ? aciertosTrasFallo.reduce((a,b)=>a+b,0)/aciertosTrasFallo.length : null;
+  let tilt='sin datos suficientes';
+  if(promGeneral!=null && promTrasFallo!=null){
+    const delta=(promTrasFallo-promGeneral)/promGeneral;
+    if(delta<-0.15) tilt='se acelera (apurado) después de fallar';
+    else if(delta>0.15) tilt='se paraliza (más lento) después de fallar';
+    else tilt='estable — no cambia después de fallar';
+  }
+
+  // ── 4. Confianza: apuestas aceptadas, sobre todo tras un fallo ──
+  const apuestas=eventos.filter(e=>e.tipo==='apuesta');
+  const apuestasAceptadas=apuestas.filter(a=>a.acepto).length;
+  const apuestasTrasFalloAceptadas=apuestas.filter(a=>a.acepto && a.tras_fallo).length;
+  const indiceConfianza = apuestas.length ? Math.round((apuestasAceptadas/apuestas.length)*100) : null;
+
+  // ── 5. Motivación: desafío extra opcional ──
+  const extra=eventos.find(e=>e.tipo==='desafio_extra');
+  const modoMotivacional = extra ? (extra.acepto ? 'Promoción (motor de logro)' : 'Prevención (motor de seguridad)') : 'sin dato';
+
+  // ── Autodiálogo (tap liviano en el momento de elección) ──
+  const autodialogo = decisiones.find(d=>d.autodialogo)?.autodialogo || null;
+  const autodialogoTxt = {positivo:'💪 positivo',neutro:'😐 neutro',negativo:'😤 autocrítico'}[autodialogo] || 'no respondió';
+
+  const resultado={
+    nombre, nivel_max:nivel, aciertos, fallos, precision, duracion_seg:duracion,
+    persistencia:{indice:indicePersistencia, veces_eligio_seguir:vecesSeguir, nivel_de_parada:nivelDeParada, senal_riesgo_abandono:riesgo},
+    cognitivo:{control_impulsos:controlImpulsos, falsos_positivos:falsosPositivos, frios_mostrados:friosMostrados},
+    emocional:{promedio_reaccion_ms:promGeneral, promedio_tras_fallo_ms:promTrasFallo, lectura:tilt},
+    confianza:{indice:indiceConfianza, apuestas_ofrecidas:apuestas.length, apuestas_aceptadas:apuestasAceptadas, aceptadas_tras_fallo:apuestasTrasFalloAceptadas},
+    motivacion:{modo:modoMotivacional},
+    autodialogo:autodialogoTxt,
+    eventos
+  };
+  console.log('RESULTADO RACHA:', resultado);
+
+  // Guardar en Supabase — si falla, el chico igual ve su resultado (no se le corta el juego)
+  fetch(SB+'/rest/v1/racha_resultados', {
+    method:'POST',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body: JSON.stringify({
+      jugador_nombre: nombre,
+      jugador_club: club,
+      temporada: new Date().getFullYear().toString(),
+      nivel_max: nivel, aciertos, fallos, precision_pct: precision, duracion_seg: duracion,
+      indice_persistencia: indicePersistencia, veces_eligio_seguir: vecesSeguir,
+      nivel_de_parada: nivelDeParada, senal_riesgo_abandono: riesgo,
+      control_impulsos: controlImpulsos, falsos_positivos: falsosPositivos,
+      promedio_reaccion_ms: promGeneral!=null?Math.round(promGeneral):null,
+      promedio_tras_fallo_ms: promTrasFallo!=null?Math.round(promTrasFallo):null,
+      lectura_tilt: tilt,
+      indice_confianza: indiceConfianza, apuestas_ofrecidas: apuestas.length,
+      apuestas_aceptadas: apuestasAceptadas, aceptadas_tras_fallo: apuestasTrasFalloAceptadas,
+      modo_motivacional: modoMotivacional, autodialogo: autodialogoTxt,
+      eventos: eventos
+    })
+  }).catch(function(e){ console.error('No se pudo guardar en Supabase:', e); });
+
+  document.getElementById('res-titulo').textContent = nivel>=6 ? '¡Impresionante!' : nivel>=3 ? '¡Bien jugado!' : '¡Gracias por jugar!';
+  document.getElementById('res-sub').textContent='Llegaste al nivel '+nivel;
+  document.getElementById('res-nivel').textContent=nivel;
+  document.getElementById('res-aciertos').textContent=aciertos;
+  document.getElementById('res-precision').textContent=precision+'%';
+
+  const riesgoTxt = riesgo==='alto'
+    ? '⚠ Paró en el primer momento difícil, sin insistir ninguna vez.'
+    : riesgo==='medio' ? '◐ Insistió poco antes de parar.'
+    : '✓ Insistió varias veces frente a la dificultad.';
+
+  const accionSugerida = riesgo==='alto'
+    ? 'Charla informal esta semana, sin hacerla sobre el juego — preguntale cómo se está sintiendo con el deporte en general.'
+    : riesgo==='medio'
+    ? 'Nada urgente. Volvé a jugar en un mes y compará — si se repite el patrón, ahí sí conviene la charla.'
+    : 'Sin acción necesaria por ahora.';
+
+  document.getElementById('res-coach').textContent =
+    '▶ ACCIÓN SUGERIDA: '+accionSugerida+'\n'+
+    '▶ Repetirlo como rutina al INICIO DE CADA TEMPORADA — así comparás temporada contra temporada, no el ruido de un mes cualquiera. Fuera de eso, solo repetilo antes de tiempo si pasa algo puntual (racha de derrotas, vuelta de una lesión) que amerite mirar de nuevo. Jugarlo más seguido que eso puede mejorar el puntaje solo por práctica, no por cambio real.\n\n'+
+    '① PERSISTENCIA — índice '+indicePersistencia+'/100. Eligió "seguir" '+vecesSeguir+' vez(veces), paró en nivel '+nivelDeParada+'. '+riesgoTxt+'\n\n'+
+    '② COGNITIVO — control de impulsos: '+(controlImpulsos!=null?controlImpulsos+'/100':'sin datos (no llegó a nivel 2)')+'. Reacción promedio: '+(promGeneral?Math.round(promGeneral)+'ms':'—')+'\n\n'+
+    '③ EMOCIONAL (tilt) — '+tilt+'\n\n'+
+    '④ CONFIANZA — '+(indiceConfianza!=null?indiceConfianza+'/100 de apuestas aceptadas ('+apuestasTrasFalloAceptadas+' de ellas justo después de fallar)':'sin datos')+'\n\n'+
+    '⑤ MOTIVACIÓN — señal de '+modoMotivacional+'\n\n'+
+    '⑥ AUTODIÁLOGO — '+autodialogoTxt+
+    '\n\n(Prototipo — estas fórmulas todavía no están validadas con datos reales, son un primer criterio para probar.)';
+
+  showScreen('s-result');
+}
+</script>
+</body>
+</html>
