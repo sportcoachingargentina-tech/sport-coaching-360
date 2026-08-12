@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Estilo de Pensamiento — Sport Coaching 360</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0f1e;color:#e8eff8;min-height:100vh}
+  .topbar{background:#0d1b3e;border-bottom:2px solid #00c2ff;padding:0.75rem 1rem;text-align:center}
+  .topbar-logo{font-size:13px;font-weight:700;color:#00c2ff;letter-spacing:0.08em}
+  .topbar-sub{font-size:11px;color:#8fa3bf;margin-top:2px}
+  .app{max-width:480px;margin:0 auto;padding:1.5rem 1rem 4rem}
+  .screen{display:none}.screen.active{display:block}
+  .cover{padding:1.5rem 0}
+  .cover-tag{display:inline-block;font-size:11px;font-weight:600;color:#00c2ff;border:1px solid #00c2ff33;padding:4px 14px;border-radius:20px;margin-bottom:1.25rem;letter-spacing:0.06em}
+  .cover h1{font-size:24px;font-weight:700;color:#fff;margin-bottom:8px;line-height:1.2}
+  .cover p{font-size:14px;color:#8fa3bf;margin-bottom:1.5rem;line-height:1.6}
+  .player-card{background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:1rem 1.25rem;margin-bottom:1.5rem}
+  .player-card .nombre{font-size:16px;font-weight:700;color:#fff}
+  .player-card .club{font-size:12px;color:#8fa3bf;margin-top:2px}
+  .btn-start{width:100%;padding:14px;background:#00c2ff;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#0a0f1e;cursor:pointer}
+  .progress-wrap{margin-bottom:1.25rem}
+  .progress-top{display:flex;justify-content:space-between;font-size:11px;color:#8fa3bf;margin-bottom:6px}
+  .progress-bar{height:4px;background:#141f3a;border-radius:2px;overflow:hidden}
+  .progress-fill{height:100%;border-radius:2px;background:#00c2ff;transition:width 0.4s ease}
+  .q-block{background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:1.25rem;margin-bottom:1rem}
+  .q-num{font-size:11px;color:#8fa3bf;font-weight:600;margin-bottom:10px;letter-spacing:0.04em}
+  .q-text{font-size:16px;font-weight:600;color:#fff;line-height:1.5;margin-bottom:1.1rem}
+  .opt{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid #1a3a6e;border-radius:12px;margin-bottom:9px;cursor:pointer;transition:all 0.15s}
+  .opt:active,.opt.selected{border-color:#00c2ff;background:#0a2050}
+  .opt-dot{width:16px;height:16px;border-radius:50%;border:2px solid #4a6280;flex-shrink:0}
+  .opt.selected .opt-dot{border-color:#00c2ff;background:#00c2ff}
+  .opt-label{font-size:13.5px;color:#e8eff8;line-height:1.4}
+  .nav{display:flex;gap:10px;margin-top:1rem}
+  .btn-prev{padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid #1a3a6e;background:#141f3a;color:#8fa3bf}
+  .btn-prev:disabled{opacity:0.35;cursor:default}
+  .btn-next{flex:1;padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;background:#00c2ff;color:#0a0f1e}
+  .btn-next:disabled{background:#1a3a6e;color:#8fa3bf;cursor:default}
+  .thanks{text-align:center;padding:2rem 1rem}
+  .thanks .check{font-size:48px;margin-bottom:1rem}
+  .thanks h2{font-size:22px;font-weight:700;color:#fff;margin-bottom:14px}
+  .result-badge{display:inline-block;padding:14px 28px;border-radius:14px;margin-bottom:14px}
+  .result-badge .name{font-size:20px;font-weight:800}
+  .result-tip{font-size:13px;color:#8fa3bf;line-height:1.6;max-width:360px;margin:0 auto}
+  .error-msg{text-align:center;padding:3rem 1rem;color:#ef4444}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-logo">SPORT COACHING 360</div>
+  <div class="topbar-sub">Estilo de Pensamiento — 6 preguntas, 1 minuto</div>
+</div>
+<div class="app">
+
+  <!-- COVER -->
+  <div class="screen active" id="s-cover">
+    <div class="cover">
+      <div class="cover-tag">NUEVO EN TU PERFIL</div>
+      <h1>Cómo pensás y aprendés mejor</h1>
+      <p>Ya hiciste tu diagnóstico MDC — esto se agrega a tu perfil, sin repetir nada de lo anterior. Son 6 preguntas cortas, sin respuestas correctas o incorrectas.</p>
+      <div class="player-card" id="player-card" style="display:none">
+        <div class="nombre" id="player-nombre">—</div>
+        <div class="club" id="player-club">—</div>
+      </div>
+      <button class="btn-start" onclick="empezar()">COMENZAR</button>
+    </div>
+  </div>
+
+  <!-- PREGUNTAS -->
+  <div class="screen" id="s-form">
+    <div class="progress-wrap">
+      <div class="progress-top">
+        <span id="prog-label">Pregunta 1 de 6</span>
+        <span id="prog-pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+    <div id="q-container"></div>
+    <div class="nav">
+      <button class="btn-prev" id="btn-prev" onclick="navQ(-1)" disabled>← Atrás</button>
+      <button class="btn-next" id="btn-next" onclick="navQ(1)" disabled>Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- RESULTADO -->
+  <div class="screen" id="s-result">
+    <div class="thanks">
+      <div class="check">🎉</div>
+      <h2>¡Listo!</h2>
+      <div class="result-badge" id="result-badge"><div class="name" id="result-nombre">—</div></div>
+      <p class="result-tip" id="result-tip">—</p>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="screen" id="s-error">
+    <div class="error-msg">
+      <p style="font-size:32px;margin-bottom:1rem">⚠️</p>
+      <p id="error-txt">Link inválido.</p>
+    </div>
+  </div>
+
+</div>
+<script>
+const SB='https://gltqhcnusblfovhxljcs.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI';
+
+async function q(path,o){
+  const r=await fetch(SB+'/rest/v1/'+path,{
+    method:o&&o.m||'GET',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':(o&&o.m==='PATCH')?'return=minimal':'return=representation'},
+    body:o&&o.b?JSON.stringify(o.b):undefined
+  });
+  if(!r.ok)return null;
+  const t=await r.text();
+  return t?JSON.parse(t):null;
+}
+
+// Mismas 6 preguntas y mismo criterio de puntaje que el diagnóstico principal
+const ESTILO_QS=[
+  {text:'Te explican un ejercicio nuevo antes de practicarlo. ¿Qué te ayuda más a entenderlo?',opts:[{l:'Que me expliquen la lógica y el objetivo técnico.',e:'AN'},{l:'Que me den los pasos en orden, uno por uno.',e:'SE'},{l:'Que lo hablemos y practiquemos en grupo.',e:'IN'},{l:'Que me muestren la idea general y probar distintas formas.',e:'EX'}]},
+  {text:'Estás por competir en algo importante. ¿Cómo te preparás la noche anterior?',opts:[{l:'Repasando datos y el plan técnico en la cabeza.',e:'AN'},{l:'Siguiendo mi rutina de siempre, paso a paso.',e:'SE'},{l:'Hablando con mis compañeros o mi entorno cercano.',e:'IN'},{l:'Visualizando el panorama general del partido.',e:'EX'}]},
+  {text:'Algo no te está saliendo en un entrenamiento. ¿Qué hacés primero?',opts:[{l:'Pienso qué estoy haciendo mal técnicamente.',e:'AN'},{l:'Repito el ejercicio desde el principio, paso a paso.',e:'SE'},{l:'Le pregunto a un compañero o al técnico.',e:'IN'},{l:'Pruebo una forma distinta de hacerlo.',e:'EX'}]},
+  {text:'Tenés que aprender una jugada o rutina nueva. ¿Cómo se te queda mejor?',opts:[{l:'Entendiendo por qué funciona.',e:'AN'},{l:'Practicándola siempre en el mismo orden.',e:'SE'},{l:'Viéndola hacer a otro y comentándola.',e:'IN'},{l:'Jugando con variantes hasta que me sale natural.',e:'EX'}]},
+  {text:'En un momento de mucha presión, ¿en qué se apoya tu cabeza?',opts:[{l:'En los datos y el plan que ya tengo claro.',e:'AN'},{l:'En la rutina que conozco de memoria.',e:'SE'},{l:'En mis compañeros, sentirme acompañado.',e:'IN'},{l:'En la intuición del momento.',e:'EX'}]},
+  {text:'Si pudieras elegir cómo te preparan para un desafío nuevo, ¿qué preferís?',opts:[{l:'Que me den los datos y el porqué.',e:'AN'},{l:'Un plan claro, paso a paso.',e:'SE'},{l:'Prepararlo en equipo.',e:'IN'},{l:'Que me den libertad para resolverlo a mi manera.',e:'EX'}]},
+];
+const ESTILO_INFO={
+  AN:{name:'Analítico',color:'#0091D5',tip:'Aprendés mejor con explicación lógica y datos. Pedí siempre el \'por qué\' de un ejercicio, no solo el \'cómo\'.'},
+  SE:{name:'Secuencial',color:'#1E8E5A',tip:'Aprendés mejor con estructura y pasos claros. Un plan ordenado te va a rendir más que la improvisación.'},
+  IN:{name:'Interpersonal',color:'#ef4444',tip:'Aprendés mejor hablando y en grupo. Buscá espacio para comentar y preguntar, no te quedes con la duda adentro.'},
+  EX:{name:'Experimental',color:'#D4A830',tip:'Aprendés mejor viendo el panorama general y probando variantes propias. No te encierres en un único método.'},
+};
+
+var resultadoId=null;
+var current=0;
+var answers=new Array(ESTILO_QS.length).fill(null);
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+async function init(){
+  const params=new URLSearchParams(window.location.search);
+  const token=params.get('token');
+  if(!token){ showScreen('s-error'); document.getElementById('error-txt').textContent='Link inválido — falta el token.'; return; }
+
+  const selectCampos='id,jugador_nombre,jugador_club';
+  let data=await q('resultados?token_perfil=eq.'+token+'&limit=1&select='+selectCampos);
+  if(!data||!data.length) data=await q('resultados?id=eq.'+token+'&limit=1&select='+selectCampos);
+  if(!data||!data.length){ showScreen('s-error'); document.getElementById('error-txt').textContent='No encontramos tu perfil. Pedile al coordinador que te reenvíe el link.'; return; }
+
+  const r=data[0];
+  resultadoId=r.id;
+  document.getElementById('player-card').style.display='block';
+  document.getElementById('player-nombre').textContent=r.jugador_nombre||'—';
+  document.getElementById('player-club').textContent=r.jugador_club||'—';
+}
+
+function empezar(){
+  showScreen('s-form');
+  current=0;
+  renderQ();
+}
+
+function renderQ(){
+  document.getElementById('prog-fill').style.width=(current/(ESTILO_QS.length))*100+'%';
+  document.getElementById('prog-pct').textContent=Math.round((current/ESTILO_QS.length)*100)+'%';
+  document.getElementById('prog-label').textContent='Pregunta '+(current+1)+' de '+ESTILO_QS.length;
+
+  const q=ESTILO_QS[current];
+  const sel=answers[current];
+  document.getElementById('q-container').innerHTML=
+    '<div class="q-block"><div class="q-num">PREGUNTA '+(current+1)+'</div><div class="q-text">'+q.text+'</div>'+
+    q.opts.map(function(o,i){ return '<div class="opt'+(sel===i?' selected':'')+'" onclick="selectOpt('+i+')"><div class="opt-dot"></div><span class="opt-label">'+o.l+'</span></div>'; }).join('') +
+    '</div>';
+
+  document.getElementById('btn-prev').disabled=current===0;
+  const bn=document.getElementById('btn-next');
+  bn.textContent=current===ESTILO_QS.length-1?'GUARDAR →':'Siguiente →';
+  bn.disabled=sel===null;
+}
+
+function selectOpt(i){
+  answers[current]=i;
+  renderQ();
+}
+
+function navQ(dir){
+  if(dir===1 && answers[current]===null) return;
+  if(dir===1 && current===ESTILO_QS.length-1){ enviar(); return; }
+  current=Math.max(0,Math.min(ESTILO_QS.length-1,current+dir));
+  renderQ();
+}
+
+async function enviar(){
+  const c={AN:0,SE:0,IN:0,EX:0};
+  ESTILO_QS.forEach(function(q,i){ const a=answers[i]; if(a!==null) c[q.opts[a].e]++; });
+  const entries=Object.entries(c).sort(function(a,b){return b[1]-a[1];});
+  const dominante=entries[0][0];
+
+  const res=await q('resultados?id=eq.'+resultadoId,{m:'PATCH',b:{estilo_pensamiento:c,estilo_dominante:dominante}});
+  if(res===null){
+    // q() devuelve null tanto en error como en PATCH exitoso con return=minimal — probamos igual mostrar el resultado
+  }
+
+  const info=ESTILO_INFO[dominante];
+  document.getElementById('result-badge').style.background=info.color+'18';
+  document.getElementById('result-badge').style.border='1px solid '+info.color+'40';
+  document.getElementById('result-nombre').textContent=info.name;
+  document.getElementById('result-nombre').style.color=info.color;
+  document.getElementById('result-tip').textContent=info.tip;
+  showScreen('s-result');
+}
+
+init();
+</script>
+</body>
+</html>
