@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Radar Mental — Sport Coaching 360</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0f1e;color:#e8eff8;min-height:100vh}
+.app{max-width:600px;margin:0 auto;padding:1.5rem 1rem 3rem}
+.screen{display:none}.screen.active{display:block}
+.topbar{background:#0d1b3e;border-bottom:2px solid #00c2ff;padding:0.75rem 1rem;text-align:center}
+.topbar-logo{font-size:13px;font-weight:700;color:#00c2ff;letter-spacing:0.08em}
+.topbar-sub{font-size:11px;color:#8fa3bf;margin-top:2px}
+.cover{padding:2rem 0}
+.cover-tag{display:inline-block;font-size:11px;font-weight:600;color:#00c2ff;border:1px solid #00c2ff33;padding:4px 14px;border-radius:20px;margin-bottom:1.25rem;letter-spacing:0.06em}
+.cover h1{font-size:26px;font-weight:700;color:#fff;margin-bottom:8px;line-height:1.2}
+.cover h1 span{color:#00c2ff}
+.cover p{font-size:14px;color:#8fa3bf;margin-bottom:2rem;line-height:1.6}
+.cover-card{background:#141f3a;border:1px solid #1a3a6e;border-radius:16px;padding:1.5rem;margin-bottom:1.5rem}
+.cover-card h2{font-size:13px;font-weight:600;color:#8fa3bf;letter-spacing:0.05em;margin-bottom:1rem}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:12px;color:#8fa3bf;margin-bottom:5px}
+.fg input,.fg select{width:100%;padding:10px 12px;border:1px solid #1a3a6e;border-radius:10px;font-size:14px;background:#0d1b3e;color:#e8eff8;-webkit-appearance:none}
+.fg input:focus,.fg select:focus{outline:none;border-color:#00c2ff}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.info-row{display:flex;gap:8px;margin-bottom:1.5rem}
+.info-pill{flex:1;background:#141f3a;border:1px solid #1a3a6e;border-radius:10px;padding:10px;text-align:center}
+.info-pill-val{font-size:18px;font-weight:700;color:#00c2ff}
+.info-pill-lbl{font-size:10px;color:#8fa3bf;margin-top:2px}
+.btn-start{width:100%;padding:14px;background:#00c2ff;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#0a0f1e;cursor:pointer}
+.progress-wrap{margin-bottom:1.25rem}
+.progress-top{display:flex;justify-content:space-between;font-size:11px;color:#8fa3bf;margin-bottom:6px}
+.progress-bar{height:4px;background:#141f3a;border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;border-radius:2px;transition:width 0.4s ease}
+.dim-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;margin-bottom:10px;border:1px solid}
+.q-text{font-size:16px;font-weight:600;color:#fff;line-height:1.55;margin-bottom:1.5rem}
+.options{display:flex;flex-direction:column;gap:8px;margin-bottom:1.5rem}
+.opt{display:flex;align-items:center;gap:12px;padding:13px 16px;border:1px solid #1a3a6e;border-radius:12px;cursor:pointer;background:#141f3a}
+.opt.selected{border-color:#00c2ff;background:#0a2050}
+.opt-dot{width:18px;height:18px;border-radius:50%;border:2px solid #1a3a6e;flex-shrink:0}
+.opt.selected .opt-dot{background:#00c2ff;border-color:#00c2ff}
+.opt-label{font-size:14px;color:#e8eff8;line-height:1.4}
+.nav{display:flex;gap:10px;align-items:center}
+.btn-prev{padding:11px 20px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid #1a3a6e;background:#141f3a;color:#8fa3bf;flex-shrink:0}
+.btn-prev:disabled{opacity:0.35;cursor:default}
+.btn-next{flex:1;padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;background:#00c2ff;color:#0a0f1e}
+.btn-next:disabled{background:#1a3a6e;color:#8fa3bf;cursor:default}
+.result-header{margin-bottom:1.25rem}
+.result-name{font-size:20px;font-weight:700;color:#fff}
+.result-meta{font-size:12px;color:#8fa3bf;margin-top:3px}
+.sem-card{display:flex;align-items:center;gap:14px;padding:1.1rem 1.25rem;border-radius:14px;border:1px solid #1a3a6e;background:#141f3a;margin-bottom:1rem}
+.sem-circle{width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;font-weight:700}
+.sem-title{font-size:15px;font-weight:700;color:#fff}
+.sem-desc{font-size:12px;color:#8fa3bf;margin-top:4px;line-height:1.5}
+.metrics-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1rem}
+.metric{background:#141f3a;border:1px solid #1a3a6e;border-radius:12px;padding:0.85rem 1rem}
+.metric-lbl{font-size:10px;color:#8fa3bf;letter-spacing:0.05em;font-weight:600}
+.metric-val{font-size:22px;font-weight:700;color:#00c2ff;margin-top:3px}
+.radar-wrap{background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:1.1rem;margin-bottom:1rem}
+.section-card{background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:1.25rem;margin-bottom:1rem}
+.section-title{font-size:11px;font-weight:700;color:#8fa3bf;letter-spacing:0.07em;margin-bottom:14px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.bar-name{font-size:12px;color:#8fa3bf;width:135px;flex-shrink:0}
+.bar-track{flex:1;height:6px;background:#0d1b3e;border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px}
+.bar-score{font-size:12px;font-weight:600;color:#e8eff8;width:28px;text-align:right}
+.disc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.disc-item{background:#0d1b3e;border-radius:10px;padding:10px 12px;border:1px solid #1a3a6e}
+.disc-letter{font-size:24px;font-weight:700;margin-bottom:2px}
+.disc-name{font-size:11px;color:#8fa3bf}
+.disc-pct{font-size:11px;color:#8fa3bf;margin-top:4px}
+.disc-bar{height:4px;border-radius:2px;margin-top:6px}
+.insight{border-left:3px solid;padding:10px 14px;border-radius:0 10px 10px 0;margin-bottom:8px}
+.ins-green{border-color:#22c55e;background:#0a2a0a}
+.ins-amber{border-color:#f59e0b;background:#1a1200}
+.ins-purple{border-color:#8b5cf6;background:#160a2a}
+.ins-lbl{font-size:11px;font-weight:700;margin-bottom:3px;letter-spacing:0.04em}
+.ins-green .ins-lbl{color:#22c55e}
+.ins-amber .ins-lbl{color:#f59e0b}
+.ins-purple .ins-lbl{color:#8b5cf6}
+.ins-text{font-size:13px;color:#e8eff8;line-height:1.5}
+.link-card{background:#0d1b3e;border:1px solid #00c2ff55;border-radius:14px;padding:1.25rem;margin-bottom:1rem;text-align:center}
+.link-card p{font-size:13px;color:#8fa3bf;margin-bottom:10px}
+.link-url{font-size:11px;color:#00c2ff;word-break:break-all;margin-bottom:12px;line-height:1.6;background:#141f3a;padding:10px;border-radius:8px}
+.btn-copy{padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid #00c2ff;background:transparent;color:#00c2ff;width:100%}
+.btn-restart{width:100%;padding:13px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:1px solid #1a3a6e;background:#141f3a;color:#8fa3bf;margin-top:0.5rem}
+.loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0f1eee;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:999}
+.loading-spinner{width:48px;height:48px;border:3px solid #1a3a6e;border-top:3px solid #00c2ff;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:1rem}
+.loading-text{color:#8fa3bf;font-size:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.footer-brand{text-align:center;padding:1.5rem 0 0.5rem;font-size:11px;color:#8fa3bf}
+.footer-brand span{color:#00c2ff}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">SPORT COACHING PRO</div>
+  <div class="topbar-sub">Eduardo Meljin · sportcoachingpro.com</div>
+</div>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Generando tu informe...</div>
+</div>
+
+<div class="app">
+
+<div class="screen active" id="s-cover">
+  <div class="cover">
+    <div class="cover-tag">ANÁLISIS RADAR MENTAL</div>
+    <h1>El partido más importante<br><span>se juega en la cabeza.</span></h1>
+    <p>Completá este test con honestidad. No hay respuestas buenas ni malas. Pensá en vos: como deportista, como profesional, como persona.</p>
+    <div class="info-row">
+      <div class="info-pill"><div class="info-pill-val">48</div><div class="info-pill-lbl">preguntas</div></div>
+      <div class="info-pill"><div class="info-pill-val">~8</div><div class="info-pill-lbl">minutos</div></div>
+      <div class="info-pill"><div class="info-pill-val">8+1</div><div class="info-pill-lbl">dimensiones</div></div>
+    </div>
+    <div class="cover-card">
+      <h2>TUS DATOS</h2>
+      <div class="fg-row">
+        <div class="fg"><label>Nombre</label><input id="f-nombre" placeholder="Ej: Matías"/></div>
+        <div class="fg"><label>Apellido</label><input id="f-apellido" placeholder="Ej: Persia"/></div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>Edad</label><input id="f-edad" type="number" placeholder="12" min="8" max="25"/></div>
+        <div class="fg"><label>Deporte</label>
+          <select id="f-deporte" onchange="actualizarPuestos()">
+            <option value="">Seleccioná</option>
+            <option value="futbol">Fútbol</option>
+            <option value="padel">Pádel</option>
+            <option value="basquet">Básquet</option>
+            <option value="hockey">Hockey</option>
+            <option value="tenis">Tenis</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label>Puesto / Posición</label>
+        <select id="f-pos">
+          <option value="">Primero elegí el deporte</option>
+        </select>
+      </div>
+      <div class="fg"><label>Club</label><input id="f-club" placeholder="Club Atlético Argentino"/></div>
+      <div class="fg"><label>Categoría</label><input id="f-cat" placeholder="Ej: 2012"/></div>
+    </div>
+    <button class="btn-start" onclick="startTest()">COMENZAR TEST</button>
+  </div>
+</div>
+
+<div class="screen" id="s-test">
+  <div style="padding-top:1.25rem">
+    <div class="progress-wrap">
+      <div class="progress-top"><span id="phase-txt"></span><span id="q-counter"></span></div>
+      <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+    </div>
+    <div class="dim-badge" id="dim-badge"></div>
+    <div class="q-text" id="q-text"></div>
+    <div class="options" id="opts"></div>
+    <div class="nav">
+      <button class="btn-prev" id="btn-prev" onclick="navQ(-1)">← Atrás</button>
+      <button class="btn-next" id="btn-next" onclick="navQ(1)" disabled>Siguiente →</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="s-results">
+  <div style="padding-top:1.25rem">
+    <div class="result-header">
+      <div class="result-name" id="r-nombre"></div>
+      <div class="result-meta" id="r-meta"></div>
+    </div>
+    <div class="sem-card">
+      <div class="sem-circle" id="sem-circle"></div>
+      <div><div class="sem-title" id="sem-title"></div><div class="sem-desc" id="sem-desc"></div></div>
+    </div>
+    <div class="metrics-row">
+      <div class="metric"><div class="metric-lbl">DISPONIBILIDAD</div><div class="metric-val" id="r-disp"></div></div>
+      <div class="metric"><div class="metric-lbl">INTERFERENCIA</div><div class="metric-val" id="r-int" style="color:#ef4444"></div></div>
+      <div class="metric"><div class="metric-lbl">PERFIL DISC</div><div class="metric-val" id="r-disc" style="font-size:15px;color:#fff"></div></div>
+    </div>
+    <div class="radar-wrap">
+      <div style="font-size:11px;font-weight:700;color:#8fa3bf;letter-spacing:0.07em;margin-bottom:10px">RADAR MENTAL</div>
+      <canvas id="radarChart" height="300"></canvas>
+    </div>
+    <div class="section-card"><div class="section-title">PERFIL POR DIMENSIÓN</div><div id="bars"></div></div>
+    <div class="section-card">
+      <div class="section-title">PERFIL DE COMPORTAMIENTO — DISC</div>
+      <div class="disc-grid" id="disc-grid"></div>
+      <div id="disc-insight"></div>
+      <div id="estilo-insight" style="margin-top:10px"></div>
+    </div>
+    <div id="insights"></div>
+    <div class="link-card" id="link-card" style="display:none">
+      <p>Tu informe fue guardado. Tu coach puede verlo en este link:</p>
+      <div class="link-url" id="link-url"></div>
+      <button class="btn-copy" onclick="copiarLink()">Copiar link</button>
+    </div>
+    <div style="margin-top:1rem;padding:1rem;background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;font-size:12px;color:#8fa3bf;line-height:1.6">
+      Este informe es un punto de partida. Tu coach analizará los resultados y diseñará un plan específico para vos.
+    </div>
+    <button class="btn-restart" onclick="reiniciar()">← Volver al inicio</button>
+    <div class="footer-brand"><span>Sport Coaching Pro</span> · Eduardo Meljin · sportcoachingpro.com</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+var INFORME_BASE_URL='https://subtle-chimera-c543b2.netlify.app/informe.html';
+var FORMSPREE_URL='https://formspree.io/f/mvzvlaoo';
+var SUPABASE_URL='https://gltqhcnusblfovhxljcs.supabase.co';
+var SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI';
+var tokenActivo=null; // grupo activo
+var resultadoPrevio=null; // resultado anterior si hay nueva eval habilitada
+var informeLink='';
+
+var DIMS=[
+  {key:'autoconocimiento',label:'Autoconocimiento',color:'#8b5cf6'},
+  {key:'motivacion',label:'Motivación interna',color:'#f59e0b'},
+  {key:'confianza',label:'Autoconfianza',color:'#0ea5e9'},
+  {key:'regulacion',label:'Regulación emocional',color:'#06b6d4'},
+  {key:'atencion',label:'Atención y foco',color:'#22c55e'},
+  {key:'metacognicion',label:'Metacognición',color:'#f97316'},
+  {key:'potencial',label:'Potencial',color:'#a78bfa'},
+  {key:'consistencia',label:'Consistencia',color:'#ec4899'},
+  {key:'liderazgo',label:'Liderazgo',color:'#f43f5e'},
+  {key:'competitividad',label:'Competitividad',color:'#7c3aed'},
+  {key:'desempeno',label:'Desempeño',color:'#0891b2'},
+  {key:'decision',label:'Toma de decisiones',color:'#059669'},
+];
+
+var RADAR_QS=[
+  {dim:'autoconocimiento',text:'Sé qué emoción estoy sintiendo cuando algo no sale bien.'},
+  {dim:'autoconocimiento',text:'Puedo explicar qué me activa y qué me bloquea bajo presión.'},
+  {dim:'autoconocimiento',text:'Me doy cuenta cuando empiezo a perder el eje en situaciones exigentes.'},
+  {dim:'motivacion',text:'Mi principal motor es crecer, no evitar errores.',promo:true},
+  {dim:'motivacion',text:'Me motiva el desafío más que el miedo a fallar.',promo:true},
+  {dim:'motivacion',text:'Cuando me preparo para competir, me enfoco más en lo que quiero lograr que en lo que quiero evitar.',promo:true},
+  {dim:'confianza',text:'Confío en mí incluso después de cometer un error importante.'},
+  {dim:'confianza',text:'No necesito validación externa para seguir adelante.'},
+  {dim:'confianza',text:'Me siento capaz aun cuando hay mucha presión.'},
+  {dim:'regulacion',text:'Cuando me acelero emocionalmente, puedo volver a la calma.'},
+  {dim:'regulacion',text:'No quedo atrapado en una emoción negativa cuando algo sale mal.'},
+  {dim:'regulacion',text:'Puedo bajar la tensión de mi cuerpo cuando lo necesito.'},
+  {dim:'atencion',text:'Puedo sostener mi atención sin dispersarme en situaciones de alta exigencia.'},
+  {dim:'atencion',text:'Cuando me distraigo, vuelvo rápido a lo que importa.'},
+  {dim:'atencion',text:'Mi mente está donde está mi cuerpo: en el presente.'},
+  {dim:'metacognicion',text:'Me doy cuenta cuando mis pensamientos me están jugando en contra.'},
+  {dim:'metacognicion',text:'Sé cuándo perdí el foco y puedo traerme de vuelta al presente.'},
+  {dim:'metacognicion',text:'Si mi cabeza se va a pensamientos negativos, puedo cambiarla en el momento.'},
+  {dim:'potencial',text:'Siento que tengo margen para seguir creciendo en mi rendimiento.'},
+  {dim:'potencial',text:'Tengo condiciones que si se trabajan bien pueden llevarme muy lejos.'},
+  {dim:'potencial',text:'Me esfuerzo por mejorar constantemente, incluso sin presión externa.'},
+  {dim:'consistencia',text:'Puedo volver rápido después de un error importante sin que me afecte.'},
+  {dim:'consistencia',text:'Mantengo mi nivel independientemente del resultado o el contexto.'},
+  {dim:'consistencia',text:'Puedo repetir buenas actuaciones de manera sostenida en el tiempo.'},
+];
+
+
+var LIDERAZGO_QS=[
+  {text:'El grupo está bajo presión y necesita que alguien tome la iniciativa. ¿Qué hacés?',
+   opts:[{l:'Tomo la iniciativa, organizo al grupo y arrancamos.',v:5},{l:'Propongo una dirección pero espero que alguien lo confirme.',v:4},{l:'Espero que alguien con más autoridad lo haga.',v:2},{l:'Me enfoco en lo mío y no me meto.',v:1}]},
+  {text:'Ves que un compañero o colega está cometiendo el mismo error repetidamente. ¿Qué hacés?',
+   opts:[{l:'Me acerco, se lo digo con respeto y le propongo cómo mejorarlo.',v:5},{l:'Se lo comento a quien corresponda para que lo corrija.',v:3},{l:'Lo dejo, no es mi lugar decirle nada.',v:1},{l:'Se lo insinúo pero sin decirlo directamente.',v:2}]},
+  {text:'Hay tensión dentro del grupo que está afectando el rendimiento colectivo. ¿Qué hacés?',
+   opts:[{l:'Hablo con las partes involucradas y busco que encuentren un punto en común.',v:5},{l:'Lo escalo a quien tiene autoridad para que lo resuelva.',v:3},{l:'No me meto, son cosas que se resuelven solas.',v:1},{l:'Intento distender el clima sin enfrentar el problema de fondo.',v:2}]},
+];
+
+var COMPETITIVIDAD_QS=[
+  {text:'Terminaste una jornada donde rendiste bien. ¿Qué pensás al terminar?',
+   opts:[{l:'Estuvo bien, pero mañana quiero hacerlo mejor.',v:5},{l:'Estoy conforme, rendí como sé.',v:3},{l:'No pienso mucho en eso, ya pasó.',v:2},{l:'Depende de cómo le fue al grupo.',v:1}]},
+  {text:'El resultado fue positivo pero vos no estuviste a tu mejor nivel. ¿Cómo lo vivís?',
+   opts:[{l:'Me queda una sensación de deuda conmigo mismo.',v:5},{l:'Lo importante es que salió bien.',v:2},{l:'Pienso en qué mejorar para la próxima.',v:4},{l:'Si el resultado fue bueno está bien, no le doy más vueltas.',v:1}]},
+  {text:'Hay alguien en tu mismo rol que está en mejor momento que vos. ¿Qué hacés?',
+   opts:[{l:'Me activa — trabajo más para estar a ese nivel.',v:5},{l:'Lo observo para aprender de lo que hace bien.',v:4},{l:'Me frustra pero no sé bien qué hacer.',v:2},{l:'Cada uno tiene sus momentos, espero el mío.',v:1}]},
+];
+
+var DESEMPENO_QS=[
+  {text:'Si tuvieras que calificar tu rendimiento en las últimas semanas, ¿qué dirías?',
+   opts:[{l:'Estoy en un buen momento, me siento sólido.',v:5},{l:'Hay días buenos y días malos, no es constante.',v:3},{l:'Siento que no estoy rindiendo lo que puedo.',v:2},{l:'Depende mucho de cómo me sienta ese día.',v:1}]},
+  {text:'Recibís una devolución crítica sobre tu desempeño de alguien con autoridad. ¿Cómo lo procesás?',
+   opts:[{l:'Lo acepto, analizo qué hay de cierto y pienso cómo mejorar.',v:5},{l:'Me molesta pero lo dejo pasar.',v:2},{l:'Analizo qué hice mal para no repetirlo.',v:4},{l:'Creo que no fue justo pero no digo nada.',v:1}]},
+  {text:'¿Cómo describirías tu nivel actual comparado con tu mejor versión?',
+   opts:[{l:'Estoy cerca de mi mejor momento.',v:5},{l:'Me falta consistencia para llegar ahí.',v:3},{l:'Estoy lejos todavía, hay mucho por trabajar.',v:4},{l:'No sé bien cuál es mi mejor versión.',v:1}]},
+];
+
+
+var DECISION_QS=[
+  {text:'Tenés que tomar una decisión importante con poco tiempo y poca información. ¿Qué hacés?',
+   opts:[{l:'Decido con lo que tengo y asumo las consecuencias.',v:5},{l:'Busco rápido algún dato más antes de decidir.',v:4},{l:'Prefiero esperar a tener más información aunque pierda tiempo.',v:2},{l:'Le consulto a alguien antes de moverme.',v:1}]},
+  {text:'Tomaste una decisión y salió mal. ¿Cómo lo procesás?',
+   opts:[{l:'Lo asumo, analizo qué falló y sigo adelante.',v:5},{l:'Me cuesta aceptarlo pero eventualmente lo proceso.',v:3},{l:'Pienso que me faltó información para decidir bien.',v:2},{l:'Busco entender si el error fue mío o del contexto.',v:4}]},
+  {text:'En un momento de mucha presión, ¿cómo describís tus decisiones?',
+   opts:[{l:'Tiendo a decidir más rápido y con más claridad.',v:5},{l:'Decido igual que siempre, la presión no me cambia.',v:4},{l:'Me cuesta más, necesito más tiempo.',v:2},{l:'Evito decidir hasta que baja la presión.',v:1}]},
+];
+
+var ENTORNO_QS=[
+  {ctx:'ctx_familiar',
+   text:'¿Cómo describirías tu entorno familiar en este momento?',
+   opts:[{l:'Estable, me siento sostenido y en calma en mi casa.',v:10},{l:'En general bien, con algunas tensiones puntuales.',v:8},{l:'Hay momentos de tensión que a veces me afectan.',v:6},{l:'Bastante inestable, me cuesta desconectar de eso.',v:4},{l:'Atravieso conflictos fuertes que me afectan seguido.',v:2}]},
+  {ctx:'ctx_academico',
+   text:'¿Cómo está tu situación académica o laboral fuera del deporte?',
+   opts:[{l:'Va muy bien, no me genera estrés.',v:10},{l:'Bien en general, con alguna exigencia puntual.',v:8},{l:'Tengo algunas dificultades que me generan presión.',v:6},{l:'Me cuesta bastante y me quita energía mental.',v:4},{l:'Es una fuente de estrés constante para mí.',v:2}]},
+  {ctx:'ctx_social',
+   text:'¿Cómo es tu relación con tus compañeros o grupo de pares?',
+   opts:[{l:'Me siento muy integrado, tengo buena relación con todos.',v:10},{l:'Bien en general, con buen vínculo con la mayoría.',v:8},{l:'Tengo buena relación con algunos, no con todos.',v:6},{l:'Me cuesta sentirme parte del grupo.',v:4},{l:'Tengo conflictos o me siento bastante aislado.',v:2}]},
+  {ctx:'ctx_apoyo',
+   text:'Cuando algo te complica, ¿sentís que tenés a quién recurrir?',
+   opts:[{l:'Sí, tengo personas de mucha confianza para apoyarme.',v:10},{l:'En general sí, aunque no siempre estén disponibles.',v:8},{l:'A veces siento que estoy bastante solo con esto.',v:6},{l:'Tengo poco apoyo real cuando lo necesito.',v:4},{l:'Siento que no tengo a quién recurrir.',v:2}]},
+  {ctx:'ctx_economico',
+   text:'¿La situación económica actual te genera preocupación que te distrae del deporte?',
+   opts:[{l:'No, no es algo que me preocupe hoy.',v:10},{l:'Casi nada, es algo manejable.',v:8},{l:'A veces lo pienso y me distrae un poco.',v:6},{l:'Sí, me genera bastante preocupación.',v:4},{l:'Es una preocupación constante que me cuesta sacarme de la cabeza.',v:2}]},
+  {ctx:'ctx_bienestar',
+   text:'En términos generales, ¿cómo describirías tu bienestar emocional últimamente?',
+   opts:[{l:'Muy bien, me siento estable y en paz.',v:10},{l:'Bien, con altibajos normales.',v:8},{l:'Regular, hay días que me cuesta más.',v:6},{l:'No muy bien, me siento bastante afectado.',v:4},{l:'Mal, necesito apoyo en este momento.',v:2}]},
+];
+
+var DISC_QS=[
+  {text:'El grupo enfrenta un momento crítico y necesita reaccionar. ¿Cuál es tu primera reacción?',opts:[{l:'Tomo la iniciativa y busco resolver yo.',d:'D'},{l:'Animo al grupo y genero energía colectiva.',d:'I'},{l:'Me mantengo en mi rol y espero el momento justo.',d:'S'},{l:'Analizo qué está fallando y lo comunico.',d:'C'}]},
+  {text:'Cometiste un error importante en un momento clave. ¿Cómo reaccionás?',opts:[{l:'Me sacudo rápido y busco revertirlo yo mismo.',d:'D'},{l:'Busco el apoyo del grupo para seguir adelante.',d:'I'},{l:'Me tranquilizo, me enfoco y sigo.',d:'S'},{l:'Analizo qué hice mal para no repetirlo.',d:'C'}]},
+  {text:'Hay un conflicto dentro del grupo que afecta el clima. ¿Qué hacés?',opts:[{l:'Intervengo directo y digo lo que pienso.',d:'D'},{l:'Trato de distender el clima y bajar la tensión.',d:'I'},{l:'Escucho a todos y busco un punto en común.',d:'S'},{l:'No me meto a menos que me pidan opinión.',d:'C'}]},
+  {text:'Te piden asumir un rol nuevo que no conocés bien. ¿Cómo lo tomás?',opts:[{l:'Lo veo como un desafío y quiero demostrar que puedo.',d:'D'},{l:'Me entusiasmo y trato de conectar con los demás.',d:'I'},{l:'Lo acepto con calma, aunque prefiero lo conocido.',d:'S'},{l:'Pregunto exactamente qué se espera antes de arrancar.',d:'C'}]},
+  {text:'Tenés que tomar una decisión rápida con poca información. ¿Qué prima en vos?',opts:[{l:'El instinto de actuar y resolver.',d:'D'},{l:'Lo que siente el grupo en ese momento.',d:'I'},{l:'Lo que aprendí y lo que me da más seguridad.',d:'S'},{l:'Lo que analicé previamente según el contexto.',d:'C'}]},
+  {text:'Es el momento más importante del año para vos y tu grupo. ¿Qué pensás la noche anterior?',opts:[{l:'Quiero destacar. Pienso en cómo hacer la diferencia yo.',d:'D'},{l:'Pienso en el grupo y en todo lo que construimos juntos.',d:'I'},{l:'Repaso lo que tenemos que hacer y trato de estar tranquilo.',d:'S'},{l:'Analizo el contexto y preparo mentalmente cada situación.',d:'C'}]},
+];
+
+var SCALE=[{l:'Siempre',v:5},{l:'Casi siempre',v:4},{l:'A veces',v:3},{l:'Casi nunca',v:2},{l:'Nunca',v:1}];
+var DISC_INFO={
+  D:{name:'Dominante',color:'#ef4444',desc:'Decidido, competitivo, orientado al resultado. Bajo presión va al frente y toma la iniciativa. Riesgo: puede volverse impulsivo.'},
+  I:{name:'Influyente',color:'#f59e0b',desc:'Entusiasta, comunicativo, motor del grupo. Bajo presión busca cohesión y activa al equipo. Riesgo: puede dispersarse.'},
+  S:{name:'Estable',color:'#22c55e',desc:'Consistente, confiable, sostiene al equipo. Bajo presión mantiene la calma y ejecuta. Riesgo: puede ser pasivo.'},
+  C:{name:'Concienzudo',color:'#8b5cf6',desc:'Analítico, preciso, orientado al proceso. Bajo presión evalúa antes de actuar. Riesgo: puede paralizarse analizando.'},
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ESTILO DE PENSAMIENTO — 4 estilos de cómo la persona prefiere
+// pensar y aprender (no cómo actúa bajo presión, eso ya es DISC).
+// Preguntas propias sobre la base teórica pública de los modelos
+// de estilos cognitivos (hemisferios + cerebro triuno) — no es una
+// copia de ningún instrumento comercial.
+// ═══════════════════════════════════════════════════════════════
+var ESTILO_QS=[
+  {text:'Te explican un ejercicio nuevo antes de practicarlo. ¿Qué te ayuda más a entenderlo?',opts:[{l:'Que me expliquen la lógica y el objetivo técnico.',e:'AN'},{l:'Que me den los pasos en orden, uno por uno.',e:'SE'},{l:'Que lo hablemos y practiquemos en grupo.',e:'IN'},{l:'Que me muestren la idea general y probar distintas formas.',e:'EX'}]},
+  {text:'Estás por competir en algo importante. ¿Cómo te preparás la noche anterior?',opts:[{l:'Repasando datos y el plan técnico en la cabeza.',e:'AN'},{l:'Siguiendo mi rutina de siempre, paso a paso.',e:'SE'},{l:'Hablando con mis compañeros o mi entorno cercano.',e:'IN'},{l:'Visualizando el panorama general del partido.',e:'EX'}]},
+  {text:'Algo no te está saliendo en un entrenamiento. ¿Qué hacés primero?',opts:[{l:'Pienso qué estoy haciendo mal técnicamente.',e:'AN'},{l:'Repito el ejercicio desde el principio, paso a paso.',e:'SE'},{l:'Le pregunto a un compañero o al técnico.',e:'IN'},{l:'Pruebo una forma distinta de hacerlo.',e:'EX'}]},
+  {text:'Tenés que aprender una jugada o rutina nueva. ¿Cómo se te queda mejor?',opts:[{l:'Entendiendo por qué funciona.',e:'AN'},{l:'Practicándola siempre en el mismo orden.',e:'SE'},{l:'Viéndola hacer a otro y comentándola.',e:'IN'},{l:'Jugando con variantes hasta que me sale natural.',e:'EX'}]},
+  {text:'En un momento de mucha presión, ¿en qué se apoya tu cabeza?',opts:[{l:'En los datos y el plan que ya tengo claro.',e:'AN'},{l:'En la rutina que conozco de memoria.',e:'SE'},{l:'En mis compañeros, sentirme acompañado.',e:'IN'},{l:'En la intuición del momento.',e:'EX'}]},
+  {text:'Si pudieras elegir cómo te preparan para un desafío nuevo, ¿qué preferís?',opts:[{l:'Que me den los datos y el porqué.',e:'AN'},{l:'Un plan claro, paso a paso.',e:'SE'},{l:'Prepararlo en equipo.',e:'IN'},{l:'Que me den libertad para resolverlo a mi manera.',e:'EX'}]},
+];
+var ESTILO_INFO={
+  AN:{name:'Analítico',color:'#0091D5',tip:'Aprende mejor con explicación lógica y datos — no le digas solo \'hacelo así\', explicale el porqué.'},
+  SE:{name:'Secuencial',color:'#1E8E5A',tip:'Aprende mejor con estructura y pasos claros — evitá cambiarle el orden o el plan sin avisar.'},
+  IN:{name:'Interpersonal',color:'#ef4444',tip:'Aprende mejor hablando y en grupo — dale espacio para comentar y preguntar, no solo indicaciones unidireccionales.'},
+  EX:{name:'Experimental',color:'#D4A830',tip:'Aprende mejor con el panorama general y probando variantes — no lo encasilles en un único método rígido.'},
+};
+
+var TOTAL=RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length+DECISION_QS.length+DISC_QS.length+ESTILO_QS.length+ENTORNO_QS.length;
+var PUESTOS={
+  futbol:['Arquero','Defensor central','Lateral','Mediocampista central','Mediocampista defensivo','Enganche','Extremo','Delantero centro'],
+  padel:['Posicion derecha','Posicion reves'],
+  basquet:['Base','Escolta','Alero','Ala-pivot','Pivot'],
+  hockey:['Arquero','Defensa','Mediocampista','Delantera'],
+  tenis:['Individual'],
+  otro:['Lider','Coordinador','Colaborador','Otro']
+};
+function actualizarPuestos(){
+  var dep=document.getElementById('f-deporte').value;
+  var sel=document.getElementById('f-pos');
+  sel.innerHTML='<option value="">Selecciona tu puesto</option>';
+  (PUESTOS[dep]||[]).forEach(function(p){sel.innerHTML+='<option value="'+p+'">'+p+'</option>';});
+}
+
+var current=0,answers=[],playerInfo={},radarChart=null;
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+
+function startTest(){
+  var nombre=document.getElementById('f-nombre').value.trim();
+  if(!nombre){alert('Por favor ingresa tu nombre.');return;}
+  playerInfo={nombre:nombre+' '+document.getElementById('f-apellido').value.trim(),edad:document.getElementById('f-edad').value,pos:document.getElementById('f-pos').value,deporte:document.getElementById('f-deporte').value,club:document.getElementById('f-club').value,cat:document.getElementById('f-cat').value};
+  // Buscar si tiene evaluación previa habilitada para segunda evaluación
+  if(tokenActivo&&playerInfo.nombre){
+    var nombreEnc=encodeURIComponent(playerInfo.nombre);
+    sbFetch('resultados?grupo_id=eq.'+tokenActivo.id+'&jugador_nombre=ilike.'+nombreEnc+'&nueva_eval_habilitada=eq.true&order=evaluacion_num.desc&limit=1',{method:'GET'}).then(function(prev){
+      if(prev&&prev.length){resultadoPrevio=prev[0];console.log('Segunda evaluación habilitada para',playerInfo.nombre,'eval#',(prev[0].evaluacion_num||1)+1);}
+    }).catch(function(){});
+  }
+  current=0;answers=new Array(TOTAL).fill(null);
+  renderQ();showScreen('s-test');
+}
+
+function isLiderazgo(i){return i>=RADAR_QS.length && i<RADAR_QS.length+LIDERAZGO_QS.length;}
+function isCompetitividad(i){return i>=RADAR_QS.length+LIDERAZGO_QS.length && i<RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length;}
+function isDesempeno(i){return i>=RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length && i<RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length;}
+function isDecision(i){return i>=RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length && i<RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length+DECISION_QS.length;}
+function isDisc(i){return i>=RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length+DECISION_QS.length && i<RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length+DECISION_QS.length+DISC_QS.length;}
+function isEstilo(i){return i>=RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length+DECISION_QS.length+DISC_QS.length && i<RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length+DECISION_QS.length+DISC_QS.length+ESTILO_QS.length;}
+function isEntorno(i){return i>=RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length+DECISION_QS.length+DISC_QS.length+ESTILO_QS.length;}
+
+function renderQ(){
+  var pct=Math.round((current/TOTAL)*100);
+  document.getElementById('prog').style.width=pct+'%';
+  document.getElementById('prog').style.background=isDisc(current)?'#8b5cf6':'#00c2ff';
+  document.getElementById('q-counter').textContent=(current+1)+' / '+TOTAL;
+  var lidBase=RADAR_QS.length;
+  var compBase=lidBase+LIDERAZGO_QS.length;
+  var despBase=compBase+COMPETITIVIDAD_QS.length;
+  var decBase=despBase+DESEMPENO_QS.length;
+  var discBase=decBase+DECISION_QS.length;
+  var estiloBase=discBase+DISC_QS.length;
+  var entornoBase=estiloBase+ESTILO_QS.length;
+  var localIdx=isEntorno(current)?(current-entornoBase):isEstilo(current)?(current-estiloBase):isDisc(current)?(current-discBase):isDecision(current)?(current-decBase):isDesempeno(current)?(current-despBase):isCompetitividad(current)?(current-compBase):isLiderazgo(current)?(current-lidBase):current;
+
+  // Badge y phase
+  if(isEntorno(current)){
+    document.getElementById('phase-txt').textContent='Parte 7 — Contexto de vida';
+    document.getElementById('dim-badge').innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block"></span> <span style="color:#22c55e">ENTORNO</span>';
+    document.getElementById('dim-badge').style.borderColor='#22c55e33';
+  } else if(isEstilo(current)){
+    document.getElementById('phase-txt').textContent='Parte 6 — Estilo de pensamiento';
+    document.getElementById('dim-badge').innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:#0091D5;display:inline-block"></span> <span style="color:#0091D5">ESTILO DE PENSAMIENTO</span>';
+    document.getElementById('dim-badge').style.borderColor='#0091D533';
+  } else if(isDisc(current)){
+    document.getElementById('phase-txt').textContent='Parte 5 — Perfil de comportamiento';
+    document.getElementById('dim-badge').innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;display:inline-block"></span> <span style="color:#8b5cf6">COMPORTAMIENTO</span>';
+    document.getElementById('dim-badge').style.borderColor='#8b5cf633';
+  } else if(isDecision(current)){
+    document.getElementById('phase-txt').textContent='Parte 4 — Toma de decisiones';
+    document.getElementById('dim-badge').innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:#059669;display:inline-block"></span> <span style="color:#059669">TOMA DE DECISIONES</span>';
+    document.getElementById('dim-badge').style.borderColor='#05966933';
+  } else if(isDesempeno(current)){
+    document.getElementById('phase-txt').textContent='Parte 3 — Triada';
+    document.getElementById('dim-badge').innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:#0891b2;display:inline-block"></span> <span style="color:#0891b2">DESEMPEÑO</span>';
+    document.getElementById('dim-badge').style.borderColor='#0891b233';
+  } else if(isCompetitividad(current)){
+    document.getElementById('phase-txt').textContent='Parte 3 — Triada';
+    document.getElementById('dim-badge').innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;display:inline-block"></span> <span style="color:#7c3aed">COMPETITIVIDAD</span>';
+    document.getElementById('dim-badge').style.borderColor='#7c3aed33';
+  } else if(isLiderazgo(current)){
+    document.getElementById('phase-txt').textContent='Parte 2 — Liderazgo y Triada';
+    document.getElementById('dim-badge').innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:#f43f5e;display:inline-block"></span> <span style="color:#f43f5e">LIDERAZGO</span>';
+    document.getElementById('dim-badge').style.borderColor='#f43f5e33';
+  } else {
+    document.getElementById('phase-txt').textContent='Parte 1 — Radar Mental';
+    var d=DIMS.find(function(x){return x.key===RADAR_QS[localIdx].dim;});
+    document.getElementById('dim-badge').innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:'+d.color+';display:inline-block"></span> <span style="color:'+d.color+'">'+d.label.toUpperCase()+'</span>';
+    document.getElementById('dim-badge').style.borderColor=d.color+'33';
+  }
+
+  // Texto pregunta
+  var qText='';
+  if(isEntorno(current)) qText=ENTORNO_QS[localIdx].text;
+  else if(isEstilo(current)) qText=ESTILO_QS[localIdx].text;
+  else if(isDisc(current)) qText=DISC_QS[localIdx].text;
+  else if(isDecision(current)) qText=DECISION_QS[localIdx].text;
+  else if(isDesempeno(current)) qText=DESEMPENO_QS[localIdx].text;
+  else if(isCompetitividad(current)) qText=COMPETITIVIDAD_QS[localIdx].text;
+  else if(isLiderazgo(current)) qText=LIDERAZGO_QS[localIdx].text;
+  else qText=RADAR_QS[localIdx].text;
+  document.getElementById('q-text').textContent=qText;
+
+  var sel=answers[current];
+  var html='';
+  if(isEntorno(current)){
+    html=ENTORNO_QS[localIdx].opts.map(function(o,i){return '<div class="opt'+(sel===i?' selected':'')+'" onclick="selectOpt('+i+')"><div class="opt-dot"></div><span class="opt-label">'+o.l+'</span></div>';}).join('');
+  } else if(isEstilo(current)){
+    html=ESTILO_QS[localIdx].opts.map(function(o,i){return '<div class="opt'+(sel===i?' selected':'')+'" onclick="selectOpt('+i+')"><div class="opt-dot"></div><span class="opt-label">'+o.l+'</span></div>';}).join('');
+  } else if(isDisc(current)){
+    html=DISC_QS[localIdx].opts.map(function(o,i){return '<div class="opt'+(sel===i?' selected':'')+'" onclick="selectOpt('+i+')"><div class="opt-dot"></div><span class="opt-label">'+o.l+'</span></div>';}).join('');
+  } else if(isDecision(current)){
+    html=DECISION_QS[localIdx].opts.map(function(o,i){return '<div class="opt'+(sel===i?' selected':'')+'" onclick="selectOpt('+i+')"><div class="opt-dot"></div><span class="opt-label">'+o.l+'</span></div>';}).join('');
+  } else if(isDesempeno(current)||isCompetitividad(current)||isLiderazgo(current)){
+    var qArr=isDesempeno(current)?DESEMPENO_QS:isCompetitividad(current)?COMPETITIVIDAD_QS:LIDERAZGO_QS;
+    html=qArr[localIdx].opts.map(function(o,i){return '<div class="opt'+(sel===i?' selected':'')+'" onclick="selectOpt('+i+')"><div class="opt-dot"></div><span class="opt-label">'+o.l+'</span></div>';}).join('');
+  } else {
+    // SCALE — onclick usa el valor directamente
+    html=SCALE.map(function(o){return '<div class="opt'+(sel===o.v?' selected':'')+'" onclick="selectOpt('+o.v+')"><div class="opt-dot"></div><span class="opt-label">'+o.l+'</span></div>';}).join('');
+  }
+  document.getElementById('opts').innerHTML=html;
+  document.getElementById('btn-prev').disabled=current===0;
+  var bn=document.getElementById('btn-next');
+  bn.textContent=current===TOTAL-1?'VER MI INFORME →':'Siguiente →';
+  bn.disabled=sel===null;
+}
+
+function selectOpt(val){
+  answers[current]=val;
+  var situacional=isDisc(current)||isLiderazgo(current)||isCompetitividad(current)||isDesempeno(current)||isDecision(current)||isEntorno(current);
+  var isScale=!situacional;
+  document.querySelectorAll('.opt').forEach(function(el,i){
+    if(situacional){
+      el.classList.toggle('selected', i===val);
+    } else {
+      // Para SCALE: val es el valor (1-5), SCALE[i].v es el valor de cada opción
+      el.classList.toggle('selected', SCALE[i]&&SCALE[i].v===val);
+    }
+  });
+  document.getElementById('btn-next').disabled=false;
+}
+
+function navQ(dir){
+  if(dir===1&&answers[current]===null)return;
+  if(dir===1&&current===TOTAL-1){showResults();return;}
+  current=Math.max(0,Math.min(TOTAL-1,current+dir));
+  renderQ();
+}
+
+function calcDims(){
+  var sums={},counts={};
+  DIMS.forEach(function(d){sums[d.key]=0;counts[d.key]=0;});
+  RADAR_QS.forEach(function(q,i){if(answers[i]!==null){sums[q.dim]+=answers[i];counts[q.dim]++;}});
+  // Situacionales con valor directo
+  function calcSituacional(qs, base){
+    var sum=0,cnt=0;
+    qs.forEach(function(q,i){
+      var a=answers[base+i];
+      if(a!==null && a!==undefined && q.opts[a]!==undefined){
+        sum+=q.opts[a].v;cnt++;
+      }
+    });
+    return cnt>0?Math.min(5,sum/cnt):0;
+  }
+  var r={};DIMS.forEach(function(d){r[d.key]=counts[d.key]>0?sums[d.key]/counts[d.key]:0;});
+  r['liderazgo']=calcSituacional(LIDERAZGO_QS, RADAR_QS.length);
+  r['competitividad']=calcSituacional(COMPETITIVIDAD_QS, RADAR_QS.length+LIDERAZGO_QS.length);
+  r['desempeno']=calcSituacional(DESEMPENO_QS, RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length);
+  r['decision']=calcSituacional(DECISION_QS, RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length);
+  return r;
+}
+
+function calcDisc(){
+  var c={D:0,I:0,S:0,C:0};
+  var discBase2=RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length+DECISION_QS.length;
+  DISC_QS.forEach(function(q,i){var a=answers[discBase2+i];if(a!==null)c[q.opts[a].d]++;});
+  return c;
+}
+
+function calcEstiloPensamiento(){
+  var c={AN:0,SE:0,IN:0,EX:0};
+  var estiloBase2=RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length+DECISION_QS.length+DISC_QS.length;
+  ESTILO_QS.forEach(function(q,i){var a=answers[estiloBase2+i];if(a!==null)c[q.opts[a].e]++;});
+  return c;
+}
+
+function calcEntorno(){
+  var entornoBase2=RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length+DECISION_QS.length+DISC_QS.length+ESTILO_QS.length;
+  var ctx={};
+  ENTORNO_QS.forEach(function(q,i){
+    var a=answers[entornoBase2+i];
+    ctx[q.ctx]=(a!==null && a!==undefined && q.opts[a]!==undefined)?q.opts[a].v:null;
+  });
+  return ctx;
+}
+
+function semaforo(avg){
+  var pct=Math.round(((5-avg)/4)*100);
+  if(pct>=45)return{color:'#ef4444',emoji:'🔴',label:'Rojo — Intervención prioritaria',desc:'Interferencia alta ('+pct+'%). Hay bloqueos mentales importantes que atender de inmediato.'};
+  if(pct>=22)return{color:'#f59e0b',emoji:'🟡',label:'Amarillo — Perfeccionamiento dirigido',desc:'Interferencia moderada ('+pct+'%). Perfil sólido con vulnerabilidades específicas a trabajar.'};
+  return{color:'#22c55e',emoji:'🟢',label:'Verde — Mantenimiento y liderazgo',desc:'Interferencia baja ('+pct+'%). Perfil mental saludable. Tu talento está disponible.'};
+}
+
+function showResults(){
+  document.getElementById('loading').style.display='flex';
+  var dims=calcDims();
+  // Calcular modo motivacional (Promoción vs Prevención)
+  // Las 3 preguntas de motivación tienen promo:true en RADAR_QS
+  var promoSum=0,promoCnt=0;
+  RADAR_QS.forEach(function(q,i){
+    if(q.promo&&answers[i]!==null&&answers[i]!==undefined){
+      promoSum+=answers[i]; promoCnt++;
+    }
+  });
+  var promoAvg=promoCnt>0?promoSum/promoCnt:null;
+  var modoMotivacional=promoAvg===null?null:promoAvg>=3.5?'promocion':'prevencion';
+  var disc=calcDisc();
+  var estilo=calcEstiloPensamiento();
+  var estiloEntries=Object.entries(estilo).sort(function(a,b){return b[1]-a[1];});
+  var estiloDominante=estiloEntries[0][0];
+  var scores=DIMS.map(function(d){return dims[d.key];});
+  var avg=scores.reduce(function(a,b){return a+b;},0)/scores.length;
+  var disp=Math.round(avg*20);
+  var sem=semaforo(avg);
+  var discEntries=Object.entries(disc).sort(function(a,b){return b[1]-a[1];});
+  var primary=discEntries[0][0];
+  var discInfo=DISC_INFO[primary];
+  var sorted=DIMS.map(function(d,i){return{label:d.label,color:d.color,score:scores[i]};}).sort(function(a,b){return b.score-a.score;});
+  // dims_pct: cada dimensión individual convertida a % (0-100), comparable con post partido
+  var dims_pct={};
+  DIMS.forEach(function(d){dims_pct[d.key]=Math.round(((dims[d.key]-1)/4)*100);});
+  var ctxEntorno=calcEntorno();
+  guardarYmostrar(dims,disc,scores,disp,sem,primary,discInfo,sorted,modoMotivacional,dims_pct,ctxEntorno,estilo,estiloDominante);
+}
+
+function guardarYmostrar(dims,disc,scores,disp,sem,primary,discInfo,sorted,modoMotivacional,dims_pct,ctxEntorno,estilo,estiloDominante){
+  var data={jugador:playerInfo,fecha:new Date().toISOString(),semaforo:{color:sem.color,label:sem.label,desc:sem.desc},disponibilidad:disp,interferencia:100-disp,scores:scores,dims:dims,dims_pct:dims_pct,disc:disc,primary_disc:primary,sorted:sorted,estilo_pensamiento:estilo,estilo_dominante:estiloDominante};
+  // Guardar en Supabase y usar el ID como link del informe
+  var resultado={
+    grupo_id:tokenActivo?tokenActivo.id:null,
+    grupo_codigo:tokenActivo?tokenActivo.codigo:null,
+    grupo_nombre:tokenActivo?tokenActivo.nombre:null,
+    logo_url:tokenActivo?tokenActivo.logo_url||null:null,
+    jugador_nombre:playerInfo.nombre,
+    jugador_edad:playerInfo.edad,
+    jugador_pos:playerInfo.pos,
+    deporte:playerInfo.deporte||null,
+    puesto:playerInfo.pos||null,
+    jugador_club:playerInfo.club,
+    jugador_cat:playerInfo.cat,
+    semaforo_color:sem.color,
+    semaforo_label:sem.label,
+    disponibilidad:disp,
+    interferencia:100-disp,
+    primary_disc:primary,
+    dims:dims,
+    dims_pct:dims_pct,
+    disc:disc,
+    estilo_pensamiento:estilo,
+    estilo_dominante:estiloDominante,
+    scores:scores,
+    sorted:sorted,
+    modo_motivacional:modoMotivacional,
+    ctx_familiar:ctxEntorno.ctx_familiar,
+    ctx_academico:ctxEntorno.ctx_academico,
+    ctx_social:ctxEntorno.ctx_social,
+    ctx_apoyo:ctxEntorno.ctx_apoyo,
+    ctx_economico:ctxEntorno.ctx_economico,
+    ctx_bienestar:ctxEntorno.ctx_bienestar
+  };
+
+  // Mostrar resultados inmediatamente sin esperar Supabase
+  enviarEmail(dims,disc,disp,sem,primary,discInfo,sorted);
+  mostrarResultados(dims,disc,scores,disp,sem,primary,discInfo,sorted,estilo,estiloDominante);
+
+  // Guardar en Supabase en background
+  setTimeout(function(){
+    // Si hay evaluación previa, incrementar número y desactivar la habilitación anterior
+    if(resultadoPrevio){
+      resultado.evaluacion_num=(resultadoPrevio.evaluacion_num||1)+1;
+      // Marcar la evaluación anterior como no habilitada
+      sbFetch('resultados?id=eq.'+resultadoPrevio.id,{method:'PATCH',body:{nueva_eval_habilitada:false}}).catch(function(){});
+    } else {
+      resultado.evaluacion_num=1;
+    }
+    sbFetch('resultados',{method:'POST',body:resultado}).then(function(data){
+      console.log('Supabase response:', JSON.stringify(data));
+      if(data&&data.length&&data[0].id){
+        var linkUrl=document.getElementById('link-url');
+        var linkCard=document.getElementById('link-card');
+        if(linkUrl&&linkCard){
+          var newLink=INFORME_BASE_URL+'?id='+data[0].id;
+          linkUrl.textContent=newLink;
+          linkCard.style.display='block';
+          informeLink=newLink;
+        }
+      } else {
+        console.log('No ID returned. Data:', data);
+      }
+    }).catch(function(e){console.error('Supabase error:',e);});
+  }, 500);
+}
+
+function enviarEmail(dims,disc,disp,sem,primary,discInfo,sorted){
+  var dimLines=DIMS.map(function(d){return d.label+': '+dims[d.key].toFixed(1)+'/5';}).join(' | ');
+  var discTotal=Object.values(disc).reduce(function(a,b){return a+b;},0)||1;
+  var discLines=Object.entries(disc).map(function(e){return e[0]+'-'+DISC_INFO[e[0]].name+': '+Math.round(e[1]/discTotal*100)+'%';}).join(' | ');
+  fetch(FORMSPREE_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Accept':'application/json'},
+    body:JSON.stringify({
+      _subject:'Radar Mental — '+playerInfo.nombre+' | '+(playerInfo.club||'Sin club')+' | Cat. '+(playerInfo.cat||'—'),
+      Jugador:playerInfo.nombre,Edad:playerInfo.edad||'—',Posicion:playerInfo.pos||'—',Club:playerInfo.club||'—',Categoria:playerInfo.cat||'—',
+      Semaforo:sem.label,Disponibilidad:disp+'%',Interferencia:(100-disp)+'%',
+      Fortaleza_clave:sorted[0].label+' ('+sorted[0].score.toFixed(1)+'/5)',
+      Zona_a_trabajar:sorted[sorted.length-1].label+' ('+sorted[sorted.length-1].score.toFixed(1)+'/5)',
+      Perfil_DISC:primary+' — '+discInfo.name,
+      Dimensiones:dimLines,DISC_detalle:discLines,
+      Informe_completo:informeLink||'No disponible',
+    })
+  }).catch(function(){});
+}
+
+function mostrarResultados(dims,disc,scores,disp,sem,primary,discInfo,sorted,estilo,estiloDominante){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('r-nombre').textContent=playerInfo.nombre;
+  document.getElementById('r-meta').textContent=[playerInfo.pos,playerInfo.club,playerInfo.cat?'Cat. '+playerInfo.cat:''].filter(Boolean).join(' · ');
+  var sc=document.getElementById('sem-circle');sc.style.background=sem.color;sc.textContent=sem.emoji;
+  document.getElementById('sem-title').textContent=sem.label;
+  document.getElementById('sem-desc').textContent=sem.desc;
+  document.getElementById('r-disp').textContent=disp+'%';
+  document.getElementById('r-int').textContent=(100-disp)+'%';
+  document.getElementById('r-disc').innerHTML='<span style="color:'+discInfo.color+';font-size:20px;font-weight:700">'+primary+'</span> <span style="font-size:13px;color:#8fa3bf">'+discInfo.name+'</span>';
+  document.getElementById('bars').innerHTML=sorted.map(function(d){return '<div class="bar-row"><span class="bar-name">'+d.label+'</span><div class="bar-track"><div class="bar-fill" style="width:'+d.score*20+'%;background:'+d.color+'"></div></div><span class="bar-score">'+d.score.toFixed(1)+'</span></div>';}).join('');
+  var total=Object.values(disc).reduce(function(a,b){return a+b;},0)||1;
+  document.getElementById('disc-grid').innerHTML=Object.entries(disc).map(function(e){var k=e[0],v=e[1];var info=DISC_INFO[k];var pct=Math.round(v/total*100);return '<div class="disc-item"><div class="disc-letter" style="color:'+info.color+'">'+k+'</div><div class="disc-name">'+info.name+'</div><div class="disc-bar" style="width:'+pct+'%;background:'+info.color+';max-width:100%"></div><div class="disc-pct">'+pct+'%</div></div>';}).join('');
+  document.getElementById('disc-insight').innerHTML='<div class="insight ins-purple"><div class="ins-lbl">PERFIL DOMINANTE — '+primary+': '+discInfo.name+'</div><div class="ins-text">'+discInfo.desc+'</div></div>';
+  if(estilo&&estiloDominante){
+    var estiloInfo=ESTILO_INFO[estiloDominante];
+    document.getElementById('estilo-insight').innerHTML='<div class="insight" style="background:'+estiloInfo.color+'15;border:1px solid '+estiloInfo.color+'40;border-radius:12px;padding:12px 14px"><div class="ins-lbl" style="color:'+estiloInfo.color+'">ESTILO DE PENSAMIENTO — '+estiloInfo.name+'</div><div class="ins-text">'+estiloInfo.tip+'</div></div>';
+  }
+  // Tag modo motivacional
+  var modoTag=document.getElementById('modo-motivacional-tag');
+  if(modoTag&&typeof modoMotivacional!=='undefined'&&modoMotivacional){
+    var esProm=modoMotivacional==='promocion';
+    modoTag.innerHTML='<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700;background:'+(esProm?'#22c55e22':'#7c3aed22')+';color:'+(esProm?'#22c55e':'#a78bfa')+';border:1px solid '+(esProm?'#22c55e44':'#7c3aed44')+'">'+
+      (esProm?'🚀':'🛡')+' Modo '+(esProm?'Promoción':'Prevención')+'</span>'+
+      '<p style="font-size:11px;color:#8fa3bf;margin-top:6px;margin-bottom:0">'+(esProm?'Tu motor es el logro. Te activás ante el desafío y buscás superar tus límites.':'Tu motor es la seguridad. Sos riguroso, evitás el error y necesitás certeza para rendir.')+'</p>';
+    modoTag.style.display='block';
+  }
+  var best=sorted[0],worst=sorted[sorted.length-1];
+  document.getElementById('insights').innerHTML='<div class="insight ins-green"><div class="ins-lbl">FORTALEZA CLAVE</div><div class="ins-text">'+best.label+' ('+best.score.toFixed(1)+'/5) — Motor disponible.</div></div><div class="insight ins-amber" style="margin-top:8px"><div class="ins-lbl">ZONA A TRABAJAR</div><div class="ins-text">'+worst.label+' ('+worst.score.toFixed(1)+'/5) — Principal fuente de interferencia.</div></div>';
+  if(radarChart)radarChart.destroy();
+  var ctx=document.getElementById('radarChart').getContext('2d');
+  radarChart=new Chart(ctx,{type:'radar',data:{labels:DIMS.map(function(d){return d.label;}),datasets:[{label:'Perfil mental',data:scores,fill:true,backgroundColor:'rgba(0,194,255,0.12)',borderColor:'#00c2ff',pointBackgroundColor:DIMS.map(function(d){return d.color;}),pointRadius:5,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,scales:{r:{min:0,max:5,ticks:{stepSize:1,font:{size:9},color:'#8fa3bf',backdropColor:'transparent'},pointLabels:{font:{size:10},color:'#8fa3bf'},grid:{color:'rgba(255,255,255,0.06)'},angleLines:{color:'rgba(255,255,255,0.06)'}}},plugins:{legend:{display:false}}}});
+  if(informeLink){document.getElementById('link-url').textContent=informeLink;document.getElementById('link-card').style.display='block';}
+  showScreen('s-results');
+}
+
+function copiarLink(){
+  navigator.clipboard.writeText(informeLink).then(function(){
+    var btn=document.querySelector('.btn-copy');btn.textContent='¡Copiado!';
+    setTimeout(function(){btn.textContent='Copiar link';},2000);
+  });
+}
+
+function reiniciar(){showScreen('s-cover');}
+
+async function sbFetch(path, opts){
+  var method=(opts&&opts.method)||'GET';
+  var preferHeader = method==='POST' ? 'return=representation' : 'return=representation';
+  const res = await fetch(SUPABASE_URL+'/rest/v1/'+path,{
+    headers:{
+      'apikey':SUPABASE_KEY,
+      'Authorization':'Bearer '+SUPABASE_KEY,
+      'Content-Type':'application/json',
+      'Prefer': preferHeader,
+      ...(opts&&opts.headers||{})
+    },
+    method: method,
+    body:(opts&&opts.body)?JSON.stringify(opts.body):undefined
+  });
+  console.log('sbFetch status:', res.status, path);
+  const text = await res.text();
+  console.log('sbFetch response text:', text.substring(0,200));
+  return text?JSON.parse(text):null;
+}
+
+function detectarGrupo(){
+  var params=new URLSearchParams(window.location.search);
+  var grupo=params.get('grupo');
+  if(!grupo) return;
+  sbFetch('grupos?codigo=eq.'+grupo+'&select=*').then(function(data){
+    if(!data||!data.length) return;
+    var g=data[0];
+    if(!g.habilitado){
+      document.getElementById('s-cover').innerHTML='<div style="text-align:center;padding:4rem 2rem"><div style="font-size:48px;margin-bottom:1rem">⛔</div><h2 style="color:#f59e0b;margin-bottom:8px">Link deshabilitado</h2><p style="color:#8fa3bf">Este link fue deshabilitado por el coach. Contactalo para más información.</p></div>';
+      return;
+    }
+    tokenActivo=g;
+    if(g.club) document.getElementById('f-club').value=g.club;
+    if(g.categoria) document.getElementById('f-cat').value=g.categoria;
+    var tag=document.querySelector('.cover-tag');
+    if(tag) tag.textContent=(g.nombre||'ANÁLISIS RADAR MENTAL').toUpperCase();
+    // Mostrar logo del club si existe
+    if(g.logo_url){
+      var logoEl=document.createElement('div');
+      logoEl.style.cssText='text-align:center;margin-bottom:1.25rem';
+      logoEl.innerHTML='<img src="'+g.logo_url+'" style="height:60px;max-width:180px;object-fit:contain;border-radius:10px;border:1px solid #1a3a6e;padding:6px;background:#141f3a" onerror="this.parentElement.style.display=\'none\'" />';
+      var cover=document.querySelector('.cover');
+      if(cover) cover.insertBefore(logoEl, cover.querySelector('.cover-card'));
+    }
+  }).catch(function(){});
+}
+
+detectarGrupo();
+</script>
+</body>
+</html>
