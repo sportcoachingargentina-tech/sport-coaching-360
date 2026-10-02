@@ -2444,6 +2444,7 @@ tr:hover td{background:#0d1b3e40}
           <select id="eveq-grupo" onchange="evEquipoCargar()" style="padding:7px 10px;border:1px solid #1a3a6e;border-radius:8px;font-size:13px;background:#141f3a;color:#e8eff8;min-width:200px"><option value="">Todos los grupos</option></select>
           <button onclick="abrirSelectorPartidos('ev-eq')" style="padding:7px 14px;background:#141f3a;border:1px solid #1a3a6e;color:#e8eff8;border-radius:8px;font-size:12px;cursor:pointer">🗓 Elegir partidos</button>
           <button id="eveq-btn-ia" onclick="generarAnalisisEquipoIA()" style="display:none;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#7c3aed,#00c2ff);color:#fff;border:none">✨ Analizar tendencia con IA</button>
+          <button id="eveq-btn-pdf" onclick="generarPDFEquipo()" title="PDF para compartir con el plantel: evolución del equipo y objetivos, sin datos individuales" style="display:none;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:#00c2ff18;color:#00c2ff;border:1px solid #00c2ff55">📄 PDF para el plantel</button>
           <button id="eveq-btn-obj" onclick="generarObjetivosEquipo()" style="display:none;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;border:none">🎯 Generar objetivos del equipo</button>
         </div>
         <div id="eveq-ia-box" style="display:none" class="tw">
@@ -9807,6 +9808,7 @@ let EVEQ_CH=null;
 let EVEQ_DATA=[];
 let EVEQ_DIMS=[];
 let EVEQ_GRUPO_NOMBRE='';
+let EVEQ_PARTIDOS_COD=[];
 async function evEquipoInit(){
   const gs=await q('grupos?order=nombre.asc');
   const gsFilt=filtrarGrupos(gs||[]);
@@ -9848,6 +9850,9 @@ async function evEquipoCargar(){
   const iaBoxEq=document.getElementById('eveq-ia-box');if(iaBoxEq)iaBoxEq.style.display='none';
   const objBoxEq=document.getElementById('eveq-obj-box');if(objBoxEq)objBoxEq.style.display='none';
   EVEQ_DATA=porPartido;
+  window.EVEQ_PP=jugs; window.EVEQ_GCOD=gcod||null;
+  EVEQ_PARTIDOS_COD=partidos.filter(p=>jugs.some(j=>j.partido_codigo===p.codigo)).map(p=>p.codigo);
+  const btnPdfEq=document.getElementById('eveq-btn-pdf'); if(btnPdfEq) btnPdfEq.style.display='inline-block';
   EVEQ_GRUPO_NOMBRE=gcod?(gsFiltEq.find(g=>g.codigo===gcod)||{}).nombre||'este grupo':'todos los grupos';
   evCargarObjetivosEquipoExistentes(gcod); // revisa si ya hay uno vigente, o si hay que renovar solo
   renderJugadoresASeguir(porPartido);
@@ -10802,6 +10807,149 @@ function evRenderHistorial(data){
 }
 
 // ── PDF EVOLUCIÓN ────────────────────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════════
+// PDF DEL EQUIPO — para compartir con el plantel
+// Evolución del grupo partido a partido + objetivos vigentes + cómo
+// lograrlos. Solo datos del equipo: NINGÚN dato individual.
+// Todo con reglas fijas (sin IA).
+// ═══════════════════════════════════════════════════════════════
+const EVEQ_TIPS={
+  'Recuperación tras error':'Rutina de 10 segundos después de cada error: respirar, palabra ancla y foco en la próxima acción.',
+  'Decisión bajo presión':'En el entrenamiento, tareas con poco tiempo para decidir y la consigna de mirar antes de recibir.',
+  'Concentración y foco':'Una sola consigna por bloque y una señal del capitán para volver a enfocar.',
+  'Retomar intensidad':'Pactar un gesto de equipo para "subir" después de cada pausa o gol.',
+  'Fluidez y respiración':'Respiración 4-2-6 en la entrada en calor y en cada pelota parada.',
+  'Lenguaje corporal':'Cabeza arriba después del error: el cuerpo también le habla al rival.',
+  'Aceptación del error':'El error se procesa, no se castiga: primero qué pasó, después cómo seguimos.',
+  'Recuperación de pelota':'Reacción inmediata a la pérdida: los 5 segundos siguientes son de todos.',
+  'Convencimiento técnico':'Repetir en el entrenamiento la acción que más nos cuesta hasta que salga sola.',
+  'Acciones progresivas':'Animarse a jugar hacia adelante: el pase seguro no siempre es el mejor.',
+  'Placer en el juego':'Recordar por qué jugamos: celebrar las buenas acciones, no solo los goles.',
+  'Nivel de energía':'Cuidar el sueño y la comida en la semana: la energía del sábado se arma el martes.',
+  'Eje ante adversidad':'Si el partido se complica, volver al plan: una consigna simple y hablarnos.',
+  'Confianza táctica':'Tener claro el rol de cada uno antes del partido; preguntar si hay dudas.',
+  'Control de zona':'Comunicarnos en voz alta: cada zona tiene un responsable.'
+};
+async function generarPDFEquipo(){
+  if(!window.jspdf){ alert('La herramienta de PDF todavía está cargando. Probá en unos segundos.'); return; }
+  const data=(EVEQ_DATA||[]).filter(p=>p.mental!=null);
+  if(!data.length){ alert('Elegí un grupo con partidos y Post Partido cargados.'); return; }
+  const pp=window.EVEQ_PP||[], gcod=window.EVEQ_GCOD||null;
+  const { jsPDF }=window.jspdf; const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210, M=16;
+  const lim=t=>String(t==null?'':t).replace(/[^\u0000-\u00ff]/g,'').replace(/\s+/g,' ').trim(); // sin emojis
+  const AZ=[10,21,48], CE=[0,150,200], GR=[100,116,139], VE=[22,160,76], NA=[200,120,0], RO=[200,50,50];
+  const avg=a=>{ const v=a.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((s,x)=>s+x,0)/v.length:null; };
+  const c100=v=>v==null?null:Math.round(v*10);
+
+  // ── Cálculos del equipo
+  const ments=data.map(p=>p.mental), rsts=data.map(p=>p.reset);
+  const mitad=Math.max(1,Math.floor(data.length/2));
+  const mIni=avg(ments.slice(0,mitad)), mFin=avg(ments.slice(-mitad));
+  const rIni=avg(rsts.slice(0,mitad)), rFin=avg(rsts.slice(-mitad));
+  const codsOrden=(EVEQ_PARTIDOS_COD||[]);
+  const vars=EV_PREGS.map((lbl,i)=>{
+    const k='q'+(i+1);
+    const porPartido=codsOrden.map(c=>avg(pp.filter(j=>j.partido_codigo===c).map(j=>j[k]==null?null:Number(j[k])))).filter(v=>v!=null);
+    if(!porPartido.length) return null;
+    const h=Math.max(1,Math.floor(porPartido.length/2));
+    return {lbl, prom:avg(porPartido), cambio:porPartido.length>1?avg(porPartido.slice(-h))-avg(porPartido.slice(0,h)):0};
+  }).filter(Boolean);
+  const mejoras=vars.filter(v=>v.cambio>0.15).sort((a,b)=>b.cambio-a.cambio).slice(0,3);
+  const trabajar=vars.slice().sort((a,b)=>a.prom-b.prom).slice(0,3);
+  let obj=null;
+  try{
+    const gq=gcod?('grupo_codigo=eq.'+encodeURIComponent(gcod)):'grupo_codigo=is.null';
+    const rows=await q('objetivos_equipo?'+gq+'&order=creado_en.desc&limit=1');
+    obj=Array.isArray(rows)&&rows[0]?rows[0]:null;
+  }catch(e){}
+  const partidosDesdeObj=obj?data.filter(p=>p.fecha&&new Date(p.fecha)>new Date(obj.creado_en)).length:0;
+
+  // ── Encabezado
+  doc.setFillColor(...AZ); doc.rect(0,0,W,34,'F');
+  try{ const logo=[...document.querySelectorAll('img')].find(i=>(i.src||'').startsWith('data:image/png')); if(logo) doc.addImage(logo.src,'PNG',M,7,20,20); }catch(e){}
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(17);
+  doc.text('Evolución del equipo',M+25,15);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
+  doc.text(lim(EVEQ_GRUPO_NOMBRE||'')+'  ·  '+data.length+' partido'+(data.length>1?'s':'')+'  ·  '+new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'}),M+25,22);
+  doc.setFontSize(8.5); doc.setTextColor(170,200,230); doc.text('SPORT COACHING 360 · Mental Performance & Strategy',M+25,28);
+
+  // ── Números grandes
+  let y=44;
+  const caja=(x,w,tit,val,sub,col)=>{
+    doc.setDrawColor(220,226,235); doc.setFillColor(246,248,252); doc.roundedRect(x,y,w,26,2.5,2.5,'FD');
+    doc.setTextColor(...GR); doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.text(tit,x+4,y+6.5);
+    doc.setTextColor(...col); doc.setFontSize(20); doc.text(String(val),x+4,y+17.5);
+    doc.setTextColor(...GR); doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.text(sub,x+4,y+23);
+  };
+  const flecha=d=>d==null?'':d>0.15?'sube':d<-0.15?'baja':'estable';
+  const cm=mFin!=null&&mIni!=null?mFin-mIni:null, cr=rFin!=null&&rIni!=null?rFin-rIni:null;
+  const bw=(W-2*M-8)/3;
+  caja(M,bw,'ESTADO MENTAL DEL EQUIPO',c100(mFin)??'—','Últimos partidos · '+flecha(cm)+(cm!=null?' ('+(cm>0?'+':'')+Math.round(cm*10)+')':''),cm==null?AZ:cm>0.15?VE:cm<-0.15?RO:AZ);
+  caja(M+bw+4,bw,'VOLVER DESPUÉS DEL ERROR',c100(rFin)??'—','Reset post-error · '+flecha(cr)+(cr!=null?' ('+(cr>0?'+':'')+Math.round(cr*10)+')':''),cr==null?AZ:cr>0.15?VE:cr<-0.15?RO:AZ);
+  caja(M+2*(bw+4),bw,'PARTIDOS ANALIZADOS',data.length,'Con Post Partido del plantel',AZ);
+
+  // ── Gráfico partido a partido
+  y+=34; doc.setTextColor(...AZ); doc.setFont('helvetica','bold'); doc.setFontSize(11.5); doc.text('Partido a partido',M,y);
+  y+=4; const gx=M+8, gw=W-2*M-10, gh=46, gy=y;
+  doc.setDrawColor(230,234,240); doc.setLineWidth(0.2);
+  [5,6,7,8,9,10].forEach(v=>{ const yy=gy+gh-(v-5)/5*gh; doc.line(gx,yy,gx+gw,yy); doc.setFontSize(7); doc.setTextColor(...GR); doc.text(String(v*10),M,yy+1); });
+  const px=i=>gx+(data.length===1?gw/2:i*gw/(data.length-1)), py=v=>gy+gh-Math.max(0,Math.min(5,v-5))/5*gh;
+  const linea=(arr,col)=>{ doc.setDrawColor(...col); doc.setLineWidth(0.9); let prev=null;
+    arr.forEach((v,i)=>{ if(v==null) return; const p=[px(i),py(v)]; if(prev) doc.line(prev[0],prev[1],p[0],p[1]); doc.setFillColor(...col); doc.circle(p[0],p[1],0.9,'F'); prev=p; }); };
+  linea(ments,CE); linea(rsts,[124,92,214]);
+  doc.setFontSize(6.5); doc.setTextColor(...GR);
+  data.forEach((p,i)=>{ if(data.length<=10||i%Math.ceil(data.length/10)===0) doc.text(lim(p.rival||'').slice(0,12),px(i),gy+gh+4,{align:'center'}); });
+  y=gy+gh+9; doc.setFontSize(8);
+  doc.setFillColor(...CE); doc.rect(M,y-2.2,4,1.6,'F'); doc.setTextColor(...AZ); doc.text('Estado mental',M+6,y);
+  doc.setFillColor(124,92,214); doc.rect(M+36,y-2.2,4,1.6,'F'); doc.text('Volver después del error',M+42,y);
+
+  // ── Lo que mejoramos / lo que vamos a trabajar
+  y+=9; const cw=(W-2*M-6)/2;
+  const lista=(x,tit,col,items,vacio)=>{
+    doc.setTextColor(...col); doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text(tit,x,y);
+    let yy=y+6; doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(30,41,59);
+    if(!items.length){ doc.setTextColor(...GR); doc.text(vacio,x,yy); return yy; }
+    items.forEach(t=>{ const l=doc.splitTextToSize(lim(t),cw-4); doc.text('•',x,yy); doc.text(l,x+4,yy); yy+=l.length*4.6+1.5; });
+    return yy;
+  };
+  const y1=lista(M,'Lo que mejoramos',VE,mejoras.map(v=>v.lbl+' (+'+Math.round(v.cambio*10)+')'),'Todavía no hay una mejora clara: seguimos sumando partidos.');
+  const y2=lista(M+cw+6,'Lo que vamos a trabajar',NA,trabajar.map(v=>v.lbl+' ('+c100(v.prom)+')'),'—');
+  y=Math.max(y1,y2)+4;
+
+  // ── Objetivos del equipo
+  doc.setDrawColor(...CE); doc.setFillColor(235,247,252); 
+  const objs=obj&&Array.isArray(obj.objetivos)?obj.objetivos:[];
+  const objLineas=objs.map(t=>doc.splitTextToSize(lim(t),W-2*M-14));
+  const hObj=12+(objs.length?objLineas.reduce((a,l)=>a+l.length*4.8+3,0):8)+(objs.length?6:0);
+  doc.roundedRect(M,y,W-2*M,hObj,2.5,2.5,'FD');
+  doc.setTextColor(...CE); doc.setFont('helvetica','bold'); doc.setFontSize(11.5); doc.text('Nuestros objetivos para los próximos partidos',M+5,y+8);
+  let yo=y+15; doc.setFontSize(10); doc.setTextColor(...AZ);
+  if(objs.length){
+    objLineas.forEach((l,i)=>{ doc.setFont('helvetica','bold'); doc.text((i+1)+'.',M+5,yo); doc.setFont('helvetica','normal'); doc.text(l,M+11,yo); yo+=l.length*4.8+3; });
+    doc.setFontSize(8.5); doc.setTextColor(...GR); doc.text('Se renuevan cada 3 partidos · llevamos '+Math.min(3,partidosDesdeObj)+' de 3',M+5,yo+1);
+  } else { doc.setFont('helvetica','normal'); doc.setTextColor(...GR); doc.text('Todavía no hay objetivos generados para este grupo (se crean desde Evolución).',M+5,yo); }
+  y+=hObj+8;
+
+  // ── Cómo lo vamos a lograr
+  if(y>250){ doc.addPage(); y=20; }
+  doc.setTextColor(...AZ); doc.setFont('helvetica','bold'); doc.setFontSize(11.5); doc.text('Cómo lo vamos a lograr',M,y); y+=6;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+  trabajar.forEach(v=>{
+    const tip=EVEQ_TIPS[v.lbl]; if(!tip) return;
+    const l=doc.splitTextToSize(tip,W-2*M-6);
+    if(y+l.length*4.6>282){ doc.addPage(); y=20; }
+    doc.setTextColor(...NA); doc.setFont('helvetica','bold'); doc.text(lim(v.lbl),M,y); y+=4.8;
+    doc.setTextColor(30,41,59); doc.setFont('helvetica','normal'); doc.text(l,M+4,y); y+=l.length*4.6+3;
+  });
+
+  // ── Pie
+  const pages=doc.getNumberOfPages();
+  for(let i=1;i<=pages;i++){ doc.setPage(i); doc.setFontSize(7.5); doc.setTextColor(...GR);
+    doc.text('Sport Coaching 360 · Datos del equipo, sin información individual · Página '+i+' de '+pages,W/2,292,{align:'center'}); }
+  doc.save('Evolucion_equipo_'+lim(EVEQ_GRUPO_NOMBRE||'grupo').replace(/[^A-Za-z0-9]+/g,'_')+'.pdf');
+}
 
 async function generarPDFEvolucion(){
   if(!window.jspdf){alert('Librería PDF cargando, intentá en unos segundos.');return;}
