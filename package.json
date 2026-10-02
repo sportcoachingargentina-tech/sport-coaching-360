@@ -1,0 +1,14 @@
+{
+  "name": "sport-coaching-360",
+  "private": true,
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.0",
+    "http-server": "14.1.1", "@supabase/supabase-js": "2.45.4"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2"
+  }
+}
