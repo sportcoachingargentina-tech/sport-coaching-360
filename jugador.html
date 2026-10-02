@@ -1604,18 +1604,26 @@ async function avisarClubAyuda(){
   const mot=AYUDA_MOTIVOS.find(x=>x.k===AYUDA_MOTIVO);
   const urgente=AYUDA_MOTIVO==='urgente';
   const detalle=(urgente?'⚠ URGENTE · ':'')+(mot&&!urgente?'Motivo: '+mot.t+' · ':'')+'Pidió que alguien del club se comunique con él/ella.';
-  const ok=await q('alertas',{m:'POST',b:{tipo:'pedido_ayuda',nivel:urgente?'alta':'media',estado:'activa',jugador_nombre:r.jugador_nombre||'Jugador',grupo_codigo:r.grupo_codigo||null,grupo_nombre:grupoNombre,detalle},h:{Prefer:'return=minimal'}});
-  // Aviso por mail además del panel (para que llegue aunque nadie tenga el panel abierto)
-  try{ await fetch(AYUDA_FORM,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({_subject:(urgente?'🆘 URGENTE · ':'🔔 ')+'Pedido de ayuda — '+(r.jugador_nombre||'Jugador'),Jugador:r.jugador_nombre||'—',Club:r.jugador_club||'—',Grupo:grupoNombre||r.grupo_codigo||'—',Fecha:new Date().toLocaleString('es-AR'),Motivo:mot?mot.t:'No indicó',Mensaje:'El jugador pidió que alguien del club lo contacte'+(urgente?' y lo marcó como URGENTE':'')+'. Comunicarse lo antes posible.'})}); }catch(e){}
-  if(ok===null){
-    // q() devuelve null tanto si sale bien con return=minimal como si falla: verificamos que haya quedado
-    const chk=await q('alertas?tipo=eq.pedido_ayuda&jugador_nombre=eq.'+encodeURIComponent(r.jugador_nombre||'Jugador')+'&estado=eq.activa&order=creado_en.desc&limit=1&select=id');
-    if(!chk||!chk.length){
-      if(est) est.innerHTML='<div style="background:#3b0d12;border:1px solid #ef4444;border-radius:10px;padding:10px 12px;color:#fecaca">No pudimos enviar el aviso. Escribile directamente a alguien de tu club o, si es una emergencia, abrí la sección de abajo.</div>';
-      if(b){ b.disabled=false; b.textContent='Reintentar'; }
-      return;
+  // Se crea con una función acotada de la base (la tabla de alertas no es pública).
+  // La función devuelve el id: si hay id, el aviso quedó registrado de verdad.
+  let creado=false;
+  try{
+    const r2=await fetch(SB_URL+'/rest/v1/rpc/crear_pedido_ayuda',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+      body:JSON.stringify({p_jugador:r.jugador_nombre||'Jugador',p_grupo_codigo:r.grupo_codigo||null,p_grupo_nombre:grupoNombre,p_detalle:detalle,p_urgente:urgente})});
+    if(r2.ok){ const id=await r2.json(); creado=!!id; }
+    else if(r2.status===404){
+      // Respaldo: la función todavía no existe en la base → como antes
+      const ok=await q('alertas',{m:'POST',b:{tipo:'pedido_ayuda',nivel:urgente?'alta':'media',estado:'activa',jugador_nombre:r.jugador_nombre||'Jugador',grupo_codigo:r.grupo_codigo||null,grupo_nombre:grupoNombre,detalle}});
+      creado=Array.isArray(ok)&&ok.length>0;
     }
+  }catch(e){ creado=false; }
+  if(!creado){
+    if(est) est.innerHTML='<div style="background:#3b0d12;border:1px solid #ef4444;border-radius:10px;padding:10px 12px;color:#fecaca">No pudimos enviar el aviso. Escribile directamente a alguien de tu club o, si es una emergencia, abrí la sección de abajo.</div>';
+    if(b){ b.disabled=false; b.textContent='Reintentar'; }
+    return;
   }
+  // Aviso por mail además del panel (para que llegue aunque nadie tenga el panel abierto)
+  try{ fetch(AYUDA_FORM,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({_subject:(urgente?'🆘 URGENTE · ':'🔔 ')+'Pedido de ayuda — '+(r.jugador_nombre||'Jugador'),Jugador:r.jugador_nombre||'—',Club:r.jugador_club||'—',Grupo:grupoNombre||r.grupo_codigo||'—',Motivo:mot?mot.t:'No indicó',Fecha:new Date().toLocaleString('es-AR'),Mensaje:'El jugador pidió que alguien del club lo contacte'+(urgente?' y lo marcó como URGENTE':'')+'. Comunicarse lo antes posible.'})}).catch(()=>{}); }catch(e){}
   const ts=Date.now(); try{ localStorage.setItem('sc360_ayuda_ts',String(ts)); }catch(e){}
   ayudaConfirmada(ts);
 }
