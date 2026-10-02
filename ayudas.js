@@ -17,8 +17,8 @@ async function simularServidor(page, opciones = {}) {
     if (url.includes('@supabase/supabase-js')) {
       // Librería de Supabase (la usa el panel para el login): copia local si existe
       const fs = require('fs'), path = require('path');
-      const local = path.join(__dirname, '..', 'node_modules', '@supabase', 'supabase-js', 'dist', 'umd', 'supabase.js');
-      if (fs.existsSync(local)) return route.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(local, 'utf8') });
+      const local = [path.join(__dirname, 'node_modules'), path.join(__dirname, '..', 'node_modules')].map((d) => path.join(d, '@supabase', 'supabase-js', 'dist', 'umd', 'supabase.js')).find((f) => fs.existsSync(f));
+      if (local) return route.fulfill({ status: 200, contentType: 'application/javascript', body: fs.readFileSync(local, 'utf8') });
       return route.continue();
     }
     if (opciones.sinGraficos && (url.includes('cdnjs') || url.includes('jsdelivr'))) return route.abort();
