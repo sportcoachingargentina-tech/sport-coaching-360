@@ -434,7 +434,7 @@ async function generarAlertas(data){
           detalle:'Mental bajó de '+avgAnterior.toFixed(1)+' a '+mentalActual.toFixed(1)+' — caída del '+Math.round(caida)+'%',
           nivel:caida>=40?'alta':'media',
           estado:'activa'
-        }});
+        },h:{'Prefer':'return=minimal'}});
       }
     }
   }
