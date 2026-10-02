@@ -34,7 +34,12 @@
   // Errores de JavaScript y recursos que no cargan (por ejemplo, una librería externa)
   window.addEventListener('error',function(e){
     var t=e&&e.target;
-    if(t&&t!==window&&(t.src||t.href)){ registrar('recurso','No cargó: '+(t.src||t.href),null,false); return; }
+    if(t&&t!==window&&(t.src||t.href)){
+      // Ignorar imágenes vacías (src="" se resuelve como la propia página y no es un error real)
+      var attr=(t.getAttribute&&(t.getAttribute('src')||t.getAttribute('href')))||'';
+      var u=t.src||t.href; if(!attr||u===location.href||u.split('#')[0]===location.href.split('#')[0]) return;
+      registrar('recurso','No cargó: '+u,null,false); return;
+    }
     registrar('js',e.message||'Error de JavaScript',(e.filename||'')+':'+(e.lineno||'')+':'+(e.colno||'')+(e.error&&e.error.stack?'\n'+e.error.stack:''),!!CRITICAS[PAGINA]);
   },true);
   window.addEventListener('unhandledrejection',function(e){
