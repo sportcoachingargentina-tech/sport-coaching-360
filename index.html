@@ -870,8 +870,12 @@ var CANDIDATO=null;
 function detectarCandidato(){
   var id=new URLSearchParams(window.location.search).get('candidato');
   if(!id||!/^[0-9a-f-]{36}$/i.test(id)) return;
-  sbFetch('sc_candidatos?id=eq.'+id+'&select=id,nombre,apellido,edad,puesto,club_actual,estado').then(function(data){
-    if(!data||!data.length) return;
+  // Primero por la función pública acotada (tabla cerrada); si no existe todavía, como antes
+  sbFetch('rpc/sc_candidato_publico',{method:'POST',body:{p_id:id}}).then(function(d){
+    if(d&&d.id) return [d];
+    return sbFetch('sc_candidatos?id=eq.'+id+'&select=id,nombre,apellido,club_actual,estado');
+  }).then(function(data){
+    if(!data||!data.length||!data[0]||!data[0].id) return;
     CANDIDATO=data[0];
     var n=document.getElementById('f-nombre'), a=document.getElementById('f-apellido'), c=document.getElementById('f-club');
     if(n&&CANDIDATO.nombre) n.value=CANDIDATO.nombre;
@@ -883,11 +887,15 @@ function detectarCandidato(){
 }
 function vincularCandidato(resultadoId,disp,primary,modo){
   if(!CANDIDATO||!resultadoId) return;
-  sbFetch('sc_candidatos?id=eq.'+CANDIDATO.id,{method:'PATCH',body:{
-    resultado_id:resultadoId, idc:disp, disc:primary||null, modo_motivacional:modo||null,
-    estado:(CANDIDATO.estado==='pendiente'||!CANDIDATO.estado)?'evaluado':CANDIDATO.estado,
-    actualizado_en:new Date().toISOString()
-  }}).catch(function(e){ console.warn('No se pudo vincular el candidato:',e); });
+  fetch(SUPABASE_URL+'/rest/v1/rpc/sc_candidato_vincular',{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({p_id:CANDIDATO.id,p_resultado_id:resultadoId,p_idc:disp,p_disc:primary||null,p_modo:modo||null})}).then(function(r){
+    if(r.ok) return;
+    // Respaldo (si la función todavía no existe en la base)
+    return sbFetch('sc_candidatos?id=eq.'+CANDIDATO.id,{method:'PATCH',body:{
+      resultado_id:resultadoId, idc:disp, disc:primary||null, modo_motivacional:modo||null,
+      estado:(CANDIDATO.estado==='pendiente'||!CANDIDATO.estado)?'evaluado':CANDIDATO.estado,
+      actualizado_en:new Date().toISOString()}});
+  }).catch(function(e){ console.warn('No se pudo vincular el candidato:',e); });
 }
 detectarCandidato();
 </script>
