@@ -1,8 +1,11 @@
 // Pruebas automáticas de SC360: simulan a un jugador real (celular) completando
 // el test y el Post Partido, con la base de datos simulada (no toca datos reales).
+// Los archivos de prueba (*.spec.js) están en la raíz del repositorio.
 const { defineConfig, devices } = require('@playwright/test');
 module.exports = defineConfig({
-  testDir: './tests',
+  testDir: '.',
+  testMatch: '*.spec.js',
+  testIgnore: ['node_modules/**'],
   timeout: 90000,
   retries: 1,
   reporter: [['list']],
