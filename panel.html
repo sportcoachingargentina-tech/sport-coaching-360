@@ -17858,7 +17858,7 @@ async function cargarPostPartidoResumenPJ(r){
   function avg(arr){const v=(arr||[]).filter(x=>x!=null&&x>0);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;}
   const nombre=(r.jugador_nombre||'').trim();
   if(!nombre)return;
-  const campos='fecha,rival_nombre,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12,q13,q14,q15';
+  const campos='fecha,partido_codigo,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12,q13,q14,q15'; // (antes pedía rival_nombre, que no existe: la base daba error y parecía que no había partidos)
   const rows=await q('postpartido_jugador?jugador_nombre=ilike.'+encodeURIComponent('*'+nombre+'*')+'&order=fecha.desc&limit=6&select='+campos);
   const data=(Array.isArray(rows)?rows:[]).slice().reverse(); // orden cronológico
 
