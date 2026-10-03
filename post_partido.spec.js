@@ -25,8 +25,9 @@ test('si se corta la señal, el Post Partido queda guardado y se envía al volve
   const srv = await simularServidor(page, { falla: true });
   page.on('dialog', (d) => d.accept());
   await completarPP(page);
+  // Esperar a que termine el intento fallido (antes se chequeaba demasiado rápido y la prueba fallaba a veces)
+  await expect.poll(() => page.evaluate(() => !!localStorage.getItem('sc360_pp_pendiente')), { timeout: 8000 }).toBeTruthy();
   await expect(page.locator('#s-form')).toHaveClass(/active/);
-  expect(await page.evaluate(() => !!localStorage.getItem('sc360_pp_pendiente'))).toBeTruthy();
   srv.falla = false;
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
   await expect(page.locator('#s-thanks')).toHaveClass(/active/);
