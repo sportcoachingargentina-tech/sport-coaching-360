@@ -2621,8 +2621,8 @@ tr:hover td{background:#0d1b3e40}
 
         <!-- Foto -->
         <div style="display:flex;justify-content:center;margin:0.5rem 0 0.75rem;position:relative;z-index:1">
-          <img id="pj-foto" src="" style="width:140px;height:140px;border-radius:50%;object-fit:cover;background:#0d1b3e;border:3px solid #ffd700;display:none;box-shadow:0 8px 20px rgba(0,0,0,0.4)"/>
-          <div id="pj-foto-placeholder" style="width:140px;height:140px;border-radius:50%;background:#0d1b3e;border:3px solid #ffd700;display:flex;align-items:center;justify-content:center;font-size:48px;color:#94a3b8;flex-shrink:0;box-shadow:0 8px 20px rgba(0,0,0,0.4)">👤</div>
+          <img id="pj-foto" src="" style="width:180px;height:180px;border-radius:50%;object-fit:cover;background:#0d1b3e;border:3px solid #ffd700;display:none;box-shadow:0 8px 20px rgba(0,0,0,0.4)"/>
+          <div id="pj-foto-placeholder" style="width:180px;height:180px;border-radius:50%;background:#0d1b3e;border:3px solid #ffd700;display:flex;align-items:center;justify-content:center;font-size:48px;color:#94a3b8;flex-shrink:0;box-shadow:0 8px 20px rgba(0,0,0,0.4)">👤</div>
         </div>
 
         <!-- Nombre + club -->
@@ -2655,7 +2655,8 @@ tr:hover td{background:#0d1b3e40}
     </div>
 
     <div style="display:flex;justify-content:center;gap:10px;margin-bottom:0" class="pj-print-hide">
-      <button onclick="compartirPerfilJugador()" class="btn-p" style="padding:10px 20px">📤 Compartir carta</button>
+      <button id="pj-btn-carta" onclick="cartaParaRedes()" class="btn-p" style="padding:10px 20px" title="Imagen lista para Instagram: foto grande, número, radar, rol y fortalezas">🖼 Carta para redes</button>
+      <button onclick="compartirPerfilJugador()" class="bg" style="padding:10px 20px">📤 Enviar perfil</button>
       <button id="pj-btn-estilo" onclick="compartirEstiloPensamiento()" class="bg" style="padding:10px 20px">🧠 Pedir Estilo de Pensamiento</button>
       <button onclick="window.print()" style="padding:10px 20px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:8px;font-size:13px;cursor:pointer">🖨 Imprimir / PDF</button>
     </div>
@@ -18847,6 +18848,111 @@ async function generarPDFFichaIntegral(){
   doc.text('Generado el '+new Date().toLocaleDateString('es-AR')+' | Sport Coaching Pro | sportcoachingpro.com',105,291,'center');
 
   doc.save(n(r.jugador_nombre||'jugador').replace(/\s+/g,'_')+'_Ficha_Integral.pdf');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CARTA PARA REDES (imagen 1080 × 1350, lista para Instagram)
+// Foto grande, marca Sport Coaching 360, número general, radar de las
+// 5 capas, rol, perfil y fortalezas. Sin "a trabajar" ni datos sensibles.
+// ═══════════════════════════════════════════════════════════════
+const CARTA_DISC={D:['Dominante','Decide y empuja al equipo'],I:['Influyente','Contagia energía al grupo'],S:['Estable','Le da equilibrio al equipo'],C:['Analítico','Lee el juego con precisión']};
+function cartaImg(src,cors){
+  return new Promise(res=>{ if(!src) return res(null); const im=new Image(); if(cors) im.crossOrigin='anonymous';
+    im.onload=()=>res(im); im.onerror=()=>res(null); im.src=src; setTimeout(()=>res(null),6000); });
+}
+function cartaPosAbrev(p){
+  const n=(p||'').toLowerCase();
+  if(/arquer|portero/.test(n)) return 'ARQ'; if(/lateral/.test(n)) return 'LAT'; if(/central|defens|zaguer|libero/.test(n)) return 'DEF';
+  if(/volante|medio|pivote|interior|conten/.test(n)) return 'MED'; if(/enganche/.test(n)) return 'ENG'; if(/extremo|wing/.test(n)) return 'EXT';
+  if(/delanter|punta|9/.test(n)) return 'DEL'; return (p||'').slice(0,3).toUpperCase()||'—';
+}
+async function cartaParaRedes(){
+  const r=PJ_ACTUAL; if(!r) return;
+  const btn=document.getElementById('pj-btn-carta'); const t0=btn?btn.textContent:''; if(btn) btn.textContent='⏳ Armando la carta…';
+  try{
+    const W=1080,H=1350, cv=document.createElement('canvas'); cv.width=W; cv.height=H; const g=cv.getContext('2d');
+    const F='"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif';
+    const colD=v=>v>=80?'#22c55e':v>=65?'#facc15':'#f87171';
+    // Fondo y marco
+    const bg=g.createLinearGradient(0,0,W,H); bg.addColorStop(0,'#0b1b3d'); bg.addColorStop(0.55,'#071028'); bg.addColorStop(1,'#04070f');
+    g.fillStyle=bg; g.fillRect(0,0,W,H);
+    const glow=g.createRadialGradient(W/2,430,40,W/2,430,520); glow.addColorStop(0,'rgba(0,194,255,0.26)'); glow.addColorStop(1,'rgba(0,194,255,0)');
+    g.fillStyle=glow; g.fillRect(0,0,W,H);
+    g.strokeStyle='rgba(0,194,255,0.45)'; g.lineWidth=4; g.beginPath(); g.roundRect(30,30,W-60,H-60,40); g.stroke();
+    // Marca
+    g.textBaseline='middle';
+    const logo=[...document.querySelectorAll('img')].find(i=>(i.src||'').startsWith('data:image/png'));
+    if(logo&&logo.complete) g.drawImage(logo,72,70,74,74);
+    g.fillStyle='#ffffff'; g.font='900 38px '+F; g.fillText('SPORT COACHING 360',162,94);
+    g.fillStyle='#7fd8ff'; g.font='600 21px '+F; g.fillText('Perfil de rendimiento mental',164,128);
+    // Número general + posición (estilo carta)
+    const D=r.disponibilidad||0;
+    g.textAlign='center';
+    g.fillStyle=colD(D); g.font='900 120px '+F; g.fillText(String(D),W-150,128);
+    g.fillStyle='#ffffff'; g.font='800 32px '+F; g.fillText(cartaPosAbrev(r.jugador_pos),W-150,204);
+    g.fillStyle='#7c8fae'; g.font='700 15px '+F; g.fillText('DISPONIBILIDAD',W-150,236);
+    // Foto
+    const cx=W/2, cy=440, R=228;
+    const foto=await cartaImg(r.foto_url,true);
+    g.save(); g.beginPath(); g.arc(cx,cy,R,0,Math.PI*2); g.closePath(); g.fillStyle='#0d1b3e'; g.fill(); g.clip();
+    if(foto){ const sc=Math.max((2*R)/foto.width,(2*R)/foto.height), w=foto.width*sc, h=foto.height*sc; g.drawImage(foto,cx-w/2,cy-h/2,w,h); }
+    else { g.fillStyle='#94a3b8'; g.font='800 160px '+F; g.fillText((r.jugador_nombre||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(),cx,cy+6); }
+    g.restore();
+    g.lineWidth=11; g.strokeStyle='#facc15'; g.beginPath(); g.arc(cx,cy,R+6,0,Math.PI*2); g.stroke();
+    g.lineWidth=3; g.strokeStyle='rgba(0,194,255,0.8)'; g.beginPath(); g.arc(cx,cy,R+20,0,Math.PI*2); g.stroke();
+    const esc=await cartaImg(document.getElementById('pj-escudo')?.src||'',true);
+    if(esc){ try{ g.save(); g.beginPath(); g.arc(cx+R-14,cy+R-24,54,0,Math.PI*2); g.fillStyle='#ffffff'; g.fill(); g.restore(); g.drawImage(esc,cx+R-58,cy+R-68,88,88); g.getImageData(0,0,1,1); }catch(e){} }
+    // Nombre y datos
+    g.fillStyle='#ffffff'; let fz=64; g.font='900 '+fz+'px '+F;
+    const nom=(r.jugador_nombre||'').toUpperCase(); while(g.measureText(nom).width>W-140&&fz>36){ fz-=2; g.font='900 '+fz+'px '+F; }
+    g.fillText(nom,cx,736);
+    g.fillStyle='#b9c8dc'; g.font='600 28px '+F;
+    g.fillText([r.jugador_club,r.jugador_pos,r.jugador_cat?'Cat. '+r.jugador_cat:''].filter(Boolean).join('  ·  '),cx,786);
+    // Rol + perfil
+    const disc=(r.primary_disc||'').charAt(0);
+    const rDef=(typeof ROLES_PUESTO!=='undefined')?ROLES_PUESTO[r.jugador_pos||'']:null;
+    const rol=rDef?rDef.rol:({S:'CALMA',D:'INTENSIDAD',C:'EQUILIBRIO',I:'DECISIÓN'})[disc]||null;
+    const ri=rol&&typeof ROL_INFO_PJ!=='undefined'?ROL_INFO_PJ[rol]:null;
+    const dn=CARTA_DISC[disc];
+    const piezas=[]; if(rol) piezas.push(['ROL: '+rol,ri?ri.color:'#00c2ff']); if(dn) piezas.push(['PERFIL '+dn[0].toUpperCase(),'#00c2ff']);
+    const pw=400,gap=22,tot=piezas.length*pw+(piezas.length-1)*gap; let px=cx-tot/2;
+    piezas.forEach(p=>{ g.fillStyle='rgba(13,27,62,0.9)'; g.beginPath(); g.roundRect(px,824,pw,62,31); g.fill(); g.strokeStyle=p[1]; g.lineWidth=3; g.stroke();
+      g.fillStyle='#ffffff'; g.font='800 27px '+F; g.fillText(p[0],px+pw/2,856); px+=pw+gap; });
+    // Radar de las 5 capas (izquierda)
+    const dd=r.dims||{};
+    const capas=(typeof CAPAS_DEF_PJ!=='undefined'?CAPAS_DEF_PJ:[]).map(c=>{ const v=c.dims.map(k=>dd[k]).filter(x=>x!=null&&x>0); return {l:({autoconocimiento:'AUTOCONOC.',talento:'TALENTO',regulacion:'REGULACIÓN',energia:'ENERGÍA',destreza:'DESTREZA'})[c.key]||c.nombre.toUpperCase(),v:v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length/5*100):0}; });
+    const rx=318, ry=1112, RR=126;
+    if(capas.length===5){
+      const pt=(i,f)=>{ const a=-Math.PI/2+i*2*Math.PI/5; return [rx+Math.cos(a)*RR*f, ry+Math.sin(a)*RR*f]; };
+      [0.25,0.5,0.75,1].forEach(f=>{ g.beginPath(); for(let i=0;i<5;i++){ const [x,y]=pt(i,f); i?g.lineTo(x,y):g.moveTo(x,y); } g.closePath(); g.strokeStyle='rgba(148,163,184,0.25)'; g.lineWidth=2; g.stroke(); });
+      for(let i=0;i<5;i++){ const [x,y]=pt(i,1); g.beginPath(); g.moveTo(rx,ry); g.lineTo(x,y); g.strokeStyle='rgba(148,163,184,0.2)'; g.stroke(); }
+      g.beginPath(); capas.forEach((c,i)=>{ const [x,y]=pt(i,Math.max(0.05,c.v/100)); i?g.lineTo(x,y):g.moveTo(x,y); }); g.closePath();
+      g.fillStyle='rgba(0,194,255,0.30)'; g.fill(); g.strokeStyle='#00c2ff'; g.lineWidth=4; g.stroke();
+      capas.forEach((c,i)=>{ const [x,y]=pt(i,Math.max(0.05,c.v/100)); g.beginPath(); g.arc(x,y,7,0,Math.PI*2); g.fillStyle='#00c2ff'; g.fill(); });
+      capas.forEach((c,i)=>{ const [x,y]=pt(i,1.32); g.fillStyle='#cfe0f5'; g.font='800 21px '+F; g.fillText(c.l,x,y-12); g.fillStyle=colD(c.v); g.font='900 26px '+F; g.fillText(String(c.v),x,y+14); });
+    }
+    // Fortalezas + frase (derecha)
+    const top=Object.keys(DIM_LABELS).filter(k=>dd[k]>0).map(k=>({l:DIM_LABELS[k],v:Math.round(dd[k]/5*100)})).sort((a,b)=>b.v-a.v).slice(0,3);
+    const fx=640, fw=370;
+    g.textAlign='left'; g.fillStyle='#22c55e'; g.font='800 22px '+F; g.fillText('FORTALEZAS',fx,958);
+    top.forEach((t,i)=>{ const y=984+i*82;
+      g.fillStyle='rgba(34,197,94,0.14)'; g.beginPath(); g.roundRect(fx,y,fw,66,16); g.fill(); g.strokeStyle='rgba(34,197,94,0.55)'; g.lineWidth=2; g.stroke();
+      g.fillStyle='#ffffff'; let z=26; g.font='700 '+z+'px '+F; while(g.measureText(t.l).width>fw-110&&z>17){ z--; g.font='700 '+z+'px '+F; } g.fillText(t.l,fx+18,y+34);
+      g.textAlign='right'; g.fillStyle='#4ade80'; g.font='900 28px '+F; g.fillText(String(t.v),fx+fw-18,y+34); g.textAlign='left'; });
+    if(dn){ g.fillStyle='#9fb3cc'; g.font='italic 600 23px '+F; g.fillText('“'+dn[1]+'”',fx,1250); }
+    // Pie
+    g.textAlign='center'; g.fillStyle='#5d7391'; g.font='600 21px '+F; g.fillText('app.sportcoachingpro.com  ·  App de medición de rendimiento mental',cx,1302);
+    // Exportar
+    let blob; try{ blob=await new Promise(res=>cv.toBlob(res,'image/png')); }catch(e){ blob=null; }
+    if(!blob){ alert('La foto no se pudo usar en la carta (está guardada en un sitio que no lo permite). Volvé a subirla desde "Editar datos" y probá de nuevo.'); return; }
+    const nombreArch='SC360_'+(r.jugador_nombre||'jugador').replace(/[^A-Za-z0-9]+/g,'_')+'.png';
+    const file=new File([blob],nombreArch,{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file],title:'Sport Coaching 360',text:'Mi perfil de rendimiento mental en Sport Coaching 360'}); return; }catch(e){ if(e&&e.name==='AbortError') return; }
+    }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=nombreArch; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
+  }catch(e){ console.error('Carta para redes:',e); alert('No se pudo armar la carta: '+e.message); }
+  finally{ if(btn) btn.textContent=t0; }
 }
 
 function compartirPerfilJugador() {
