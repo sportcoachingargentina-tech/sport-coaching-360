@@ -51,6 +51,12 @@
       var p=of.apply(this,arguments);
       try{
         var url=String(u&&u.url||u), m=String(o&&o.method||(u&&u.method)||'GET').toUpperCase();
+        // Lecturas mal armadas (error 400): por ejemplo, pedir una columna que no existe.
+        // No pierden datos, pero hacen que una pantalla muestre "sin datos" sin motivo.
+        if(url.indexOf('/rest/v1/')>=0&&m==='GET'){
+          var tablaL=url.split('/rest/v1/')[1].split('?')[0];
+          p.then(function(res){ if(res&&res.status===400){ res.clone().text().then(function(t){ registrar('consulta','Consulta con error en '+tablaL+' (400)',t,false); }).catch(function(){}); } }).catch(function(){});
+        }
         if(url.indexOf('/rest/v1/')>=0&&url.indexOf('errores_app')<0&&m!=='GET'&&m!=='HEAD'&&m!=='OPTIONS'){
           var tabla=url.split('/rest/v1/')[1].split('?')[0];
           p.then(function(res){ if(res&&!res.ok){ res.clone().text().then(function(t){ registrar('guardado','Falló '+m+' en '+tabla+' ('+res.status+')',t,true); }).catch(function(){}); } })
