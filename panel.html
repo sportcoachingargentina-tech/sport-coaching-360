@@ -591,6 +591,8 @@ tr:hover td{background:#0d1b3e40}
       <div id="dash-club-view" style="display:none">
 
         <!-- PRIMEROS PASOS — checklist de onboarding, se autooculta cuando ya no hace falta -->
+        <!-- Avisos de uso del club (los mismos de "Cuentas a atender" del admin, solo con sus datos) -->
+        <div id="dash-avisos-uso" style="display:none;margin-bottom:1rem"></div>
         <div id="dash-onboarding" style="display:none;margin-bottom:1rem;background:linear-gradient(135deg,#0d1b3e,#0a1530);border:1px solid #00c2ff33;border-radius:12px;padding:12px 14px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
             <div style="font-size:12px;font-weight:800;color:#fff">👋 Primeros pasos con SC360</div>
@@ -4464,6 +4466,7 @@ async function loadD(){
     // IDC real (6 módulos) — reemplaza el valor provisorio de arriba cuando termina
     idcActualizarDashboard(rL, codigosDash);
     dashCumpleanos(rL);
+    dashAvisosUso(rL, codigosDash);
 
     // Semáforo
     document.getElementById('d-rojo').textContent=rojo;
@@ -17329,6 +17332,68 @@ async function dashSaludSistema(){
   }catch(e){ box.innerHTML=''; }
 }
 
+// ── AVISOS DE USO PARA CADA CLUB ─────────────────────────────────────
+// Lo mismo que ve el admin en "Cuentas a atender", pero en el Dashboard del
+// club, solo con sus datos y con un botón para resolverlo. Se puede ocultar
+// por hoy; al día siguiente vuelve a aparecer si sigue pendiente.
+async function dashAvisosUso(rL, codigos){
+  const box=document.getElementById('dash-avisos-uso'); if(!box) return;
+  box.style.display='none';
+  try{
+    if(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin') return; // el admin ya lo ve en su panel
+    const hoyK=new Date().toISOString().slice(0,10);
+    const clave='sc360_avisos_ocultos_'+hoyK+'_'+(codigos||[]).join(',');
+    try{ if(localStorage.getItem(clave)) return; }catch(e){}
+    const jug=idcUltimaPorJugador(rL||[]); const n=jug.length;
+    if(!n) return;
+    const cods=(codigos&&codigos.length)?codigos:[...new Set(jug.map(r=>r.grupo_codigo).filter(Boolean))];
+    if(!cods.length) return;
+    const fc='grupo_codigo=in.('+cods.map(encodeURIComponent).join(',')+')';
+    const [pp,dt]=await Promise.all([
+      q('postpartido_jugador?'+fc+'&select=jugador_nombre,partido_codigo&order=partido_codigo.desc&limit=3000'),
+      q('postpartido_dt?'+fc+'&select=partido_codigo&order=partido_codigo.desc&limit=500')
+    ]);
+    const P=Array.isArray(pp)?pp:[], T=Array.isArray(dt)?dt:[];
+    const dias=f=>f?Math.floor((Date.now()-f.getTime())/86400000):null;
+    const fPP=P.map(x=>idcFechaPartido(x.partido_codigo,null)).filter(Boolean);
+    const fTest=jug.map(r=>r.fecha?new Date(r.fecha):null).filter(Boolean);
+    const ult=[...fPP,...fTest].sort((a,b)=>b-a)[0]||null;
+    const dAct=dias(ult);
+    const activos30=new Set(P.filter(x=>{ const d=dias(idcFechaPartido(x.partido_codigo,null)); return d!=null&&d<=30; }).map(x=>idcNom(x.jugador_nombre)));
+    const adop=Math.round(activos30.size/n*100);
+    const ultDT=T.map(x=>idcFechaPartido(x.partido_codigo,null)).filter(Boolean).sort((a,b)=>b-a)[0]||null;
+    const dDT=dias(ultDT);
+
+    const avisos=[];
+    if(dAct==null||dAct>14) avisos.push({ic:'⏳',col:'#ef4444',
+      t:dAct==null?'Todavía no hay actividad cargada':'Hace '+dAct+' días que no se carga actividad',
+      d:'Sin tests ni Post Partido nuevos, el IDC, el Predictivo y las alertas pierden precisión.',
+      b:'Ir a Post Partido',go:'postpartido'});
+    if(n>=8&&adop<30) avisos.push({ic:'📲',col:'#f59e0b',
+      t:'Solo el '+adop+'% del plantel completó el Post Partido en los últimos 30 días',
+      d:'Lo ideal es que lo complete más del 70% después de cada partido. Mandales el link por WhatsApp desde Post Partido.',
+      b:'Enviar Post Partido',go:'postpartido'});
+    if(dDT==null||dDT>30) avisos.push({ic:'📋',col:'#a78bfa',
+      t:dDT==null?'El cuerpo técnico todavía no evaluó ningún partido':'El cuerpo técnico no evalúa un partido hace '+dDT+' días',
+      d:'Con al menos una evaluación por mes se corrige la autopercepción de los jugadores y el módulo Rendimiento del IDC queda completo.',
+      b:'Evaluar un partido',go:'postpartido'});
+    if(!avisos.length) return;
+
+    box.innerHTML='<div style="background:#0d1b3e;border:1px solid #f59e0b55;border-radius:12px;padding:12px 14px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px">'+
+        '<span style="font-size:11px;font-weight:800;color:#f59e0b;letter-spacing:0.08em">🔔 PARA SACARLE EL MÁXIMO A SC360</span>'+
+        '<button onclick="ocultarAvisosUso(\''+clave+'\')" style="font-size:11px;padding:4px 10px;background:transparent;color:#94a3b8;border:1px solid #1a3a6e;border-radius:6px;cursor:pointer">Ocultar por hoy</button></div>'+
+      avisos.map(a=>'<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:9px 0;border-top:1px solid #1a3a6e55">'+
+        '<div style="font-size:22px">'+a.ic+'</div>'+
+        '<div style="flex:1;min-width:220px"><div style="font-size:13.5px;font-weight:800;color:'+a.col+'">'+a.t+'</div>'+
+        '<div style="font-size:12px;color:#b4c2d4;line-height:1.45;margin-top:2px">'+a.d+'</div></div>'+
+        '<button onclick="go(\''+a.go+'\')" style="padding:7px 12px;font-size:12px;font-weight:800;background:'+a.col+'22;color:'+a.col+';border:1px solid '+a.col+'66;border-radius:8px;cursor:pointer;white-space:nowrap">'+a.b+' →</button></div>').join('')+
+      '</div>';
+    box.style.display='block';
+  }catch(e){ console.warn('Avisos de uso:',e); }
+}
+function ocultarAvisosUso(clave){ try{ localStorage.setItem(clave,'1'); }catch(e){} const b=document.getElementById('dash-avisos-uso'); if(b) b.style.display='none'; }
+
 // ── DASHBOARD: cumpleaños de los próximos 7 días ─────────────────────
 // Consulta aparte y protegida: si la columna fecha_nacimiento todavía no
 // existe, simplemente no se muestra nada (no rompe el Dashboard).
@@ -17395,7 +17460,7 @@ async function idcActualizarDashboard(rL, codigosAccesibles){
         '<div class="idc-mod-val" style="color:'+idcColor(val)+'">'+val+'</div></div>';
     }).join('');
     const alertBox=document.getElementById('dash-idc-alertas');
-    if(alertBox) alertBox.innerHTML=idcAlertaHtml(idcAlertasDT(D,grupos));
+    if(alertBox) alertBox.innerHTML=''; // el aviso del DT se muestra arriba, en los avisos de uso del club
   }catch(e){ console.error('IDC dashboard:',e); }
 }
 
