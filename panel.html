@@ -2601,8 +2601,12 @@ tr:hover td{background:#0d1b3e40}
     <div id="pj-desktop-row" style="display:flex;gap:1.5rem;align-items:stretch;justify-content:center;flex-wrap:wrap">
 
     <div id="pj-left-col" style="flex:0 0 370px;max-width:100%;display:flex;flex-direction:column;gap:10px">
-    <div style="display:flex;justify-content:center">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
 
+      <!-- Carta visual (la misma imagen que se comparte en redes) -->
+      <div id="pj-card-visual" style="display:none;width:370px;max-width:100%;flex-direction:column;align-items:center;gap:8px">
+        <img id="pj-card-img" alt="Carta del jugador" style="width:100%;border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,0.5);display:block"/>
+      </div>
       <!-- ═══════════ CARTA ESTILO FIFA ═══════════ -->
       <div id="pj-card" style="width:370px;max-width:100%;border-radius:12px;padding:1.5rem 1.25rem;position:relative;background:linear-gradient(160deg,#1a2548,#0a1024);border:1px solid rgba(255,255,255,0.08);overflow:hidden;display:flex;flex-direction:column;flex:1">
 
@@ -16912,9 +16916,7 @@ function cargarPerfilJugador() {
     const lista=Object.keys(DIM_LABELS).filter(k=>dd[k]!=null&&dd[k]>0).map(k=>({l:DIM_LABELS[k],v:Math.round(dd[k]/5*100)})).sort((a,b)=>b.v-a.v);
     if(lista.length>=4){
       const chip=(x,c)=>'<div style="display:flex;justify-content:space-between;gap:6px;font-size:11.5px;padding:4px 8px;background:'+c+'14;border:1px solid '+c+'40;border-radius:7px;margin-top:4px"><span style="color:#e8eff8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+x.l+'</span><b style="color:'+c+'">'+x.v+'</b></div>';
-      rasgos.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
-        '<div><div style="font-size:9px;font-weight:800;color:#22c55e;letter-spacing:0.08em">FORTALEZAS</div>'+lista.slice(0,2).map(x=>chip(x,'#22c55e')).join('')+'</div>'+
-        '<div><div style="font-size:9px;font-weight:800;color:#f59e0b;letter-spacing:0.08em">A TRABAJAR</div>'+lista.slice(-2).reverse().map(x=>chip(x,'#f59e0b')).join('')+'</div></div>';
+      rasgos.innerHTML='<div style="font-size:9px;font-weight:800;color:#22c55e;letter-spacing:0.08em">FORTALEZAS</div>'+lista.slice(0,3).map(x=>chip(x,'#22c55e')).join('');
     } else rasgos.innerHTML='';
   }
 
@@ -17076,6 +17078,7 @@ function cargarPerfilJugador() {
   renderGuiaCTPJ(r);
   // Rol y desarrollo (antes pantalla "Roles y Desarrollo")
   try{ renderRolDesarrolloPJ(r); }catch(e){ console.warn('Rol y desarrollo:',e); }
+  renderCartaVisual(r);
   cargarResetPJ(r);
 }
 
@@ -17565,7 +17568,11 @@ function renderRolDesarrolloPJ(r){
         '<div style="height:6px;background:#0a1024;border-radius:3px;overflow:hidden"><div style="height:6px;width:'+Math.round(prog.ok/prog.tot*100)+'%;background:'+ei.color+'"></div></div></div>':
         '<div style="font-size:11px;color:#22c55e;margin-top:6px">Alcanzó el nivel máximo del modelo.</div>')+
       (falt.length?'<div style="font-size:11px;color:#f59e0b;margin-top:7px"><b>Le falta:</b> '+falt.slice(0,3).join(' · ')+'</div>':'')+
-    '</div>';
+    '</div>'+
+    (function(){ const dd=r.dims||{}; const l=Object.keys(DIM_LABELS).filter(k=>dd[k]>0).map(k=>({l:DIM_LABELS[k],v:Math.round(dd[k]/5*100)})).sort((a,b)=>a.v-b.v).slice(0,2);
+      if(!l.length) return '';
+      return '<div style="margin-top:10px"><div style="font-size:10px;font-weight:800;color:#f59e0b;letter-spacing:0.06em;margin-bottom:5px">A TRABAJAR</div><div style="display:flex;gap:6px;flex-wrap:wrap">'+
+        l.map(x=>'<span style="font-size:11.5px;background:#f59e0b14;border:1px solid #f59e0b44;border-radius:7px;padding:4px 9px;color:#e8eff8">'+x.l+' <b style="color:#f59e0b">'+x.v+'</b></span>').join('')+'</div></div>'; })();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -18882,10 +18889,24 @@ function cartaPosAbrev(p){
   if(/volante|medio|pivote|interior|conten/.test(n)) return 'MED'; if(/enganche/.test(n)) return 'ENG'; if(/extremo|wing/.test(n)) return 'EXT';
   if(/delanter|punta|9/.test(n)) return 'DEL'; return (p||'').slice(0,3).toUpperCase()||'—';
 }
-async function cartaParaRedes(){
-  const r=PJ_ACTUAL; if(!r) return;
-  const btn=document.getElementById('pj-btn-carta'); const t0=btn?btn.textContent:''; if(btn) btn.textContent='⏳ Armando la carta…';
+// La tarjeta del Perfil muestra la carta visual; la ficha anterior queda desplegable
+async function renderCartaVisual(r){
+  const vis=document.getElementById('pj-card-visual'), img=document.getElementById('pj-card-img'), card=document.getElementById('pj-card');
+  if(!vis||!img||!card) return;
   try{
+    const cv=await cartaCanvas(r);
+    if(PJ_ACTUAL!==r) return;
+    img.src=cv.toDataURL('image/png'); // si la foto viene de un sitio sin permiso, esto falla y queda la ficha anterior
+    vis.style.display='flex'; card.style.display='none';
+  }catch(e){ vis.style.display='none'; card.style.display=''; }
+}
+function togglePjFicha(){
+  const card=document.getElementById('pj-card'), t=document.getElementById('pj-ficha-toggle'); if(!card) return;
+  const abierta=card.style.display!=='none';
+  card.style.display=abierta?'none':''; if(t) t.textContent=abierta?'Ver ficha completa ▾':'Ocultar ficha ▴';
+  if(!abierta) card.scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function cartaCanvas(r){
     const W=1080,H=1350, cv=document.createElement('canvas'); cv.width=W; cv.height=H; const g=cv.getContext('2d');
     const F='"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif';
     const colD=v=>v>=80?'#22c55e':v>=65?'#facc15':'#f87171';
@@ -18909,7 +18930,8 @@ async function cartaParaRedes(){
     g.fillStyle='#7c8fae'; g.font='700 15px '+F; g.fillText('DISPONIBILIDAD',W-150,236);
     // Foto
     const cx=W/2, cy=440, R=228;
-    const foto=await cartaImg(r.foto_url,true);
+    let foto=await cartaImg(r.foto_url,true);
+    if(foto){ try{ const t=document.createElement('canvas'); t.width=t.height=8; const tg=t.getContext('2d'); tg.drawImage(foto,0,0,8,8); tg.getImageData(0,0,1,1); }catch(e){ foto=null; } }
     g.save(); g.beginPath(); g.arc(cx,cy,R,0,Math.PI*2); g.closePath(); g.fillStyle='#0d1b3e'; g.fill(); g.clip();
     if(foto){ const sc=Math.max((2*R)/foto.width,(2*R)/foto.height), w=foto.width*sc, h=foto.height*sc; g.drawImage(foto,cx-w/2,cy-h/2,w,h); }
     else { g.fillStyle='#94a3b8'; g.font='800 160px '+F; g.fillText((r.jugador_nombre||'?').split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase(),cx,cy+6); }
@@ -18917,7 +18939,9 @@ async function cartaParaRedes(){
     g.lineWidth=11; g.strokeStyle='#facc15'; g.beginPath(); g.arc(cx,cy,R+6,0,Math.PI*2); g.stroke();
     g.lineWidth=3; g.strokeStyle='rgba(0,194,255,0.8)'; g.beginPath(); g.arc(cx,cy,R+20,0,Math.PI*2); g.stroke();
     const esc=await cartaImg(document.getElementById('pj-escudo')?.src||'',true);
-    if(esc){ try{ g.save(); g.beginPath(); g.arc(cx+R-14,cy+R-24,54,0,Math.PI*2); g.fillStyle='#ffffff'; g.fill(); g.restore(); g.drawImage(esc,cx+R-58,cy+R-68,88,88); g.getImageData(0,0,1,1); }catch(e){} }
+    // El escudo solo se dibuja si el sitio donde está guardado lo permite (si no, "ensucia" la imagen y no se puede exportar)
+    let escOk=false; if(esc){ try{ const t=document.createElement('canvas'); t.width=t.height=8; const tg=t.getContext('2d'); tg.drawImage(esc,0,0,8,8); tg.getImageData(0,0,1,1); escOk=true; }catch(e){ escOk=false; } }
+    if(escOk){ g.save(); g.beginPath(); g.arc(cx+R-14,cy+R-24,54,0,Math.PI*2); g.fillStyle='#ffffff'; g.fill(); g.restore(); g.drawImage(esc,cx+R-58,cy+R-68,88,88); }
     // Nombre y datos
     g.fillStyle='#ffffff'; let fz=64; g.font='900 '+fz+'px '+F;
     const nom=(r.jugador_nombre||'').toUpperCase(); while(g.measureText(nom).width>W-140&&fz>36){ fz-=2; g.font='900 '+fz+'px '+F; }
@@ -18958,6 +18982,13 @@ async function cartaParaRedes(){
     if(dn){ g.fillStyle='#9fb3cc'; g.font='italic 600 23px '+F; g.fillText('“'+dn[1]+'”',fx,1250); }
     // Pie
     g.textAlign='center'; g.fillStyle='#5d7391'; g.font='600 21px '+F; g.fillText('app.sportcoachingpro.com  ·  App de medición de rendimiento mental',cx,1302);
+    return cv;
+}
+async function cartaParaRedes(){
+  const r=PJ_ACTUAL; if(!r) return;
+  const btn=document.getElementById('pj-btn-carta'); const t0=btn?btn.textContent:''; if(btn) btn.textContent='⏳ Armando la carta…';
+  try{
+    const cv=await cartaCanvas(r);
     // Exportar
     let blob; try{ blob=await new Promise(res=>cv.toBlob(res,'image/png')); }catch(e){ blob=null; }
     if(!blob){ alert('La foto no se pudo usar en la carta (está guardada en un sitio que no lo permite). Volvé a subirla desde "Editar datos" y probá de nuevo.'); return; }
