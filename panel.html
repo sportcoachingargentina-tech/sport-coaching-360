@@ -2673,11 +2673,17 @@ tr:hover td{background:#0d1b3e40}
 
     </div>
 
-    <div style="display:flex;justify-content:center;gap:10px;margin-bottom:0" class="pj-print-hide">
-      <button id="pj-btn-carta" onclick="cartaParaRedes()" class="btn-p" style="padding:10px 20px" title="Imagen lista para Instagram: foto grande, número, radar, rol y fortalezas">🖼 Carta para redes</button>
-      <button onclick="compartirPerfilJugador()" class="bg" style="padding:10px 20px">📤 Enviar perfil</button>
-      <button id="pj-btn-estilo" onclick="compartirEstiloPensamiento()" class="bg" style="padding:10px 20px">🧠 Pedir Estilo de Pensamiento</button>
-      <button onclick="window.print()" style="padding:10px 20px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:8px;font-size:13px;cursor:pointer">🖨 Imprimir / PDF</button>
+    <!-- Botones de la carta: grilla 2×2 del mismo ancho que la carta -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:370px;max-width:100%;margin:0 auto" class="pj-print-hide">
+      <button id="pj-btn-carta" onclick="cartaParaRedes()" class="btn-p" style="padding:10px 8px;font-size:13px;white-space:nowrap" title="Imagen lista para Instagram: foto grande, número, radar, rol y fortalezas">🖼 Carta para redes</button>
+      <button onclick="compartirPerfilJugador()" class="bg" style="padding:10px 8px;font-size:13px;white-space:nowrap">📤 Enviar perfil</button>
+      <button id="pj-btn-estilo" onclick="compartirEstiloPensamiento()" class="bg" style="padding:10px 8px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🧠 Pedir Estilo de Pensamiento</button>
+      <button onclick="window.print()" style="padding:10px 8px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap">🖨 Imprimir / PDF</button>
+    </div>
+    <!-- Objetivos de realización: ocupa el espacio debajo de la carta -->
+    <div class="tw" style="width:370px;max-width:100%;margin:6px auto 0;background:rgba(255,255,255,0.03);border-color:rgba(0,194,255,0.25);display:flex;flex-direction:column">
+      <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent">🏁 OBJETIVOS DE REALIZACIÓN</div>
+      <div id="pj-objetivos" style="padding:0.75rem;flex:1"></div>
     </div>
     </div>
     <!-- fin pj-left-col -->
@@ -2706,10 +2712,6 @@ tr:hover td{background:#0d1b3e40}
           <!-- Foco de entrenamiento: oculto (ya está en D = T − I y en la Guía del CT) -->
           <div id="pj-cuadrante" style="display:none"></div>
           <div id="pj-cuadrante-pp" style="padding:0 0.75rem 0.75rem"></div>
-        </div>
-        <div class="tw" style="flex:1 1 auto;margin:0;background:rgba(255,255,255,0.03);border-color:rgba(0,194,255,0.25);display:flex;flex-direction:column">
-          <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent">🏁 OBJETIVOS DE REALIZACIÓN</div>
-          <div id="pj-objetivos" style="padding:0.75rem;flex:1"></div>
         </div>
         </div>
         <div class="tw" style="flex:1 1 260px;min-width:260px;margin:0;background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08);display:flex;flex-direction:column">
