@@ -19008,7 +19008,7 @@ function compartirPerfilJugador() {
   const url = baseUrl + '?token=' + (PJ_ACTUAL.token_perfil || PJ_ACTUAL.id);
   const nombre = PJ_ACTUAL.jugador_nombre || '';
   const msg = encodeURIComponent(
-    'Hola ' + nombre + '! 👋\n\nTe comparto tu perfil de rendimiento en Sport Coaching 360:\n\n' + url
+    'Hola ' + nombre + '! 👋\n\nTe comparto tu perfil de Sport Coaching 360. Ahí está tu carta de jugador, lista para descargar o subir a las redes:\n\n' + url
   );
   window.open('https://wa.me/?text=' + msg, '_blank');
 }
