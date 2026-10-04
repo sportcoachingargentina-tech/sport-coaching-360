@@ -2609,6 +2609,15 @@ tr:hover td{background:#0d1b3e40}
         <!-- patrón decorativo de fondo -->
         <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(0,194,255,0.15),transparent 70%)"></div>
 
+        <!-- Marca arriba de la tarjeta -->
+        <div style="display:flex;align-items:center;gap:8px;margin:-0.25rem 0 0.75rem;padding-bottom:0.6rem;border-bottom:1px solid rgba(0,194,255,0.25);position:relative;z-index:1">
+          <img id="pj-card-logo" src="" alt="" style="width:30px;height:30px;border-radius:8px;display:none"/>
+          <div style="line-height:1.1">
+            <div style="font-size:15px;font-weight:900;letter-spacing:0.06em;color:#fff;white-space:nowrap">SPORT COACHING 360</div>
+            <div style="font-size:10.5px;font-weight:600;color:#7fd8ff;white-space:nowrap">Perfil de rendimiento mental</div>
+          </div>
+        </div>
+
         <!-- Header: OVR + Posición + DISC -->
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem;position:relative;z-index:1">
           <div style="text-align:center">
@@ -16765,6 +16774,7 @@ function cargarPerfilJugador() {
   document.getElementById('pj-ovr').style.color = disp>=80?'#22c55e':disp>=65?'#ffd700':'#ef4444';
   document.getElementById('pj-pos-abbr').textContent = posAbbr;
   document.getElementById('pj-nombre').textContent = r.jugador_nombre || '—';
+  try{ const lg=document.getElementById('pj-card-logo'); if(lg&&!lg.src.startsWith('data:')){ const src=[...document.querySelectorAll('.topbar img, img')].find(i=>i!==lg&&(i.src||'').startsWith('data:image/png')); if(src){ lg.src=src.src; lg.style.display='block'; } } }catch(e){}
   // Momento de vida (declarado en el test, vigente 6 meses). Contexto, no puntaje.
   const pm=document.getElementById('pj-momento');
   if(pm){
