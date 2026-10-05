@@ -33,3 +33,14 @@ test('si se corta la señal, el Post Partido queda guardado y se envía al volve
   await expect(page.locator('#s-thanks')).toHaveClass(/active/);
   expect(srv.guardados).toContain('postpartido_jugador');
 });
+
+test('el jugador elige su nombre de la lista del grupo', async ({ page }) => {
+  const srv = await simularServidor(page);
+  await page.route('**/rest/v1/rpc/jugadores_de_grupo', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ nombre: 'Pablo Coronel' }, { nombre: 'Javi Paz' }]) }));
+  await page.goto('/postpartido.html?partido=PPTEST');
+  await expect(page.locator('#f-nombre-sel')).toBeVisible();
+  await page.selectOption('#f-nombre-sel', 'Javi Paz');
+  await expect(page.locator('#f-nombre')).toHaveValue('Javi Paz');
+  await page.selectOption('#f-nombre-sel', '__otro');
+  await expect(page.locator('#f-nombre')).toBeVisible();
+});
