@@ -453,6 +453,7 @@ tr:hover td{background:#0d1b3e40}
       <div data-nav="usuarios" class="nav-item" id="nav-usuarios" style="display:none" onclick="go('usuarios')"><span class="nav-icon">👤</span> Usuarios</div>
       <div data-nav="clubes" class="nav-item" id="nav-clubes" style="display:none" onclick="go('clubes')"><span class="nav-icon">🏟</span> Clubes</div>
       <div data-nav="gestion" class="nav-item" id="nav-gestion" style="display:none" onclick="go('gestion')"><span class="nav-icon">📊</span> Resumen de Gestión</div>
+      <div class="sc-version" style="font-size:10px;color:#4a5a78;padding:14px 16px 10px;letter-spacing:0.03em"></div>
     </div>
   </div>
   <div class="main">
@@ -473,6 +474,7 @@ tr:hover td{background:#0d1b3e40}
             <button onclick="go('clubes')" style="padding:6px 12px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:7px;font-size:11px;cursor:pointer;font-weight:600">🏟 Clubes</button>
             <button onclick="go('usuarios')" style="padding:6px 12px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:7px;font-size:11px;cursor:pointer;font-weight:600">👤 Usuarios</button>
             <button onclick="go('scouting')" style="padding:6px 12px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:7px;font-size:11px;cursor:pointer;font-weight:600">🔍 Scouting</button>
+            <button onclick="abrirReporteActivos()" title="Jugadores activos por club y por mes: base de la facturación" style="padding:6px 12px;background:#22c55e22;color:#4ade80;border:1px solid #22c55e55;border-radius:7px;font-size:11px;cursor:pointer;font-weight:700">💵 Jugadores activos</button>
             <button onclick="exportarInvestigacion(this)" title="Descarga todos los datos medidos, anonimizados y sin contenido generado por IA" style="padding:6px 12px;background:#7c3aed22;color:#c4b5fd;border:1px solid #7c3aed55;border-radius:7px;font-size:11px;cursor:pointer;font-weight:600">🔬 Exportar para investigación</button>
             <button onclick="go('leads')" style="padding:6px 12px;background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44;border-radius:7px;font-size:11px;cursor:pointer;font-weight:600">💼 Leads <span id="dash-leads-badge" style="background:#f59e0b;color:#0a0f1e;border-radius:8px;padding:0 4px;margin-left:2px;font-size:10px">0</span></button>
           </div>
@@ -17730,6 +17732,148 @@ async function exportarInvestigacion(btn){
     alert('✅ Exportación lista.\n\n'+datos.conteos.jugadores+' jugadores · '+datos.conteos.tests+' tests · '+datos.conteos.post_partido+' Post Partido · '+datos.conteos.evaluacion_dt+' evaluaciones del DT · '+datos.conteos.cognitivos+' ejercicios cognitivos.\n\nSe descargaron 2 archivos: los datos anónimos y la clave de clubes (privada, no la compartas).');
   }catch(e){ console.error('Exportación investigación:',e); alert('No se pudo completar la exportación: '+e.message); }
   finally{ if(btn) btn.textContent=txt0; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VERSIÓN DEL PANEL (se actualiza en cada entrega)
+// Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
+// ═══════════════════════════════════════════════════════════════
+const SC360_VERSION='5/10/2026 · 1';
+function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
+document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
+
+// ═══════════════════════════════════════════════════════════════
+// REPORTE DE JUGADORES ACTIVOS (base de la facturación)
+// Jugador activo = jugador dado de alta (con test en SC360) que en el mes
+// registró al menos una actividad: test, Post Partido, Post entreno,
+// ejercicio cognitivo, nutrición o racha. Cada jugador cuenta una sola vez.
+// ═══════════════════════════════════════════════════════════════
+const PRECIO_JUGADOR_USD=8, PARTE_SC360=0.5;
+let ACTIVOS_DATOS=null;
+function activosNorm(t){ return (t||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim(); }
+async function abrirReporteActivos(){
+  if(!USUARIO_ACTUAL||USUARIO_ACTUAL.rol!=='admin'){ alert('Solo el administrador puede ver este reporte.'); return; }
+  let m=document.getElementById('mo-activos');
+  if(!m){
+    m=document.createElement('div'); m.id='mo-activos'; m.className='mo';
+    m.style.cssText='position:fixed;inset:0;background:#000b;z-index:400;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 12px';
+    document.body.appendChild(m);
+  }
+  const hoy=new Date(), mesDef=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
+  m.innerHTML='<div style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:14px;width:min(880px,100%);padding:18px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
+      '<div><div style="font-size:17px;font-weight:900;color:#fff">📊 Jugadores activos por club</div>'+
+      '<div style="font-size:11.5px;color:#94a3b8;margin-top:2px">Base de facturación · USD '+PRECIO_JUGADOR_USD+' por jugador activo por mes · '+Math.round(PARTE_SC360*100)+'% SC360</div></div>'+
+      '<div style="display:flex;gap:8px;align-items:center"><input type="month" id="act-mes" value="'+mesDef+'" onchange="calcularActivos()" style="padding:7px 10px;background:#0a1024;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px">'+
+      '<button onclick="document.getElementById(\'mo-activos\').remove()" style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer">✕</button></div></div>'+
+    '<div id="act-cuerpo" style="margin-top:14px"><div class="es">Calculando…</div></div></div>';
+  calcularActivos();
+}
+async function calcularActivos(){
+  const box=document.getElementById('act-cuerpo'); if(!box) return;
+  box.innerHTML='<div class="es">Calculando…</div>';
+  try{
+    const mes=document.getElementById('act-mes').value; const [y,mm]=mes.split('-').map(Number);
+    const ini=new Date(y,mm-1,1), fin=new Date(y,mm,1);
+    const d1=ini.toISOString().slice(0,10), d2=fin.toISOString().slice(0,10);
+    const [gs,rs,pp,en,cg,nu,ra]=await Promise.all([
+      invTodo('grupos','select=codigo,club,nombre'),
+      invTodo('resultados','select=id,jugador_nombre,grupo_codigo,jugador_club,fecha'),
+      invTodo('postpartido_jugador','select=jugador_nombre,grupo_codigo,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2),
+      invTodo('entreno_jugador','select=jugador_nombre,grupo_codigo,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2),
+      invTodo('ejercicios_cognitivos','select=jugador_id,jugador_nombre,creado_en&creado_en=gte.'+d1+'&creado_en=lt.'+d2),
+      invTodo('nutricion_resultados','select=jugador_nombre,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2),
+      invTodo('racha_resultados','select=jugador_nombre,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2)
+    ]);
+    const clubDeGrupo={}; gs.forEach(g=>{ if(g.codigo) clubDeGrupo[g.codigo]=(g.club||'').trim()||'(sin club)'; });
+    // Plantel registrado: jugador = nombre normalizado + club
+    const reg={}, porId={}, clubesDeNombre={};
+    rs.forEach(r=>{
+      const club=clubDeGrupo[r.grupo_codigo]||((r.jugador_club||'').split('—')[0].trim())||'(sin club)';
+      const k=activosNorm(r.jugador_nombre)+'|'+activosNorm(club);
+      if(!activosNorm(r.jugador_nombre)) return;
+      if(!reg[k]) reg[k]={nombre:r.jugador_nombre.trim(),club,act:new Set()};
+      porId[r.id]=k;
+      (clubesDeNombre[activosNorm(r.jugador_nombre)]=clubesDeNombre[activosNorm(r.jugador_nombre)]||new Set()).add(k);
+      if(r.fecha&&r.fecha>=d1&&r.fecha<d2) reg[k].act.add('Test');
+    });
+    // Emparejar nombres aunque estén escritos distinto: orden invertido ("Coronel Pablo"),
+    // un nombre de menos ("Javi" / "Javi Paz") o sin tildes. Solo si hay UNA coincidencia en el club.
+    const toks=n=>activosNorm(n).split(' ').filter(t=>t.length>1);
+    const llaveT=n=>toks(n).slice().sort().join(' ');
+    const rosterClub={}; Object.entries(reg).forEach(([k,j])=>{ const c=activosNorm(j.club); (rosterClub[c]=rosterClub[c]||[]).push({k,t:toks(j.nombre),l:llaveT(j.nombre)}); });
+    const buscarEnClub=(n,club)=>{
+      const lista=rosterClub[activosNorm(club)]||[]; const t=toks(n); if(!t.length) return null;
+      const exacto=lista.filter(x=>x.l===llaveT(n)); if(exacto.length===1) return exacto[0].k;
+      const sub=lista.filter(x=>t.every(a=>x.t.includes(a))||x.t.every(a=>t.includes(a)));
+      return sub.length===1?sub[0].k:null;
+    };
+    const porNombre=n=>{ const s=clubesDeNombre[activosNorm(n)]; if(s&&s.size===1) return [...s][0];
+      const cands=Object.keys(rosterClub).map(c=>buscarEnClub(n,c)).filter(Boolean); return cands.length===1?cands[0]:null; };
+    const sinFicha={}; // activos que todavía no hicieron el test
+    const porNombreGrupo=(n,gc,tipo)=>{ const club=clubDeGrupo[gc]; let k=null;
+      if(club){ k=reg[activosNorm(n)+'|'+activosNorm(club)]?activosNorm(n)+'|'+activosNorm(club):buscarEnClub(n,club); }
+      if(!k) k=porNombre(n);
+      if(!k&&club&&activosNorm(n)){ const kk=llaveT(n)+'|'+activosNorm(club); const sf=sinFicha[kk]=sinFicha[kk]||{nombre:n.trim(),club,act:new Set()}; sf.act.add(tipo); }
+      return k; };
+    const marcar=(k,tipo)=>{ if(k&&reg[k]) reg[k].act.add(tipo); };
+    pp.forEach(x=>marcar(porNombreGrupo(x.jugador_nombre,x.grupo_codigo,'Post Partido'),'Post Partido'));
+    en.forEach(x=>marcar(porNombreGrupo(x.jugador_nombre,x.grupo_codigo,'Post entreno'),'Post entreno'));
+    cg.forEach(x=>marcar(porId[x.jugador_id]||porNombre(x.jugador_nombre),'Cognitivos'));
+    nu.forEach(x=>marcar(porNombre(x.jugador_nombre),'Nutrición'));
+    ra.forEach(x=>marcar(porNombre(x.jugador_nombre),'Racha'));
+    // Resumen por club
+    const clubes={};
+    Object.values(reg).forEach(j=>{ const c=clubes[j.club]=clubes[j.club]||{club:j.club,reg:0,activos:[],sinFicha:[]}; c.reg++; if(j.act.size) c.activos.push(j); });
+    Object.values(sinFicha).forEach(j=>{ const c=clubes[j.club]=clubes[j.club]||{club:j.club,reg:0,activos:[],sinFicha:[]}; c.sinFicha.push(j); });
+    const filas=Object.values(clubes).sort((a,b)=>b.activos.length-a.activos.length||a.club.localeCompare(b.club));
+    const totA=filas.reduce((s,c)=>s+c.activos.length,0), totSF=filas.reduce((s,c)=>s+c.sinFicha.length,0);
+    ACTIVOS_DATOS={mes,filas};
+    const usd=n=>'USD '+(Math.round(n*100)/100).toLocaleString('es-AR');
+    const nomMes=ini.toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+    box.innerHTML=
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">'+
+        [['Jugadores activos',totA,'#00c2ff'],['Total facturable',usd(totA*PRECIO_JUGADOR_USD),'#e8eff8'],['Parte SC360',usd(totA*PRECIO_JUGADOR_USD*PARTE_SC360),'#22c55e'],['Parte Gloouds',usd(totA*PRECIO_JUGADOR_USD*(1-PARTE_SC360)),'#a78bfa']]
+          .map(x=>'<div style="background:#0a1024;border:1px solid #1a3a6e;border-radius:10px;padding:10px 12px"><div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:0.06em;text-transform:uppercase">'+x[0]+'</div><div style="font-size:21px;font-weight:900;color:'+x[2]+';margin-top:3px">'+x[1]+'</div></div>').join('')+'</div>'+
+      (totSF?'<div style="font-size:12px;color:#f59e0b;background:#f59e0b12;border:1px solid #f59e0b44;border-radius:8px;padding:8px 10px;margin-bottom:10px">⚠ <b>'+totSF+' jugador'+(totSF>1?'es':'')+' usaron la app este mes sin haber hecho el test</b> (no tienen ficha). No se cuentan como activos hasta que hagan el test. Pedile al club que se los envíe.</div>':'')+
+      '<div style="font-size:11.5px;color:#94a3b8;margin-bottom:8px">'+nomMes.charAt(0).toUpperCase()+nomMes.slice(1)+' · tocá un club para ver sus jugadores activos</div>'+
+      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#94a3b8;font-size:10.5px;text-transform:uppercase">'+
+        '<th style="text-align:left;padding:6px 8px">Club</th><th style="padding:6px 8px">Registrados</th><th style="padding:6px 8px">Activos</th><th style="padding:6px 8px" title="Usaron la app sin haber hecho el test">Sin test</th><th style="padding:6px 8px">Facturable</th><th style="padding:6px 8px">SC360</th></tr></thead><tbody>'+
+      filas.map((c,i)=>'<tr onclick="var d=document.getElementById(\'act-det-'+i+'\');d.style.display=d.style.display===\'none\'?\'table-row\':\'none\'" style="cursor:pointer;border-top:1px solid #1a3a6e44">'+
+          '<td style="padding:8px;color:#e8eff8;font-weight:700">'+c.club+'</td><td style="padding:8px;text-align:center;color:#b4c2d4">'+c.reg+'</td>'+
+          '<td style="padding:8px;text-align:center;font-weight:900;color:'+(c.activos.length?'#00c2ff':'#4a5a78')+'">'+c.activos.length+'</td>'+
+          '<td style="padding:8px;text-align:center;color:'+(c.sinFicha.length?'#f59e0b':'#4a5a78')+'">'+(c.sinFicha.length||'—')+'</td>'+
+          '<td style="padding:8px;text-align:center;color:#e8eff8">'+usd(c.activos.length*PRECIO_JUGADOR_USD)+'</td><td style="padding:8px;text-align:center;color:#22c55e;font-weight:700">'+usd(c.activos.length*PRECIO_JUGADOR_USD*PARTE_SC360)+'</td></tr>'+
+        '<tr id="act-det-'+i+'" style="display:none"><td colspan="6" style="padding:6px 8px 12px;background:#0a1024">'+
+          (c.activos.length?c.activos.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(j=>'<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0;border-bottom:1px solid #1a3a6e33"><span style="color:#e8eff8">'+j.nombre+'</span><span style="color:#94a3b8">'+[...j.act].join(' · ')+'</span></div>').join(''):'<div style="font-size:12px;color:#4a5a78">Sin jugadores activos este mes.</div>')+
+          (c.sinFicha.length?'<div style="font-size:10.5px;font-weight:800;color:#f59e0b;margin-top:8px">SIN TEST (no se facturan todavía)</div>'+c.sinFicha.map(j=>'<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0;color:#f59e0b"><span>'+j.nombre+'</span><span>'+[...j.act].join(' · ')+'</span></div>').join(''):'')+
+        '</td></tr>').join('')+
+      '</tbody></table></div>'+
+      '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap">'+
+        '<button onclick="descargarActivos()" style="padding:9px 16px;background:#22c55e;color:#06180d;border:none;border-radius:8px;font-weight:800;cursor:pointer">⬇ Descargar Excel</button></div>';
+  }catch(e){ console.error('Activos:',e); box.innerHTML='<div class="es">No se pudo calcular: '+e.message+'</div>'; }
+}
+function descargarActivos(){
+  if(!ACTIVOS_DATOS) return;
+  const esc=v=>{ const t=String(v==null?'':v); return /[;"\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; };
+  const num=n=>String(Math.round(n*100)/100).replace('.',',');
+  const L=[];
+  L.push(['Reporte de jugadores activos — Sport Coaching 360'].map(esc).join(';'));
+  L.push(['Mes',ACTIVOS_DATOS.mes].map(esc).join(';'));
+  L.push(['Precio por jugador activo (USD)',num(PRECIO_JUGADOR_USD)].map(esc).join(';'));
+  L.push('');
+  L.push(['Club','Jugadores registrados','Jugadores activos','Facturable (USD)','SC360 (USD)','Gloouds (USD)'].join(';'));
+  let tA=0;
+  ACTIVOS_DATOS.filas.forEach(c=>{ const a=c.activos.length; tA+=a; L.push([esc(c.club),c.reg,a,num(a*PRECIO_JUGADOR_USD),num(a*PRECIO_JUGADOR_USD*PARTE_SC360),num(a*PRECIO_JUGADOR_USD*(1-PARTE_SC360))].join(';')); });
+  L.push(['TOTAL','',tA,num(tA*PRECIO_JUGADOR_USD),num(tA*PRECIO_JUGADOR_USD*PARTE_SC360),num(tA*PRECIO_JUGADOR_USD*(1-PARTE_SC360))].join(';'));
+  L.push(''); L.push('Detalle de jugadores activos');
+  L.push(['Club','Jugador','Actividades del mes'].join(';'));
+  ACTIVOS_DATOS.filas.forEach(c=>c.activos.forEach(j=>L.push([esc(c.club),esc(j.nombre),esc([...j.act].join(', '))].join(';'))));
+  const sf=[]; ACTIVOS_DATOS.filas.forEach(c=>c.sinFicha.forEach(j=>sf.push([esc(c.club),esc(j.nombre),esc([...j.act].join(', '))].join(';'))));
+  if(sf.length){ L.push(''); L.push('Usaron la app sin haber hecho el test (no se facturan hasta tener ficha)'); L.push(['Club','Jugador','Actividades del mes'].join(';')); sf.forEach(x=>L.push(x)); }
+  const blob=new Blob(['\ufeff'+L.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='SC360_jugadores_activos_'+ACTIVOS_DATOS.mes+'.csv';
+  document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
 }
 
 // ═══════════════════════════════════════════════════════════════
