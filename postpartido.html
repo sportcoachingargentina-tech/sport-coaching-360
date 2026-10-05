@@ -84,7 +84,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
       <div class="cover-card">
         <h2>Tus datos</h2>
-        <div class="fg"><label>Nombre y apellido</label><input id="f-nombre" placeholder="Ej: Juan Pérez"/></div>
+        <div class="fg"><label>Nombre y apellido</label>
+          <select id="f-nombre-sel" onchange="elegirNombreLista()" style="display:none;width:100%"></select>
+          <input id="f-nombre" placeholder="Ej: Juan Pérez"/>
+          <div id="f-nombre-ayuda" style="display:none;font-size:11.5px;color:#8fa3bf;margin-top:6px">Buscá tu nombre en la lista. Si no aparecés, elegí "No estoy en la lista".</div>
+        </div>
         <div class="fg-row">
           <div class="fg"><label>Posición</label>
             <select id="f-pos">
@@ -214,6 +218,28 @@ async function init(){
   document.getElementById('og-title').content='Post partido · vs '+rival+' — '+(partidoData.grupo_nombre||'Sport Coaching Pro');
   document.getElementById('og-desc').content=fecha+' · Completá tu evaluación post partido';
   document.title='Post partido · vs '+rival+' — Sport Coaching 360';
+  cargarListaNombres(partidoData.grupo_codigo);
+}
+
+// Lista de jugadores del grupo: el jugador TOCA su nombre en vez de escribirlo
+// (así no aparecen "Coronel Pablo", "Javi" o "Villa mateo" y todo queda vinculado bien).
+// Si la lista no se puede cargar, queda el campo para escribir, como siempre.
+async function cargarListaNombres(grupo){
+  if(!grupo) return;
+  let lista=null;
+  try{ lista=await q('rpc/jugadores_de_grupo',{m:'POST',b:{p_codigo:grupo}}); }catch(e){}
+  if(!Array.isArray(lista)||!lista.length) return;
+  const sel=document.getElementById('f-nombre-sel'), inp=document.getElementById('f-nombre');
+  const nombres=lista.map(x=>x.nombre).filter(Boolean).sort((a,b)=>a.localeCompare(b,'es'));
+  if(!nombres.length) return;
+  sel.innerHTML='<option value="">— Tocá tu nombre —</option>'+nombres.map(n=>'<option>'+n.replace(/</g,'&lt;')+'</option>').join('')+'<option value="__otro">No estoy en la lista</option>';
+  sel.style.display='block'; inp.style.display='none'; inp.value='';
+  document.getElementById('f-nombre-ayuda').style.display='block';
+}
+function elegirNombreLista(){
+  const sel=document.getElementById('f-nombre-sel'), inp=document.getElementById('f-nombre');
+  if(sel.value==='__otro'){ inp.style.display='block'; inp.value=''; inp.placeholder='Escribí tu nombre y apellido'; inp.focus(); }
+  else { inp.style.display='none'; inp.value=sel.value; }
 }
 
 function startForm(){
