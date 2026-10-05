@@ -59,7 +59,7 @@
         }
         if(url.indexOf('/rest/v1/')>=0&&url.indexOf('errores_app')<0&&m!=='GET'&&m!=='HEAD'&&m!=='OPTIONS'){
           var tabla=url.split('/rest/v1/')[1].split('?')[0];
-          p.then(function(res){ if(res&&!res.ok){ res.clone().text().then(function(t){ registrar('guardado','Falló '+m+' en '+tabla+' ('+res.status+')',t,true); }).catch(function(){}); } })
+          p.then(function(res){ if(res&&!res.ok){ var esLectura=tabla.indexOf('rpc/')===0&&res.status===404; res.clone().text().then(function(t){ registrar(esLectura?'consulta':'guardado',(esLectura?'Función no disponible: ':'Falló '+m+' en ')+tabla+' ('+res.status+')',t,!esLectura); }).catch(function(){}); } })
            .catch(function(err){ registrar('red','Sin conexión al guardar en '+tabla,String(err),false); });
         }
       }catch(e){}
