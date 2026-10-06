@@ -2736,15 +2736,7 @@ tr:hover td{background:#0d1b3e40}
         <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent">📋 GUÍA PARA EL CUERPO TÉCNICO</div>
         <div id="pj-guia-ct" style="padding:1rem 1.25rem;flex:1"></div>
       </div>
-      <!-- MENTAL PERFORMANCE TRACKING -->
-      <div id="pj-mpt-card" class="tw pj-print-hide" style="margin:0;background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(0,194,255,0.05));border-color:rgba(124,58,237,0.35)">
-        <div class="th" style="font-size:12px;padding:0.7rem 0.85rem;background:transparent;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-          <span>🧠 MENTAL PERFORMANCE TRACKING</span>
-          <span style="font-size:10.5px;font-weight:800;color:#c4b5fd;letter-spacing:0.04em">AHORA LO MENTAL SE MIDE</span>
-        </div>
-        <div style="font-size:10.5px;color:#7c8fae;padding:0 0.85rem;margin-top:-2px">Diagnosticar · Medir · Evolucionar · Analizar · Predecir · Decidir</div>
-        <div id="pj-mpt" style="padding:0.85rem"></div>
-      </div>
+      <div id="pj-mpt" style="display:none"></div>
     </div>
 
     </div>
@@ -17758,7 +17750,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='7/10/2026 · 3';
+const SC360_VERSION='7/10/2026 · 5';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 
@@ -17783,7 +17775,7 @@ async function abrirReporteActivos(){
   m.innerHTML='<div style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:14px;width:min(880px,100%);padding:18px">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
       '<div><div style="font-size:17px;font-weight:900;color:#fff">📊 Jugadores activos por club</div>'+
-      '<div style="font-size:11.5px;color:#94a3b8;margin-top:2px">Base de facturación · USD '+PRECIO_JUGADOR_USD+' por jugador activo por mes · '+Math.round(PARTE_SC360*100)+'% SC360</div></div>'+
+      '<div style="font-size:11.5px;color:#94a3b8;margin-top:2px">Base de facturación · jugador activo = hizo el test inicial (alta) en un plantel habilitado · USD '+PRECIO_JUGADOR_USD+' por mes · '+Math.round(PARTE_SC360*100)+'% SC360</div></div>'+
       '<div style="display:flex;gap:8px;align-items:center"><input type="month" id="act-mes" value="'+mesDef+'" onchange="calcularActivos()" style="padding:7px 10px;background:#0a1024;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px">'+
       '<button onclick="document.getElementById(\'mo-activos\').remove()" style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer">✕</button></div></div>'+
     '<div id="act-cuerpo" style="margin-top:14px"><div class="es">Calculando…</div></div></div>';
@@ -17797,22 +17789,24 @@ async function calcularActivos(){
     const ini=new Date(y,mm-1,1), fin=new Date(y,mm,1);
     const d1=ini.toISOString().slice(0,10), d2=fin.toISOString().slice(0,10);
     const [gs,rs,pp,en,cg,nu,ra]=await Promise.all([
-      invTodo('grupos','select=codigo,club,nombre'),
-      invTodo('resultados','select=id,jugador_nombre,grupo_codigo,jugador_club,fecha'),
+      invTodo('grupos','select=codigo,club,nombre,habilitado'),
+      invTodo('resultados','select=id,jugador_uid,jugador_nombre,grupo_codigo,jugador_club,fecha'),
       invTodo('postpartido_jugador','select=jugador_nombre,grupo_codigo,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2),
       invTodo('entreno_jugador','select=jugador_nombre,grupo_codigo,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2),
       invTodo('ejercicios_cognitivos','select=jugador_id,jugador_nombre,creado_en&creado_en=gte.'+d1+'&creado_en=lt.'+d2),
       invTodo('nutricion_resultados','select=jugador_nombre,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2),
       invTodo('racha_resultados','select=jugador_nombre,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2)
     ]);
-    const clubDeGrupo={}; gs.forEach(g=>{ if(g.codigo) clubDeGrupo[g.codigo]=(g.club||'').trim()||'(sin club)'; });
+    const clubDeGrupo={}, grupoHab={}; gs.forEach(g=>{ if(g.codigo){ clubDeGrupo[g.codigo]=(g.club||'').trim()||'(sin club)'; grupoHab[g.codigo]=g.habilitado!==false; } });
     // Plantel registrado: jugador = nombre normalizado + club
     const reg={}, porId={}, clubesDeNombre={};
     rs.forEach(r=>{
       const club=clubDeGrupo[r.grupo_codigo]||((r.jugador_club||'').split('—')[0].trim())||'(sin club)';
       const k=activosNorm(r.jugador_nombre)+'|'+activosNorm(club);
       if(!activosNorm(r.jugador_nombre)) return;
-      if(!reg[k]) reg[k]={nombre:r.jugador_nombre.trim(),club,act:new Set()};
+      if(!reg[k]) reg[k]={nombre:r.jugador_nombre.trim(),club,act:new Set(),uid:r.jugador_uid||null,alta:null,hab:false};
+      if(r.fecha&&(!reg[k].alta||r.fecha<reg[k].alta)) reg[k].alta=r.fecha;
+      if(!r.grupo_codigo||grupoHab[r.grupo_codigo]!==false) reg[k].hab=true;
       porId[r.id]=k;
       (clubesDeNombre[activosNorm(r.jugador_nombre)]=clubesDeNombre[activosNorm(r.jugador_nombre)]||new Set()).add(k);
       if(r.fecha&&r.fecha>=d1&&r.fecha<d2) reg[k].act.add('Test');
@@ -17844,8 +17838,17 @@ async function calcularActivos(){
     ra.forEach(x=>marcar(porNombre(x.jugador_nombre),'Racha'));
     // Resumen por club
     const clubes={};
-    Object.values(reg).forEach(j=>{ const c=clubes[j.club]=clubes[j.club]||{club:j.club,reg:0,activos:[],sinFicha:[]}; c.reg++; if(j.act.size) c.activos.push(j); });
-    Object.values(sinFicha).forEach(j=>{ const c=clubes[j.club]=clubes[j.club]||{club:j.club,reg:0,activos:[],sinFicha:[]}; c.sinFicha.push(j); });
+    // ALTA = hizo el test inicial (antes del fin del mes) en un plantel habilitado → se factura ese mes.
+    // Un jugador con varias fichas unidas cuenta una sola vez.
+    const vistosUid=new Set();
+    Object.values(reg).forEach(j=>{
+      if(j.uid){ if(vistosUid.has(j.uid)) return; vistosUid.add(j.uid); }
+      const c=clubes[j.club]=clubes[j.club]||{club:j.club,reg:0,activos:[],sinFicha:[],conUso:0};
+      if(!(j.alta&&j.alta<d2&&j.hab)) return;
+      c.reg++; c.activos.push(j); if(j.act.size) c.conUso++;
+    });
+    Object.values(sinFicha).forEach(j=>{ const c=clubes[j.club]=clubes[j.club]||{club:j.club,reg:0,activos:[],sinFicha:[],conUso:0}; c.sinFicha.push(j); });
+    Object.keys(clubes).forEach(k=>{ if(!clubes[k].activos.length&&!clubes[k].sinFicha.length) delete clubes[k]; });
     const filas=Object.values(clubes).sort((a,b)=>b.activos.length-a.activos.length||a.club.localeCompare(b.club));
     const totA=filas.reduce((s,c)=>s+c.activos.length,0), totSF=filas.reduce((s,c)=>s+c.sinFicha.length,0);
     ACTIVOS_DATOS={mes,filas};
@@ -17855,17 +17858,17 @@ async function calcularActivos(){
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">'+
         [['Jugadores activos',totA,'#00c2ff'],['Total facturable',usd(totA*PRECIO_JUGADOR_USD),'#e8eff8'],['Parte SC360',usd(totA*PRECIO_JUGADOR_USD*PARTE_SC360),'#22c55e'],['Parte Gloouds',usd(totA*PRECIO_JUGADOR_USD*(1-PARTE_SC360)),'#a78bfa']]
           .map(x=>'<div style="background:#0a1024;border:1px solid #1a3a6e;border-radius:10px;padding:10px 12px"><div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:0.06em;text-transform:uppercase">'+x[0]+'</div><div style="font-size:21px;font-weight:900;color:'+x[2]+';margin-top:3px">'+x[1]+'</div></div>').join('')+'</div>'+
-      (totSF?'<div style="font-size:12px;color:#f59e0b;background:#f59e0b12;border:1px solid #f59e0b44;border-radius:8px;padding:8px 10px;margin-bottom:10px">⚠ <b>'+totSF+' jugador'+(totSF>1?'es':'')+' usaron la app este mes sin haber hecho el test</b> (no tienen ficha). No se cuentan como activos hasta que hagan el test. Pedile al club que se los envíe.</div>':'')+
-      '<div style="font-size:11.5px;color:#94a3b8;margin-bottom:8px">'+nomMes.charAt(0).toUpperCase()+nomMes.slice(1)+' · tocá un club para ver sus jugadores activos</div>'+
+      (totSF?'<div style="font-size:12px;color:#f59e0b;background:#f59e0b12;border:1px solid #f59e0b44;border-radius:8px;padding:8px 10px;margin-bottom:10px">⚠ <b>'+totSF+' jugador'+(totSF>1?'es':'')+' usaron la app este mes sin haber hecho el test inicial</b>. No están dados de alta, así que no se facturan: pedile al club que les envíe el test.</div>':'')+
+      '<div style="font-size:11.5px;color:#94a3b8;margin-bottom:8px">'+nomMes.charAt(0).toUpperCase()+nomMes.slice(1)+' · tocá un club para ver sus jugadores dados de alta</div>'+
       '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#94a3b8;font-size:10.5px;text-transform:uppercase">'+
-        '<th style="text-align:left;padding:6px 8px">Club</th><th style="padding:6px 8px">Registrados</th><th style="padding:6px 8px">Activos</th><th style="padding:6px 8px" title="Usaron la app sin haber hecho el test">Sin test</th><th style="padding:6px 8px">Facturable</th><th style="padding:6px 8px">SC360</th></tr></thead><tbody>'+
+        '<th style="text-align:left;padding:6px 8px">Club</th><th style="padding:6px 8px" title="Jugadores con actividad en el mes (informativo)">Usaron la app</th><th style="padding:6px 8px">Activos (alta)</th><th style="padding:6px 8px" title="Usaron la app sin haber hecho el test">Sin test</th><th style="padding:6px 8px">Facturable</th><th style="padding:6px 8px">SC360</th></tr></thead><tbody>'+
       filas.map((c,i)=>'<tr onclick="var d=document.getElementById(\'act-det-'+i+'\');d.style.display=d.style.display===\'none\'?\'table-row\':\'none\'" style="cursor:pointer;border-top:1px solid #1a3a6e44">'+
-          '<td style="padding:8px;color:#e8eff8;font-weight:700">'+c.club+'</td><td style="padding:8px;text-align:center;color:#b4c2d4">'+c.reg+'</td>'+
+          '<td style="padding:8px;color:#e8eff8;font-weight:700">'+c.club+'</td><td style="padding:8px;text-align:center;color:#b4c2d4">'+(c.conUso||0)+'</td>'+
           '<td style="padding:8px;text-align:center;font-weight:900;color:'+(c.activos.length?'#00c2ff':'#4a5a78')+'">'+c.activos.length+'</td>'+
           '<td style="padding:8px;text-align:center;color:'+(c.sinFicha.length?'#f59e0b':'#4a5a78')+'">'+(c.sinFicha.length||'—')+'</td>'+
           '<td style="padding:8px;text-align:center;color:#e8eff8">'+usd(c.activos.length*PRECIO_JUGADOR_USD)+'</td><td style="padding:8px;text-align:center;color:#22c55e;font-weight:700">'+usd(c.activos.length*PRECIO_JUGADOR_USD*PARTE_SC360)+'</td></tr>'+
         '<tr id="act-det-'+i+'" style="display:none"><td colspan="6" style="padding:6px 8px 12px;background:#0a1024">'+
-          (c.activos.length?c.activos.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(j=>'<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0;border-bottom:1px solid #1a3a6e33"><span style="color:#e8eff8">'+j.nombre+'</span><span style="color:#94a3b8">'+[...j.act].join(' · ')+'</span></div>').join(''):'<div style="font-size:12px;color:#4a5a78">Sin jugadores activos este mes.</div>')+
+          (c.activos.length?c.activos.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(j=>'<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0;border-bottom:1px solid #1a3a6e33"><span style="color:#e8eff8">'+j.nombre+' <span style="color:#4a5a78">· alta '+String(j.alta).slice(0,10).split('-').reverse().join('/')+'</span></span><span style="color:#94a3b8">'+([...j.act].join(' · ')||'sin uso este mes')+'</span></div>').join(''):'<div style="font-size:12px;color:#4a5a78">Sin jugadores dados de alta.</div>')+
           (c.sinFicha.length?'<div style="font-size:10.5px;font-weight:800;color:#f59e0b;margin-top:8px">SIN TEST (no se facturan todavía)</div>'+c.sinFicha.map(j=>'<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0;color:#f59e0b"><span>'+j.nombre+'</span><span>'+[...j.act].join(' · ')+'</span></div>').join(''):'')+
         '</td></tr>').join('')+
       '</tbody></table></div>'+
@@ -17882,13 +17885,15 @@ function descargarActivos(){
   L.push(['Mes',ACTIVOS_DATOS.mes].map(esc).join(';'));
   L.push(['Precio por jugador activo (USD)',num(PRECIO_JUGADOR_USD)].map(esc).join(';'));
   L.push('');
-  L.push(['Club','Jugadores registrados','Jugadores activos','Facturable (USD)','SC360 (USD)','Gloouds (USD)'].join(';'));
+  L.push(['Criterio','Jugador activo = hizo el test inicial (alta) en un plantel habilitado del club'].map(esc).join(';'));
+  L.push('');
+  L.push(['Club','Usaron la app en el mes','Jugadores activos (alta)','Facturable (USD)','SC360 (USD)','Gloouds (USD)'].join(';'));
   let tA=0;
-  ACTIVOS_DATOS.filas.forEach(c=>{ const a=c.activos.length; tA+=a; L.push([esc(c.club),c.reg,a,num(a*PRECIO_JUGADOR_USD),num(a*PRECIO_JUGADOR_USD*PARTE_SC360),num(a*PRECIO_JUGADOR_USD*(1-PARTE_SC360))].join(';')); });
+  ACTIVOS_DATOS.filas.forEach(c=>{ const a=c.activos.length; tA+=a; L.push([esc(c.club),c.conUso||0,a,num(a*PRECIO_JUGADOR_USD),num(a*PRECIO_JUGADOR_USD*PARTE_SC360),num(a*PRECIO_JUGADOR_USD*(1-PARTE_SC360))].join(';')); });
   L.push(['TOTAL','',tA,num(tA*PRECIO_JUGADOR_USD),num(tA*PRECIO_JUGADOR_USD*PARTE_SC360),num(tA*PRECIO_JUGADOR_USD*(1-PARTE_SC360))].join(';'));
   L.push(''); L.push('Detalle de jugadores activos');
-  L.push(['Club','Jugador','Actividades del mes'].join(';'));
-  ACTIVOS_DATOS.filas.forEach(c=>c.activos.forEach(j=>L.push([esc(c.club),esc(j.nombre),esc([...j.act].join(', '))].join(';'))));
+  L.push(['Club','Jugador','Fecha de alta (test inicial)','Actividades del mes'].join(';'));
+  ACTIVOS_DATOS.filas.forEach(c=>c.activos.forEach(j=>L.push([esc(c.club),esc(j.nombre),esc(String(j.alta).slice(0,10)),esc([...j.act].join(', ')||'—')].join(';'))));
   const sf=[]; ACTIVOS_DATOS.filas.forEach(c=>c.sinFicha.forEach(j=>sf.push([esc(c.club),esc(j.nombre),esc([...j.act].join(', '))].join(';'))));
   if(sf.length){ L.push(''); L.push('Usaron la app sin haber hecho el test (no se facturan hasta tener ficha)'); L.push(['Club','Jugador','Actividades del mes'].join(';')); sf.forEach(x=>L.push(x)); }
   const blob=new Blob(['\ufeff'+L.join('\r\n')],{type:'text/csv;charset=utf-8'});
@@ -18118,15 +18123,25 @@ function renderMPTResumen(activa,ini,act,hayComp,ref,obs){
     cuerpo='<div style="font-size:12px;color:#b4c2d4">'+(activa?'Proceso en marcha. La evolución aparece cuando el jugador vuelva a hacer el test.':'Registrá un proceso de trabajo para medir el antes y el después.')+'</div>';
   }
   const tabla=MPT_ST.tablaHtml||'';
+  const hist=(MPT_ST.ints||[]).filter(i=>i.estado!=='activa');
+  const btn='font-size:12px;font-weight:700;padding:5px 12px;border-radius:7px;cursor:pointer';
   box.innerHTML='<div style="background:linear-gradient(135deg,rgba(124,58,237,0.16),rgba(0,194,255,0.08));border:1px solid rgba(124,58,237,0.45);border-radius:12px;padding:10px 14px">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">'+
       '<span style="font-size:11px;font-weight:900;color:#c4b5fd;letter-spacing:0.08em">🧠 MENTAL PERFORMANCE TRACKING</span>'+
       '<span style="font-size:11px;color:#e8eff8">'+(activa?'<b style="color:#c4b5fd">● '+activa.tipo+'</b> desde '+mptFecha(activa.fecha_inicio):'<span style="color:#94a3b8">Sin proceso activo</span>')+
-        ' · <span onclick="'+ir+'" style="color:#00c2ff;cursor:pointer">Proceso e historial ↓</span></span></div>'+
+        '</span></div>'+
+    (activa&&(activa.objetivo||(activa.variables||[]).length)?'<div style="font-size:11.5px;color:#cbd5e1;margin-bottom:6px">'+(activa.objetivo?'🎯 '+activa.objetivo:'')+((activa.variables||[]).length?' <span style="color:#a78bfa">· Trabaja: '+activa.variables.map(k=>DIM_LABELS[k]||k).join(', ')+'</span>':'')+'</div>':'')+
     cuerpo+
-    (obs&&hayComp?'<div style="font-size:11.5px;color:'+obs[2]+';margin-top:6px">'+obs[0]+' '+obs[1].split(':')[0]+'</div>':'')+
-    (tabla?'<button onclick="const t=document.getElementById(\'pj-mpt-tabla-arriba\');const ab=t.style.display===\'none\';t.style.display=ab?\'block\':\'none\';this.textContent=ab?\'Ocultar variables ▴\':\'Ver todas las variables ▾\'" style="margin-top:8px;font-size:12px;font-weight:700;padding:5px 12px;background:transparent;color:#c4b5fd;border:1px solid #7c3aed66;border-radius:7px;cursor:pointer">Ver todas las variables ▾</button>'+
-      '<div id="pj-mpt-tabla-arriba" style="display:none;margin-top:8px">'+tabla+'</div>':'')+
+    (obs?'<div style="font-size:12px;color:#e8eff8;line-height:1.45;margin-top:8px;background:'+obs[2]+'12;border-left:3px solid '+obs[2]+';border-radius:6px;padding:6px 10px"><b style="color:'+obs[2]+'">'+obs[0]+' Observación SC360:</b> '+obs[1]+' <span style="color:#4a5a78;font-size:10.5px">(basada en los datos registrados, no es un diagnóstico)</span></div>':'')+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+
+      '<button onclick="mptNueva()" class="btn-p" style="'+btn+'">+ Registrar intervención</button>'+
+      (activa?'<button onclick="mptFinalizar(\''+activa.id+'\')" style="'+btn+';background:transparent;color:#c4b5fd;border:1px solid #7c3aed66">Finalizar proceso</button>':'')+
+      (hist.length?'<button onclick="const t=document.getElementById(\'pj-mpt-hist\');t.style.display=t.style.display===\'none\'?\'block\':\'none\'" style="'+btn+';background:transparent;color:#b4c2d4;border:1px solid #1a3a6e">Historial ('+hist.length+')</button>':'')+
+    (tabla?'<button onclick="const t=document.getElementById(\'pj-mpt-tabla-arriba\');const ab=t.style.display===\'none\';t.style.display=ab?\'block\':\'none\';this.textContent=ab?\'Ocultar variables ▴\':\'Ver todas las variables ▾\'" style="'+btn+';background:transparent;color:#c4b5fd;border:1px solid #7c3aed66">Ver todas las variables ▾</button>':'')+
+    '</div>'+
+    (tabla?'<div id="pj-mpt-tabla-arriba" style="display:none;margin-top:8px">'+tabla+'</div>':'')+
+    (hist.length?'<div id="pj-mpt-hist" style="display:none;margin-top:8px">'+hist.map(i=>'<div style="font-size:12px;color:#b4c2d4;padding:4px 0;border-bottom:1px solid #1a3a6e33">'+i.tipo+' · '+mptFecha(i.fecha_inicio)+' → '+mptFecha(i.fecha_fin)+(i.objetivo?' · '+i.objetivo:'')+'</div>').join('')+'</div>':'')+
+    (MPT_ST.tablaOk===false?'<div style="font-size:11px;color:#f59e0b;margin-top:6px">Falta crear la tabla de intervenciones (intervenciones.sql).</div>':'')+
   '</div>';
 }
 function mptNueva(){
