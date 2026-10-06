@@ -2734,6 +2734,15 @@ tr:hover td{background:#0d1b3e40}
         <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent">📋 GUÍA PARA EL CUERPO TÉCNICO</div>
         <div id="pj-guia-ct" style="padding:1rem 1.25rem;flex:1"></div>
       </div>
+      <!-- MENTAL PERFORMANCE TRACKING -->
+      <div class="tw pj-print-hide" style="margin:0;background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(0,194,255,0.05));border-color:rgba(124,58,237,0.35)">
+        <div class="th" style="font-size:12px;padding:0.7rem 0.85rem;background:transparent;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <span>🧠 MENTAL PERFORMANCE TRACKING</span>
+          <span style="font-size:10.5px;font-weight:800;color:#c4b5fd;letter-spacing:0.04em">AHORA LO MENTAL SE MIDE</span>
+        </div>
+        <div style="font-size:10.5px;color:#7c8fae;padding:0 0.85rem;margin-top:-2px">Diagnosticar · Medir · Evolucionar · Analizar · Predecir · Decidir</div>
+        <div id="pj-mpt" style="padding:0.85rem"></div>
+      </div>
     </div>
 
     </div>
@@ -17091,6 +17100,7 @@ function cargarPerfilJugador() {
   // Rol y desarrollo (antes pantalla "Roles y Desarrollo")
   try{ renderRolDesarrolloPJ(r); }catch(e){ console.warn('Rol y desarrollo:',e); }
   renderCartaVisual(r);
+  cargarMPT(r);
   cargarResetPJ(r);
 }
 
@@ -17746,7 +17756,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='6/10/2026 · 2';
+const SC360_VERSION='7/10/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 
@@ -17988,6 +17998,139 @@ async function fichasUnir(i,cual){
   const r=await fetch(SB+'/rest/v1/rpc/unir_jugadores',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+(USER_ACCESS_TOKEN||SK),'Content-Type':'application/json'},body:JSON.stringify({p_principal:princ.id,p_duplicado:dup.id})});
   if(!r.ok){ alert('No se pudo unir: '+await r.text()); return; }
   FICHAS_ST.jug=FICHAS_ST.jug.filter(j=>j.id!==dup.id); FICHAS_ST.tests[princ.id]=(FICHAS_ST.tests[princ.id]||0)+(FICHAS_ST.tests[dup.id]||0); fichasTab('d');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MENTAL PERFORMANCE TRACKING (seguimiento longitudinal del jugador)
+// Diagnóstico → Intervención → Reevaluación → Post Partido → Evolución
+// Compara la evaluación al inicio de un proceso con la actual (escala 0–100,
+// las mismas dimensiones del MDC) y cruza lo que mejora en el test con lo
+// que pasa en los partidos (Observación SC360). No es diagnóstico clínico.
+// ═══════════════════════════════════════════════════════════════
+const MPT_TIPOS=['Entrenamiento mental','Coaching individual','Psicología deportiva','Programa del club','Intervención externa'];
+let MPT_ST={r:null,ints:[],tests:[],pp:[]};
+function mptVal(r,k){ const v=r&&r.dims?r.dims[k]:null; return v>0?Math.round(v/5*100):null; }
+function mptFecha(f){ return f?new Date(String(f).slice(0,10)+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}):'—'; }
+async function cargarMPT(r){
+  const box=document.getElementById('pj-mpt'); if(!box) return;
+  box.innerHTML='<div class="es">Cargando seguimiento…</div>';
+  MPT_ST={r,ints:[],tests:[],pp:[]};
+  try{
+    const filtro=r.jugador_uid?('jugador_uid=eq.'+r.jugador_uid):('jugador_nombre=ilike.'+encodeURIComponent((r.jugador_nombre||'').trim()));
+    const [ints,tests,pp]=await Promise.all([
+      q('intervenciones?'+filtro+'&order=fecha_inicio.desc&limit=50'),
+      q('resultados?'+filtro+'&select=id,fecha,disponibilidad,dims&order=fecha.asc&limit=50'),
+      q('postpartido_jugador?'+filtro+'&select=fecha,partido_codigo,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12,q13,q14,q15&order=fecha.asc&limit=200')
+    ]);
+    if(PJ_ACTUAL!==r) return;
+    MPT_ST.tablaOk=Array.isArray(ints);
+    MPT_ST.ints=Array.isArray(ints)?ints:[]; MPT_ST.tests=Array.isArray(tests)?tests:[]; MPT_ST.pp=Array.isArray(pp)?pp:[];
+    renderMPT();
+  }catch(e){ box.innerHTML='<div class="es">No se pudo cargar el seguimiento.</div>'; }
+}
+function renderMPT(){
+  const box=document.getElementById('pj-mpt'); if(!box) return;
+  const {ints,tests,pp}=MPT_ST;
+  const activa=ints.find(i=>i.estado==='activa');
+  const ref=activa||ints[0]||null;
+  // Evaluación inicial: la última ANTES de que empiece el proceso; si no hay proceso, la primera
+  let ini=null;
+  if(ref){ const antes=tests.filter(t=>String(t.fecha).slice(0,10)<=ref.fecha_inicio); ini=antes.length?antes[antes.length-1]:tests[0]; }
+  else ini=tests[0]||null;
+  const act=tests.length?tests[tests.length-1]:null;
+  const hayComparacion=ini&&act&&ini.id!==act.id;
+  let h='';
+  // Intervención activa
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">';
+  if(activa){
+    h+='<div style="flex:1;min-width:240px;background:#7c3aed14;border:1px solid #7c3aed55;border-radius:10px;padding:10px 12px">'+
+      '<div style="font-size:10px;font-weight:800;color:#c4b5fd;letter-spacing:0.08em">PROCESO ACTIVO · DESDE '+mptFecha(activa.fecha_inicio).toUpperCase()+'</div>'+
+      '<div style="font-size:14px;font-weight:800;color:#fff;margin-top:3px">'+activa.tipo+(activa.profesional?' · <span style="font-weight:600;color:#b4c2d4">'+activa.profesional+'</span>':'')+'</div>'+
+      (activa.objetivo?'<div style="font-size:12px;color:#cbd5e1;margin-top:3px">🎯 '+activa.objetivo+'</div>':'')+
+      ((activa.variables||[]).length?'<div style="font-size:11px;color:#a78bfa;margin-top:3px">Trabaja: '+activa.variables.map(k=>DIM_LABELS[k]||k).join(' · ')+'</div>':'')+
+      '<button onclick="mptFinalizar(\''+activa.id+'\')" style="margin-top:8px;font-size:11px;padding:4px 10px;background:transparent;color:#c4b5fd;border:1px solid #7c3aed66;border-radius:6px;cursor:pointer">Finalizar proceso</button></div>';
+  } else {
+    h+='<div style="flex:1;min-width:240px;font-size:12.5px;color:#94a3b8">Sin un proceso de trabajo activo. Registralo para medir el antes y el después.</div>';
+  }
+  h+='<button onclick="mptNueva()" class="btn-p" style="padding:9px 14px;font-size:12.5px">+ Registrar intervención</button></div>';
+  if(MPT_ST.tablaOk===false) h+='<div style="font-size:11.5px;color:#f59e0b;margin-bottom:10px">Falta crear la tabla de intervenciones (correr intervenciones.sql en Supabase).</div>';
+
+  // Comparación antes / después
+  if(!hayComparacion){
+    h+='<div style="font-size:12.5px;color:#b4c2d4;background:#0a1024;border:1px dashed #1a3a6e;border-radius:10px;padding:12px">📈 Para ver la evolución hace falta una <b>reevaluación</b>: que el jugador vuelva a hacer el test'+(ref?' después de empezar el proceso':'')+'. '+(ini?'Evaluación de referencia: '+mptFecha(ini.fecha)+'.':'')+'</div>';
+  } else {
+    const trab=new Set((ref&&ref.variables)||[]);
+    const filas=Object.keys(DIM_LABELS).map(k=>({k,l:DIM_LABELS[k],a:mptVal(ini,k),b:mptVal(act,k)})).filter(x=>x.a!=null&&x.b!=null)
+      .sort((x,y)=>(trab.has(y.k)-trab.has(x.k))||((y.b-y.a)-(x.b-x.a)));
+    const dD=(act.disponibilidad||0)-(ini.disponibilidad||0);
+    h+='<div style="font-size:11px;font-weight:800;color:#00c2ff;letter-spacing:0.06em;margin-bottom:6px">📈 EVOLUCIÓN · '+mptFecha(ini.fecha)+' → '+mptFecha(act.fecha)+'</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'+
+        '<div style="background:#0a1024;border:1px solid #1a3a6e;border-radius:10px;padding:8px 12px"><div style="font-size:10px;color:#94a3b8">DISPONIBILIDAD</div><b style="font-size:18px;color:#e8eff8">'+(ini.disponibilidad||'—')+' → '+(act.disponibilidad||'—')+'</b> <b style="color:'+(dD>0?'#22c55e':dD<0?'#ef4444':'#94a3b8')+'">'+(dD>0?'+':'')+dD+'</b></div></div>'+
+      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#94a3b8;font-size:10.5px;text-transform:uppercase"><th style="text-align:left;padding:5px 8px">Variable</th><th style="padding:5px 8px">Inicial</th><th style="padding:5px 8px">Actual</th><th style="padding:5px 8px">Evolución</th></tr></thead><tbody>'+
+      filas.map(x=>{ const d=x.b-x.a; return '<tr style="border-top:1px solid #1a3a6e44'+(trab.has(x.k)?';background:#7c3aed10':'')+'"><td style="padding:6px 8px;color:#e8eff8">'+(trab.has(x.k)?'🎯 ':'')+x.l+'</td><td style="padding:6px 8px;text-align:center;color:#b4c2d4">'+x.a+'</td><td style="padding:6px 8px;text-align:center;color:#e8eff8;font-weight:700">'+x.b+'</td><td style="padding:6px 8px;text-align:center;font-weight:800;color:'+(d>=5?'#22c55e':d<=-5?'#ef4444':'#94a3b8')+'">'+(d>0?'+':'')+d+'</td></tr>'; }).join('')+
+      '</tbody></table></div>';
+  }
+  // Observación SC360: lo que mejora en el test, ¿se ve en el partido?
+  const corte=ref?ref.fecha_inicio:(ini?String(ini.fecha).slice(0,10):null);
+  const reset=x=>{ const v=[x.q1,x.q7,x.q13].filter(y=>y!=null).map(Number); return v.length?v.reduce((a,b)=>a+b,0)/v.length*10:null; };
+  const prom=a=>{ const v=a.filter(x=>x!=null); return v.length?Math.round(v.reduce((s,x)=>s+x,0)/v.length):null; };
+  const ppA=corte?pp.filter(x=>String(x.fecha).slice(0,10)<corte):[], ppB=corte?pp.filter(x=>String(x.fecha).slice(0,10)>=corte):pp;
+  const rA=prom(ppA.map(reset)), rB=prom(ppB.map(reset));
+  const dReg=hayComparacion?((mptVal(act,'regulacion')||0)-(mptVal(ini,'regulacion')||0)):null;
+  let obs=null;
+  if(hayComparacion&&rA!=null&&rB!=null&&ppB.length>=2){
+    const dRes=rB-rA;
+    if(dReg>=5&&dRes<3) obs=['🔎','La evolución que muestra la evaluación (regulación emocional '+(dReg>0?'+':'')+dReg+') todavía no se refleja del todo en los partidos: la recuperación después del error se mantiene ('+rA+' → '+rB+'). Variable a monitorear en las próximas fechas.','#f59e0b'];
+    else if(dReg>=5&&dRes>=3) obs=['✅','La mejora se ve en la evaluación (regulación '+(dReg>0?'+':'')+dReg+') y también en el partido: la recuperación después del error subió de '+rA+' a '+rB+'.','#22c55e'];
+    else if(dReg<5&&dRes>=3) obs=['📌','En el partido mejora antes que en la autopercepción: la recuperación después del error subió de '+rA+' a '+rB+', aunque el test casi no cambió. Puede ser un buen momento para reevaluar.','#00c2ff'];
+    else obs=['📌','Sin cambios relevantes todavía, ni en la evaluación ni en el partido. Patrón a seguir observando.','#94a3b8'];
+  } else if(ppB.length<2){
+    obs=['⏳','Para la Observación SC360 hacen falta al menos 2 Post Partido '+(ref?'desde que empezó el proceso':'')+'.','#94a3b8'];
+  }
+  if(obs) h+='<div style="margin-top:12px;background:'+obs[2]+'12;border:1px solid '+obs[2]+'55;border-radius:10px;padding:10px 12px"><div style="font-size:10.5px;font-weight:800;color:'+obs[2]+';letter-spacing:0.06em">'+obs[0]+' OBSERVACIÓN SC360</div><div style="font-size:12.5px;color:#e8eff8;line-height:1.5;margin-top:4px">'+obs[1]+'</div><div style="font-size:10px;color:#4a5a78;margin-top:4px">Observación basada en los datos registrados. No es un diagnóstico.</div></div>';
+  // Historial
+  const fin=ints.filter(i=>i.estado!=='activa');
+  if(fin.length) h+='<div style="margin-top:12px;font-size:10.5px;font-weight:800;color:#94a3b8;letter-spacing:0.06em">PROCESOS ANTERIORES</div>'+
+    fin.map(i=>'<div style="font-size:12px;color:#b4c2d4;padding:5px 0;border-bottom:1px solid #1a3a6e33">'+i.tipo+' · '+mptFecha(i.fecha_inicio)+' → '+mptFecha(i.fecha_fin)+(i.objetivo?' · '+i.objetivo:'')+'</div>').join('');
+  box.innerHTML=h;
+}
+function mptNueva(){
+  const r=MPT_ST.r; if(!r) return;
+  let m=document.getElementById('mo-mpt'); if(m) m.remove();
+  m=document.createElement('div'); m.id='mo-mpt'; m.style.cssText='position:fixed;inset:0;background:#000b;z-index:400;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 12px';
+  const inp='width:100%;padding:8px 10px;background:#0a1024;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px;font-size:13px';
+  m.innerHTML='<div style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:14px;width:min(560px,100%);padding:18px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px;color:#fff">Registrar intervención · '+(r.jugador_nombre||'')+'</b><button onclick="document.getElementById(\'mo-mpt\').remove()" style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer">✕</button></div>'+
+    '<div style="display:grid;gap:10px;margin-top:12px">'+
+    '<label style="font-size:12px;color:#94a3b8">Tipo<select id="mpt-tipo" onchange="document.getElementById(\'mpt-ext\').style.display=this.value===\'Intervención externa\'?\'block\':\'none\'" style="'+inp+'">'+MPT_TIPOS.map(t=>'<option>'+t+'</option>').join('')+'</select></label>'+
+    '<div id="mpt-ext" style="display:none;font-size:11.5px;color:#f59e0b;background:#f59e0b12;border:1px solid #f59e0b44;border-radius:8px;padding:8px">Intervención externa: registrá solo el tipo, las fechas y el objetivo deportivo. No cargues información médica ni clínica.</div>'+
+    '<label style="font-size:12px;color:#94a3b8">Profesional responsable<input id="mpt-prof" style="'+inp+'" placeholder="Ej: Eduardo Meljin"></label>'+
+    '<label style="font-size:12px;color:#94a3b8">Objetivo<input id="mpt-obj" style="'+inp+'" placeholder="Ej: Mejorar la regulación después del error"></label>'+
+    '<div style="font-size:12px;color:#94a3b8">Variables que se trabajan<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+
+      Object.keys(DIM_LABELS).map(k=>'<label style="font-size:12px;color:#e8eff8;background:#0a1024;border:1px solid #1a3a6e;border-radius:16px;padding:4px 10px;cursor:pointer"><input type="checkbox" class="mpt-var" value="'+k+'" style="margin-right:4px">'+DIM_LABELS[k]+'</label>').join('')+'</div></div>'+
+    '<label style="font-size:12px;color:#94a3b8">Fecha de inicio<input id="mpt-ini" type="date" value="'+new Date().toISOString().slice(0,10)+'" style="'+inp+'"></label>'+
+    '<label style="font-size:12px;color:#94a3b8">Observaciones (opcional)<textarea id="mpt-obs" rows="2" style="'+inp+'"></textarea></label>'+
+    '<button onclick="mptGuardar()" class="btn-p" style="padding:11px;font-size:14px">Guardar</button></div></div>';
+  document.body.appendChild(m);
+}
+async function mptGuardar(){
+  const r=MPT_ST.r; const tipo=document.getElementById('mpt-tipo').value;
+  const vars=[...document.querySelectorAll('.mpt-var:checked')].map(x=>x.value);
+  const body={jugador_uid:r.jugador_uid||null,jugador_nombre:r.jugador_nombre,grupo_codigo:r.grupo_codigo||null,tipo,externa:tipo==='Intervención externa',
+    profesional:document.getElementById('mpt-prof').value.trim()||null,objetivo:document.getElementById('mpt-obj').value.trim()||null,variables:vars,
+    fecha_inicio:document.getElementById('mpt-ini').value||new Date().toISOString().slice(0,10),observaciones:document.getElementById('mpt-obs').value.trim()||null,
+    creado_por:USUARIO_ACTUAL?(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email):null,estado:'activa'};
+  // Si hay una activa, se finaliza al empezar la nueva
+  const act=MPT_ST.ints.find(i=>i.estado==='activa');
+  if(act) await q('intervenciones?id=eq.'+act.id,{m:'PATCH',b:{estado:'finalizada',fecha_fin:body.fecha_inicio},h:{Prefer:'return=minimal'}});
+  const res=await q('intervenciones',{m:'POST',b:body});
+  if(!Array.isArray(res)||!res.length){ alert('No se pudo guardar. ¿Ya corriste intervenciones.sql en Supabase?'); return; }
+  document.getElementById('mo-mpt').remove(); cargarMPT(r);
+}
+async function mptFinalizar(id){
+  if(!confirm('¿Finalizar este proceso? Queda en el historial.')) return;
+  await q('intervenciones?id=eq.'+id,{m:'PATCH',b:{estado:'finalizada',fecha_fin:new Date().toISOString().slice(0,10)},h:{Prefer:'return=minimal'}});
+  cargarMPT(MPT_ST.r);
 }
 
 // ═══════════════════════════════════════════════════════════════
