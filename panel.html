@@ -474,6 +474,7 @@ tr:hover td{background:#0d1b3e40}
             <button onclick="go('clubes')" style="padding:6px 12px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:7px;font-size:11px;cursor:pointer;font-weight:600">🏟 Clubes</button>
             <button onclick="go('usuarios')" style="padding:6px 12px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:7px;font-size:11px;cursor:pointer;font-weight:600">👤 Usuarios</button>
             <button onclick="go('scouting')" style="padding:6px 12px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:7px;font-size:11px;cursor:pointer;font-weight:600">🔍 Scouting</button>
+            <button onclick="abrirFichasJugadores()" title="Unir duplicados y vincular nombres escritos distinto" style="padding:6px 12px;background:#00c2ff18;color:#7fd8ff;border:1px solid #00c2ff55;border-radius:7px;font-size:11px;cursor:pointer;font-weight:700">🧩 Fichas de jugadores</button>
             <button onclick="abrirReporteActivos()" title="Jugadores activos por club y por mes: base de la facturación" style="padding:6px 12px;background:#22c55e22;color:#4ade80;border:1px solid #22c55e55;border-radius:7px;font-size:11px;cursor:pointer;font-weight:700">💵 Jugadores activos</button>
             <button onclick="exportarInvestigacion(this)" title="Descarga todos los datos medidos, anonimizados y sin contenido generado por IA" style="padding:6px 12px;background:#7c3aed22;color:#c4b5fd;border:1px solid #7c3aed55;border-radius:7px;font-size:11px;cursor:pointer;font-weight:600">🔬 Exportar para investigación</button>
             <button onclick="go('leads')" style="padding:6px 12px;background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44;border-radius:7px;font-size:11px;cursor:pointer;font-weight:600">💼 Leads <span id="dash-leads-badge" style="background:#f59e0b;color:#0a0f1e;border-radius:8px;padding:0 4px;margin-left:2px;font-size:10px">0</span></button>
@@ -3390,6 +3391,7 @@ async function q(path,o){
       method:m,body:(o&&o.b)?JSON.stringify(o.b):undefined
     });
     const txt=await r.text();
+    if(m==='GET'&&/^grupos\b/.test(path)&&r.ok){ try{ (JSON.parse(txt)||[]).forEach(g=>{ if(g&&g.codigo&&g.club!==undefined) GRUPO_CLUB[g.codigo]=g.club||''; }); }catch(e){} }
     if(m!=='GET') qLimpiarCache();
     else if(cacheable&&r.ok) Q_CACHE.set(path,{t:Date.now(),txt});
     return txt;
@@ -3676,7 +3678,7 @@ function filtrarGrupos(grupos){
   // grupos_codigos — evita el bug de "cargué una división y no la veo".
   if(u.rol==='coordinador' && u.club_nombre){
     const club=normClub(u.club_nombre);
-    return grupos.filter(g=>normClub(g.club).includes(club)||normClub(club).includes(normClub(g.club)));
+    return grupos.filter(g=>clubCoincide(g.club,club));
   }
   // Técnico: restringido a las divisiones que le asignaron explícitamente
   if(u.grupos_codigos&&u.grupos_codigos.length){
@@ -3687,18 +3689,24 @@ function filtrarGrupos(grupos){
   // Fallback: filtrar por club_nombre
   if(u.club_nombre){
     const club=normClub(u.club_nombre);
-    return grupos.filter(g=>normClub(g.club).includes(club)||normClub(club).includes(normClub(g.club)));
+    return grupos.filter(g=>clubCoincide(g.club,club));
   }
   return [];
 }
 
+// Club de cada grupo (se llena solo cada vez que se consultan los grupos).
+// El club de un test lo decide SU GRUPO, no lo que el jugador escribió como club:
+// así un jugador del grupo personal "Meljines" que puso "Godoy Cruz" no aparece en Godoy Cruz.
+const GRUPO_CLUB={};
+function clubCoincide(c,club){ const n=normClub(c); return !!n&&!!club&&(n.includes(club)||club.includes(n)); }
+function clubDelTest(r){ return (r.grupo_codigo&&GRUPO_CLUB[r.grupo_codigo]!==undefined)?GRUPO_CLUB[r.grupo_codigo]:r.jugador_club; }
 function filtrarResultados(resultados){
   if(!USUARIO_ACTUAL||USUARIO_ACTUAL.rol==='admin') return resultados;
   const u=USUARIO_ACTUAL;
-  // Coordinador: mismo criterio que filtrarGrupos — todo el club, siempre.
+  // Coordinador: todo su club, según el club del GRUPO de cada test.
   if(u.rol==='coordinador' && u.club_nombre){
     const club=normClub(u.club_nombre);
-    return resultados.filter(r=>normClub(r.jugador_club).includes(club)||normClub(club).includes(normClub(r.jugador_club)));
+    return resultados.filter(r=>clubCoincide(clubDelTest(r),club));
   }
   // Prioridad: grupos_codigos (propios + de sus DTs si es coordinador)
   if(u.grupos_codigos&&u.grupos_codigos.length){
@@ -3707,7 +3715,7 @@ function filtrarResultados(resultados){
   // Fallback: si no tiene grupos asignados todavía, filtrar por club completo
   if(u.club_nombre){
     const club=normClub(u.club_nombre);
-    return resultados.filter(r=>normClub(r.jugador_club).includes(club)||normClub(club).includes(normClub(r.jugador_club)));
+    return resultados.filter(r=>clubCoincide(clubDelTest(r),club));
   }
   return [];
 }
@@ -17738,7 +17746,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='5/10/2026 · 1';
+const SC360_VERSION='6/10/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 
@@ -17874,6 +17882,112 @@ function descargarActivos(){
   const blob=new Blob(['\ufeff'+L.join('\r\n')],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='SC360_jugadores_activos_'+ACTIVOS_DATOS.mes+'.csv';
   document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FICHAS DE JUGADORES (solo admin): resolver lo que no se vinculó solo
+// • Nombres sin vincular (Post Partido / DT / entrenos): elegir a qué ficha van.
+// • Posibles duplicados: dos fichas que parecen la misma persona → unir.
+// ═══════════════════════════════════════════════════════════════
+const FICHAS_IGNORAR_KEY='sc360_fichas_ignorar';
+function fichasIgnoradas(){ try{ return new Set(JSON.parse(localStorage.getItem(FICHAS_IGNORAR_KEY)||'[]')); }catch(e){ return new Set(); } }
+function fichasIgnorar(clave){ const s=fichasIgnoradas(); s.add(clave); try{ localStorage.setItem(FICHAS_IGNORAR_KEY,JSON.stringify([...s])); }catch(e){} }
+function fichasTok(n){ return activosNorm(n).split(' ').filter(t=>t.length>1); }
+function fichasLev(a,b){ if(Math.abs(a.length-b.length)>3) return 9; const d=[]; for(let i=0;i<=a.length;i++){ d[i]=[i]; } for(let j=1;j<=b.length;j++) d[0][j]=j;
+  for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++) d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1)); return d[a.length][b.length]; }
+function fichasParecido(a,b){ // 0 = nada, 1..3 = cuanto más alto, más parecido
+  const ta=fichasTok(a), tb=fichasTok(b); if(!ta.length||!tb.length) return 0;
+  const na=ta.slice().sort().join(' '), nb=tb.slice().sort().join(' ');
+  if(na===nb) return 3;
+  if(ta.every(t=>tb.includes(t))||tb.every(t=>ta.includes(t))) return 2;
+  if(fichasLev(na,nb)<=2) return 2;
+  const comunes=ta.filter(t=>tb.includes(t)).length; return comunes?1:0;
+}
+let FICHAS_ST=null;
+async function abrirFichasJugadores(){
+  if(!USUARIO_ACTUAL||USUARIO_ACTUAL.rol!=='admin'){ alert('Solo el administrador.'); return; }
+  let m=document.getElementById('mo-fichas');
+  if(!m){ m=document.createElement('div'); m.id='mo-fichas'; m.style.cssText='position:fixed;inset:0;background:#000b;z-index:400;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 12px'; document.body.appendChild(m); }
+  m.innerHTML='<div style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:14px;width:min(900px,100%);padding:18px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><div style="font-size:17px;font-weight:900;color:#fff">🧩 Fichas de jugadores</div>'+
+    '<div style="font-size:11.5px;color:#94a3b8;margin-top:2px">Un código por persona: así cada Post Partido, evaluación y test queda en el jugador correcto (y la facturación es exacta).</div></div>'+
+    '<button onclick="document.getElementById(\'mo-fichas\').remove()" style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer">✕</button></div>'+
+    '<div style="display:flex;gap:6px;margin-top:12px"><button id="fic-tab-s" onclick="fichasTab(\'s\')" class="btn-p" style="padding:7px 12px;font-size:12px">Nombres sin vincular</button>'+
+    '<button id="fic-tab-d" onclick="fichasTab(\'d\')" class="bg" style="padding:7px 12px;font-size:12px">Posibles duplicados</button></div>'+
+    '<div id="fic-cuerpo" style="margin-top:12px"><div class="es">Cargando…</div></div></div>';
+  try{
+    const [jug,res,pp,dt,en,gs]=await Promise.all([
+      invTodo('jugadores','select=id,nombre,club,grupo_codigo,unificado_en,dni'),
+      invTodo('resultados','select=jugador_uid'),
+      invTodo('postpartido_jugador','select=jugador_nombre,grupo_codigo&jugador_uid=is.null'),
+      invTodo('postpartido_dt','select=jugador_nombre,grupo_codigo&jugador_uid=is.null'),
+      invTodo('entreno_jugador','select=jugador_nombre,grupo_codigo&jugador_uid=is.null'),
+      invTodo('grupos','select=codigo,nombre,club')
+    ]);
+    if(!jug.length){ document.getElementById('fic-cuerpo').innerHTML='<div class="es">Todavía no está creada la tabla de fichas. Corré primero <b>ficha_unica_jugadores.sql</b> en Supabase.</div>'; return; }
+    const tests={}; res.forEach(r=>{ if(r.jugador_uid) tests[r.jugador_uid]=(tests[r.jugador_uid]||0)+1; });
+    const gInfo={}; gs.forEach(g=>gInfo[g.codigo]=g);
+    const sueltos={};
+    [[pp,'Post Partido'],[dt,'Evaluación DT'],[en,'Post entreno']].forEach(([arr,tipo])=>arr.forEach(x=>{
+      const k=activosNorm(x.jugador_nombre)+'|'+(x.grupo_codigo||''); if(!activosNorm(x.jugador_nombre)) return;
+      const s=sueltos[k]=sueltos[k]||{nombre:x.jugador_nombre.trim(),grupo:x.grupo_codigo,n:0,tipos:new Set()}; s.n++; s.tipos.add(tipo); }));
+    FICHAS_ST={jug:jug.filter(j=>!j.unificado_en),tests,gInfo,sueltos:Object.values(sueltos).sort((a,b)=>b.n-a.n)};
+    fichasTab('s');
+  }catch(e){ document.getElementById('fic-cuerpo').innerHTML='<div class="es">No se pudo cargar: '+e.message+'</div>'; }
+}
+function fichasTab(t){
+  const b=document.getElementById('fic-cuerpo'); if(!b||!FICHAS_ST) return;
+  document.getElementById('fic-tab-s').className=t==='s'?'btn-p':'bg'; document.getElementById('fic-tab-d').className=t==='d'?'btn-p':'bg';
+  const ign=fichasIgnoradas(), J=FICHAS_ST.jug, G=FICHAS_ST.gInfo, T=FICHAS_ST.tests;
+  const nomGrupo=c=>G[c]?G[c].nombre:(c||'—');
+  if(t==='s'){
+    const lista=FICHAS_ST.sueltos.filter(s=>!ign.has('s|'+activosNorm(s.nombre)+'|'+s.grupo));
+    if(!lista.length){ b.innerHTML='<div class="es">✅ No quedan nombres sin vincular.</div>'; return; }
+    b.innerHTML='<div style="font-size:12px;color:#b4c2d4;margin-bottom:8px">'+lista.length+' nombres escritos de una forma que no coincide con ninguna ficha. Elegí a qué jugador corresponden, o marcá "Sin ficha" si es alguien que todavía no hizo el test.</div>'+
+      lista.map((s,i)=>{
+        const club=G[s.grupo]?activosNorm(G[s.grupo].club):'';
+        const cands=J.filter(j=>!club||activosNorm(j.club)===club).map(j=>({j,p:fichasParecido(s.nombre,j.nombre)})).sort((a,b)=>b.p-a.p||a.j.nombre.localeCompare(b.j.nombre));
+        const sug=cands[0]&&cands[0].p>=1?cands[0].j.id:'';
+        return '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 0;border-top:1px solid #1a3a6e55">'+
+          '<div style="flex:1 1 200px;min-width:0"><b style="color:#e8eff8">'+s.nombre+'</b><div style="font-size:11px;color:#94a3b8">'+nomGrupo(s.grupo)+' · '+s.n+' carga'+(s.n>1?'s':'')+' ('+[...s.tipos].join(', ')+')</div></div>'+
+          '<select id="fic-s-'+i+'" style="flex:1 1 220px;padding:6px;background:#0a1024;color:#e8eff8;border:1px solid #1a3a6e;border-radius:7px;font-size:12px">'+
+            '<option value="">— Elegí el jugador —</option>'+cands.slice(0,60).map(c=>'<option value="'+c.j.id+'"'+(c.j.id===sug?' selected':'')+'>'+(c.p>=2?'★ ':'')+c.j.nombre+'</option>').join('')+'</select>'+
+          '<button onclick="fichasVincular('+i+')" class="btn-p" style="padding:6px 10px;font-size:12px">Vincular</button>'+
+          '<button onclick="fichasIgnorar(\'s|'+activosNorm(s.nombre)+'|'+s.grupo+'\');fichasTab(\'s\')" class="bg" style="padding:6px 10px;font-size:12px">Sin ficha</button></div>';
+      }).join('');
+    FICHAS_ST.vista=lista; return;
+  }
+  // Duplicados: mismo club y nombres parecidos, o el mismo nombre en dos clubes
+  const pares=[];
+  for(let a=0;a<J.length;a++) for(let c=a+1;c<J.length;c++){
+    const x=J[a], y=J[c]; const mismoClub=activosNorm(x.club)===activosNorm(y.club);
+    const p=fichasParecido(x.nombre,y.nombre);
+    if((mismoClub&&p>=2)||(!mismoClub&&p===3)){ const k='d|'+[x.id,y.id].sort().join('|'); if(!ign.has(k)) pares.push({x,y,k,mismoClub}); }
+  }
+  if(!pares.length){ b.innerHTML='<div class="es">✅ No se encontraron posibles duplicados.</div>'; return; }
+  FICHAS_ST.pares=pares;
+  const ficha=(j)=>'<div style="flex:1;min-width:0"><b style="color:#e8eff8">'+j.nombre+'</b><div style="font-size:11px;color:#94a3b8">'+(j.club||'—')+' · '+(T[j.id]||0)+' test'+((T[j.id]||0)===1?'':'s')+(j.dni?' · DNI '+j.dni:'')+'</div></div>';
+  b.innerHTML='<div style="font-size:12px;color:#b4c2d4;margin-bottom:8px">'+pares.length+' pares que podrían ser la misma persona. Al unir, todo lo cargado pasa a una sola ficha (no se pierde nada).</div>'+
+    pares.map((p,i)=>'<div style="padding:9px 0;border-top:1px solid #1a3a6e55">'+
+      (p.mismoClub?'':'<div style="font-size:10.5px;color:#f59e0b;font-weight:800;margin-bottom:4px">MISMO NOMBRE EN DOS CLUBES</div>')+
+      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+ficha(p.x)+'<span style="color:#4a5a78">⇄</span>'+ficha(p.y)+'</div>'+
+      '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">'+
+        '<button onclick="fichasUnir('+i+',0)" class="btn-p" style="padding:5px 10px;font-size:11.5px">Unir y quedarse con «'+p.x.nombre+'»</button>'+
+        '<button onclick="fichasUnir('+i+',1)" class="btn-p" style="padding:5px 10px;font-size:11.5px">Unir y quedarse con «'+p.y.nombre+'»</button>'+
+        '<button onclick="fichasIgnorar(\''+p.k+'\');fichasTab(\'d\')" class="bg" style="padding:5px 10px;font-size:11.5px">No son la misma persona</button></div></div>').join('');
+}
+async function fichasVincular(i){
+  const s=FICHAS_ST.vista[i], sel=document.getElementById('fic-s-'+i); if(!sel||!sel.value){ alert('Elegí a qué jugador corresponde.'); return; }
+  const r=await fetch(SB+'/rest/v1/rpc/vincular_nombre',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+(USER_ACCESS_TOKEN||SK),'Content-Type':'application/json'},body:JSON.stringify({p_nombre:s.nombre,p_grupo:s.grupo||null,p_jugador:sel.value})});
+  if(!r.ok){ alert('No se pudo vincular: '+await r.text()); return; }
+  FICHAS_ST.sueltos=FICHAS_ST.sueltos.filter(x=>x!==s); fichasTab('s');
+}
+async function fichasUnir(i,cual){
+  const p=FICHAS_ST.pares[i]; const princ=cual===0?p.x:p.y, dup=cual===0?p.y:p.x;
+  if(!confirm('¿Unir «'+dup.nombre+'» dentro de «'+princ.nombre+'»?\n\nTodo lo cargado de las dos pasa a una sola ficha.')) return;
+  const r=await fetch(SB+'/rest/v1/rpc/unir_jugadores',{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+(USER_ACCESS_TOKEN||SK),'Content-Type':'application/json'},body:JSON.stringify({p_principal:princ.id,p_duplicado:dup.id})});
+  if(!r.ok){ alert('No se pudo unir: '+await r.text()); return; }
+  FICHAS_ST.jug=FICHAS_ST.jug.filter(j=>j.id!==dup.id); FICHAS_ST.tests[princ.id]=(FICHAS_ST.tests[princ.id]||0)+(FICHAS_ST.tests[dup.id]||0); fichasTab('d');
 }
 
 // ═══════════════════════════════════════════════════════════════
