@@ -17758,7 +17758,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='7/10/2026 · 2';
+const SC360_VERSION='7/10/2026 · 3';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 
@@ -18071,7 +18071,11 @@ function renderMPT(){
       '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#94a3b8;font-size:10.5px;text-transform:uppercase"><th style="text-align:left;padding:5px 8px">Variable</th><th style="padding:5px 8px">Inicial</th><th style="padding:5px 8px">Actual</th><th style="padding:5px 8px">Evolución</th></tr></thead><tbody>'+
       filas.map(x=>{ const d=x.b-x.a; return '<tr style="border-top:1px solid #1a3a6e44'+(trab.has(x.k)?';background:#7c3aed10':'')+'"><td style="padding:6px 8px;color:#e8eff8">'+(trab.has(x.k)?'🎯 ':'')+x.l+'</td><td style="padding:6px 8px;text-align:center;color:#b4c2d4">'+x.a+'</td><td style="padding:6px 8px;text-align:center;color:#e8eff8;font-weight:700">'+x.b+'</td><td style="padding:6px 8px;text-align:center;font-weight:800;color:'+(d>=5?'#22c55e':d<=-5?'#ef4444':'#94a3b8')+'">'+(d>0?'+':'')+d+'</td></tr>'; }).join('')+
       '</tbody></table></div>';
+    MPT_ST.tablaHtml='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#94a3b8;font-size:10.5px;text-transform:uppercase"><th style="text-align:left;padding:5px 8px">Variable</th><th style="padding:5px 8px">Inicial</th><th style="padding:5px 8px">Actual</th><th style="padding:5px 8px">Evolución</th></tr></thead><tbody>'+
+      filas.map(x=>{ const d=x.b-x.a; return '<tr style="border-top:1px solid #1a3a6e44'+(trab.has(x.k)?';background:#7c3aed10':'')+'"><td style="padding:6px 8px;color:#e8eff8">'+(trab.has(x.k)?'🎯 ':'')+x.l+'</td><td style="padding:6px 8px;text-align:center;color:#b4c2d4">'+x.a+'</td><td style="padding:6px 8px;text-align:center;color:#e8eff8;font-weight:700">'+x.b+'</td><td style="padding:6px 8px;text-align:center;font-weight:800;color:'+(d>=5?'#22c55e':d<=-5?'#ef4444':'#94a3b8')+'">'+(d>0?'+':'')+d+'</td></tr>'; }).join('')+
+      '</tbody></table></div>';
   }
+  if(!hayComparacion) MPT_ST.tablaHtml='';
   // Observación SC360: lo que mejora en el test, ¿se ve en el partido?
   const corte=ref?ref.fecha_inicio:(ini?String(ini.fecha).slice(0,10):null);
   const reset=x=>{ const v=[x.q1,x.q7,x.q13].filter(y=>y!=null).map(Number); return v.length?v.reduce((a,b)=>a+b,0)/v.length*10:null; };
@@ -18113,12 +18117,16 @@ function renderMPTResumen(activa,ini,act,hayComp,ref,obs){
   } else {
     cuerpo='<div style="font-size:12px;color:#b4c2d4">'+(activa?'Proceso en marcha. La evolución aparece cuando el jugador vuelva a hacer el test.':'Registrá un proceso de trabajo para medir el antes y el después.')+'</div>';
   }
-  box.innerHTML='<div onclick="'+ir+'" style="cursor:pointer;background:linear-gradient(135deg,rgba(124,58,237,0.16),rgba(0,194,255,0.08));border:1px solid rgba(124,58,237,0.45);border-radius:12px;padding:10px 14px">'+
+  const tabla=MPT_ST.tablaHtml||'';
+  box.innerHTML='<div style="background:linear-gradient(135deg,rgba(124,58,237,0.16),rgba(0,194,255,0.08));border:1px solid rgba(124,58,237,0.45);border-radius:12px;padding:10px 14px">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">'+
       '<span style="font-size:11px;font-weight:900;color:#c4b5fd;letter-spacing:0.08em">🧠 MENTAL PERFORMANCE TRACKING</span>'+
-      '<span style="font-size:11px;color:#e8eff8">'+(activa?'<b style="color:#c4b5fd">● '+activa.tipo+'</b> desde '+mptFecha(activa.fecha_inicio):'<span style="color:#94a3b8">Sin proceso activo</span>')+' · <span style="color:#00c2ff">Ver detalle ↓</span></span></div>'+
+      '<span style="font-size:11px;color:#e8eff8">'+(activa?'<b style="color:#c4b5fd">● '+activa.tipo+'</b> desde '+mptFecha(activa.fecha_inicio):'<span style="color:#94a3b8">Sin proceso activo</span>')+
+        ' · <span onclick="'+ir+'" style="color:#00c2ff;cursor:pointer">Proceso e historial ↓</span></span></div>'+
     cuerpo+
     (obs&&hayComp?'<div style="font-size:11.5px;color:'+obs[2]+';margin-top:6px">'+obs[0]+' '+obs[1].split(':')[0]+'</div>':'')+
+    (tabla?'<button onclick="const t=document.getElementById(\'pj-mpt-tabla-arriba\');const ab=t.style.display===\'none\';t.style.display=ab?\'block\':\'none\';this.textContent=ab?\'Ocultar variables ▴\':\'Ver todas las variables ▾\'" style="margin-top:8px;font-size:12px;font-weight:700;padding:5px 12px;background:transparent;color:#c4b5fd;border:1px solid #7c3aed66;border-radius:7px;cursor:pointer">Ver todas las variables ▾</button>'+
+      '<div id="pj-mpt-tabla-arriba" style="display:none;margin-top:8px">'+tabla+'</div>':'')+
   '</div>';
 }
 function mptNueva(){
