@@ -2698,6 +2698,8 @@ tr:hover td{background:#0d1b3e40}
          DISC en una fila de 2 tarjetas iguales; Motivación y Entorno
          debajo, en una franja horizontal de ancho completo. -->
     <div id="pj-grid-detalle" style="display:flex;flex-direction:column;gap:0.85rem;margin-bottom:0;flex:1 1 600px;min-width:0">
+      <!-- Resumen de Mental Performance Tracking (arriba de todo; el detalle está al final del Perfil) -->
+      <div id="pj-mpt-resumen" class="pj-print-hide"></div>
       <!-- Fila superior: D = T − I (MDC) + IDC del jugador. Van acá y no en la
            carta para que la ficha no quede larga y todo entre en una vista. -->
       <div style="display:flex;gap:0.85rem;flex-wrap:wrap;align-items:stretch">
@@ -2735,7 +2737,7 @@ tr:hover td{background:#0d1b3e40}
         <div id="pj-guia-ct" style="padding:1rem 1.25rem;flex:1"></div>
       </div>
       <!-- MENTAL PERFORMANCE TRACKING -->
-      <div class="tw pj-print-hide" style="margin:0;background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(0,194,255,0.05));border-color:rgba(124,58,237,0.35)">
+      <div id="pj-mpt-card" class="tw pj-print-hide" style="margin:0;background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(0,194,255,0.05));border-color:rgba(124,58,237,0.35)">
         <div class="th" style="font-size:12px;padding:0.7rem 0.85rem;background:transparent;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
           <span>🧠 MENTAL PERFORMANCE TRACKING</span>
           <span style="font-size:10.5px;font-weight:800;color:#c4b5fd;letter-spacing:0.04em">AHORA LO MENTAL SE MIDE</span>
@@ -17756,7 +17758,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='7/10/2026 · 1';
+const SC360_VERSION='7/10/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 
@@ -18087,12 +18089,37 @@ function renderMPT(){
   } else if(ppB.length<2){
     obs=['⏳','Para la Observación SC360 hacen falta al menos 2 Post Partido '+(ref?'desde que empezó el proceso':'')+'.','#94a3b8'];
   }
+  renderMPTResumen(activa,ini,act,hayComparacion,ref,obs);
   if(obs) h+='<div style="margin-top:12px;background:'+obs[2]+'12;border:1px solid '+obs[2]+'55;border-radius:10px;padding:10px 12px"><div style="font-size:10.5px;font-weight:800;color:'+obs[2]+';letter-spacing:0.06em">'+obs[0]+' OBSERVACIÓN SC360</div><div style="font-size:12.5px;color:#e8eff8;line-height:1.5;margin-top:4px">'+obs[1]+'</div><div style="font-size:10px;color:#4a5a78;margin-top:4px">Observación basada en los datos registrados. No es un diagnóstico.</div></div>';
   // Historial
   const fin=ints.filter(i=>i.estado!=='activa');
   if(fin.length) h+='<div style="margin-top:12px;font-size:10.5px;font-weight:800;color:#94a3b8;letter-spacing:0.06em">PROCESOS ANTERIORES</div>'+
     fin.map(i=>'<div style="font-size:12px;color:#b4c2d4;padding:5px 0;border-bottom:1px solid #1a3a6e33">'+i.tipo+' · '+mptFecha(i.fecha_inicio)+' → '+mptFecha(i.fecha_fin)+(i.objetivo?' · '+i.objetivo:'')+'</div>').join('');
   box.innerHTML=h;
+}
+// Franja de resumen arriba del Perfil: proceso, lo que más evolucionó y la observación
+function renderMPTResumen(activa,ini,act,hayComp,ref,obs){
+  const box=document.getElementById('pj-mpt-resumen'); if(!box) return;
+  const ir="document.getElementById('pj-mpt-card').scrollIntoView({behavior:'smooth',block:'start'})";
+  let cuerpo='';
+  if(hayComp){
+    const trab=new Set((ref&&ref.variables)||[]);
+    const ev=Object.keys(DIM_LABELS).map(k=>({k,l:DIM_LABELS[k],d:(mptVal(act,k)||0)-(mptVal(ini,k)||0),ok:mptVal(act,k)!=null&&mptVal(ini,k)!=null})).filter(x=>x.ok)
+      .filter(x=>trab.has(x.k)||Math.abs(x.d)>=3).sort((a,b)=>(trab.has(b.k)-trab.has(a.k))||(Math.abs(b.d)-Math.abs(a.d))).slice(0,3);
+    const dD=(act.disponibilidad||0)-(ini.disponibilidad||0);
+    cuerpo='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+
+      '<span style="font-size:12px;background:#0a1024;border:1px solid #1a3a6e;border-radius:16px;padding:4px 10px;color:#e8eff8">Disponibilidad <b>'+(ini.disponibilidad||'—')+' → '+(act.disponibilidad||'—')+'</b> <b style="color:'+(dD>0?'#22c55e':dD<0?'#ef4444':'#94a3b8')+'">'+(dD>0?'+':'')+dD+'</b></span>'+
+      ev.map(x=>'<span style="font-size:12px;background:#0a1024;border:1px solid '+(x.d>=5?'#22c55e55':x.d<=-5?'#ef444455':'#1a3a6e')+';border-radius:16px;padding:4px 10px;color:#e8eff8">'+(trab.has(x.k)?'🎯 ':'')+x.l+' <b style="color:'+(x.d>=5?'#22c55e':x.d<=-5?'#ef4444':'#94a3b8')+'">'+(x.d>0?'+':'')+x.d+'</b></span>').join('')+'</div>';
+  } else {
+    cuerpo='<div style="font-size:12px;color:#b4c2d4">'+(activa?'Proceso en marcha. La evolución aparece cuando el jugador vuelva a hacer el test.':'Registrá un proceso de trabajo para medir el antes y el después.')+'</div>';
+  }
+  box.innerHTML='<div onclick="'+ir+'" style="cursor:pointer;background:linear-gradient(135deg,rgba(124,58,237,0.16),rgba(0,194,255,0.08));border:1px solid rgba(124,58,237,0.45);border-radius:12px;padding:10px 14px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">'+
+      '<span style="font-size:11px;font-weight:900;color:#c4b5fd;letter-spacing:0.08em">🧠 MENTAL PERFORMANCE TRACKING</span>'+
+      '<span style="font-size:11px;color:#e8eff8">'+(activa?'<b style="color:#c4b5fd">● '+activa.tipo+'</b> desde '+mptFecha(activa.fecha_inicio):'<span style="color:#94a3b8">Sin proceso activo</span>')+' · <span style="color:#00c2ff">Ver detalle ↓</span></span></div>'+
+    cuerpo+
+    (obs&&hayComp?'<div style="font-size:11.5px;color:'+obs[2]+';margin-top:6px">'+obs[0]+' '+obs[1].split(':')[0]+'</div>':'')+
+  '</div>';
 }
 function mptNueva(){
   const r=MPT_ST.r; if(!r) return;
