@@ -2193,6 +2193,8 @@ tr:hover td{background:#0d1b3e40}
           </div>
         </div>
 
+        <!-- Estado en el plantel: alta / baja (la baja deja de facturarse desde el mes siguiente) -->
+        <div id="edit-jug-baja" style="margin-top:14px;padding:10px 12px;border:1px solid #1a3a6e;border-radius:10px;background:#0a1024;font-size:12.5px;color:#b4c2d4"></div>
         <div class="mdf">
           <button class="bg" onclick="document.getElementById('mo-editar-jugador').classList.remove('open')">Cancelar</button>
           <button class="btn-p" onclick="guardarEdicionJugador()">💾 Guardar cambios</button>
@@ -14456,6 +14458,7 @@ function calcularIMCModal() {
 function abrirModalEditarJugador(id) {
   const r = AR.find(function(x){ return x.id===id; });
   if(!r) return;
+  cargarEstadoBaja(id);
   document.getElementById('edit-jug-id').value = id;
   document.getElementById('edit-jug-nombre-orig').value = r.jugador_nombre||'';
   document.getElementById('edit-jug-club-orig').value = r.jugador_club||'';
@@ -14524,6 +14527,46 @@ function abrirModalEditarJugador(id) {
     }
   }
   document.getElementById('mo-editar-jugador').classList.add('open');
+}
+
+// ── ALTA / BAJA DEL JUGADOR ─────────────────────────────────────────
+let BAJA_FICHA=null;
+async function cargarEstadoBaja(resultadoId){
+  const box=document.getElementById('edit-jug-baja'); if(!box) return;
+  box.innerHTML='Cargando estado…'; BAJA_FICHA=null;
+  try{
+    const r=await q('resultados?id=eq.'+resultadoId+'&select=jugador_uid',{sinCache:true});
+    const uid=Array.isArray(r)&&r[0]?r[0].jugador_uid:null;
+    if(!uid){ box.innerHTML='<b style="color:#e8eff8">Estado en el plantel</b><div style="margin-top:4px">Este jugador todavía no tiene ficha vinculada (se resuelve desde "🧩 Fichas de jugadores").</div>'; return; }
+    const f=await q('jugadores?id=eq.'+uid+'&select=id,nombre,baja_desde,baja_motivo',{sinCache:true});
+    BAJA_FICHA=Array.isArray(f)&&f[0]?f[0]:null;
+    if(!BAJA_FICHA){ box.innerHTML=''; return; }
+    renderEstadoBaja();
+  }catch(e){ box.innerHTML=''; }
+}
+function renderEstadoBaja(){
+  const box=document.getElementById('edit-jug-baja'), f=BAJA_FICHA; if(!box||!f) return;
+  const fmt=d=>String(d).slice(0,10).split('-').reverse().join('/');
+  box.innerHTML=f.baja_desde
+    ? '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><b style="color:#ef4444">🚫 De baja desde el '+fmt(f.baja_desde)+'</b>'+(f.baja_motivo?'<div style="font-size:11.5px;margin-top:2px">Motivo: '+f.baja_motivo+'</div>':'')+'<div style="font-size:11px;color:#94a3b8;margin-top:2px">No se factura desde el mes siguiente a la baja. Su historial se conserva.</div></div>'+
+      '<button type="button" onclick="cambiarBaja(false)" class="bg" style="padding:6px 12px;font-size:12px">↩ Reactivar</button></div>'
+    : '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><div><b style="color:#22c55e">● Activo en el plantel</b><div style="font-size:11px;color:#94a3b8;margin-top:2px">Si el jugador dejó el club, dalo de baja: deja de facturarse desde el mes siguiente y no se borra nada.</div></div>'+
+      '<button type="button" onclick="cambiarBaja(true)" style="padding:6px 12px;font-size:12px;background:#ef444418;color:#fca5a5;border:1px solid #ef444455;border-radius:8px;cursor:pointer">🚫 Dar de baja</button></div>';
+}
+async function cambiarBaja(darBaja){
+  const f=BAJA_FICHA; if(!f) return;
+  let body;
+  if(darBaja){
+    const motivo=prompt('¿Por qué se da de baja a '+f.nombre+'? (opcional: dejó el club, cambio de categoría, etc.)');
+    if(motivo===null) return;
+    body={baja_desde:new Date().toISOString().slice(0,10),baja_motivo:motivo||null};
+  } else {
+    if(!confirm('¿Reactivar a '+f.nombre+'? Vuelve a facturarse desde este mes.')) return;
+    body={baja_desde:null,baja_motivo:null};
+  }
+  const r=await q('jugadores?id=eq.'+f.id,{m:'PATCH',b:body});
+  if(!Array.isArray(r)||!r.length){ alert('No se pudo guardar. ¿Ya corriste baja_jugadores.sql en Supabase?'); return; }
+  BAJA_FICHA=r[0]; renderEstadoBaja();
 }
 
 async function guardarEdicionJugador() {
@@ -17750,7 +17793,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='7/10/2026 · 5';
+const SC360_VERSION='7/10/2026 · 6';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 
@@ -17797,6 +17840,8 @@ async function calcularActivos(){
       invTodo('nutricion_resultados','select=jugador_nombre,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2),
       invTodo('racha_resultados','select=jugador_nombre,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2)
     ]);
+    // Bajas: se factura el mes de la baja; desde el mes siguiente, no
+    let bajas={}; try{ const fj=await invTodo('jugadores','select=id,baja_desde&baja_desde=not.is.null'); (fj||[]).forEach(x=>{ bajas[x.id]=x.baja_desde; }); }catch(e){}
     const clubDeGrupo={}, grupoHab={}; gs.forEach(g=>{ if(g.codigo){ clubDeGrupo[g.codigo]=(g.club||'').trim()||'(sin club)'; grupoHab[g.codigo]=g.habilitado!==false; } });
     // Plantel registrado: jugador = nombre normalizado + club
     const reg={}, porId={}, clubesDeNombre={};
@@ -17845,6 +17890,7 @@ async function calcularActivos(){
       if(j.uid){ if(vistosUid.has(j.uid)) return; vistosUid.add(j.uid); }
       const c=clubes[j.club]=clubes[j.club]||{club:j.club,reg:0,activos:[],sinFicha:[],conUso:0};
       if(!(j.alta&&j.alta<d2&&j.hab)) return;
+      if(j.uid&&bajas[j.uid]&&bajas[j.uid]<d1) return; // dado de baja antes de este mes
       c.reg++; c.activos.push(j); if(j.act.size) c.conUso++;
     });
     Object.values(sinFicha).forEach(j=>{ const c=clubes[j.club]=clubes[j.club]||{club:j.club,reg:0,activos:[],sinFicha:[],conUso:0}; c.sinFicha.push(j); });
