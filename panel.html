@@ -2693,6 +2693,11 @@ tr:hover td{background:#0d1b3e40}
         </div>
         <div id="pj-motivacion" style="padding:0.75rem"></div>
     </div>
+    <!-- Objetivos de realización: en la columna de la carta, así la derecha no se alarga -->
+    <div class="tw" style="width:370px;max-width:100%;margin:6px auto 0;background:rgba(255,255,255,0.03);border-color:rgba(0,194,255,0.25);display:flex;flex-direction:column">
+      <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent">🏁 OBJETIVOS DE REALIZACIÓN</div>
+      <div id="pj-objetivos" style="padding:0.75rem;flex:1"></div>
+    </div>
     </div>
     <!-- fin pj-left-col -->
 
@@ -2700,14 +2705,16 @@ tr:hover td{background:#0d1b3e40}
          DISC en una fila de 2 tarjetas iguales; Motivación y Entorno
          debajo, en una franja horizontal de ancho completo. -->
     <div id="pj-grid-detalle" style="display:flex;flex-direction:column;gap:0.85rem;margin-bottom:0;flex:1 1 600px;min-width:0">
-      <!-- Resumen de Mental Performance Tracking (arriba de todo; el detalle está al final del Perfil) -->
-      <div id="pj-mpt-resumen" class="pj-print-hide"></div>
-      <!-- Fila superior: D = T − I (MDC) + IDC del jugador. Van acá y no en la
-           carta para que la ficha no quede larga y todo entre en una vista. -->
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">① · ESTADO HOY</div>
       <div style="display:flex;gap:0.85rem;flex-wrap:wrap;align-items:stretch">
         <div id="pj-dti" style="flex:1 1 260px;min-width:260px;display:flex;flex-direction:column"></div>
         <div id="pj-idc" style="flex:1.4 1 320px;min-width:280px;display:flex;flex-direction:column"></div>
       </div>
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">② · LECTURA RÁPIDA</div>
+      <div id="pj-lectura" class="pj-print-hide"></div>
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">③ · SEGUIMIENTO</div>
+      <div id="pj-mpt-resumen" class="pj-print-hide"></div>
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">④ · DESARROLLO Y PERFIL</div>
       <div style="display:flex;gap:0.85rem;flex-wrap:wrap;align-items:stretch">
         <!-- Columna Foco + Objetivos: Objetivos toma el alto que sobre
              (flex:1), así no queda hueco vacío debajo de Foco. -->
@@ -2723,10 +2730,6 @@ tr:hover td{background:#0d1b3e40}
           <div id="pj-cuadrante" style="display:none"></div>
           <div id="pj-cuadrante-pp" style="padding:0 0.75rem 0.75rem"></div>
         </div>
-        <div class="tw" style="flex:1 1 auto;margin:0;background:rgba(255,255,255,0.03);border-color:rgba(0,194,255,0.25);display:flex;flex-direction:column">
-          <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent">🏁 OBJETIVOS DE REALIZACIÓN</div>
-          <div id="pj-objetivos" style="padding:0.75rem;flex:1"></div>
-        </div>
         </div>
         <div class="tw" style="flex:1 1 260px;min-width:260px;margin:0;background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08);display:flex;flex-direction:column">
           <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent">🎭 PERFIL CONDUCTUAL (DISC)</div>
@@ -2734,6 +2737,7 @@ tr:hover td{background:#0d1b3e40}
           <div id="pj-disc-pp" style="padding:0 0.75rem 0.75rem"></div>
         </div>
       </div>
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">⑤ · CÓMO TRABAJARLO</div>
       <div class="tw" style="flex:1 1 auto;margin:0;background:rgba(255,255,255,0.03);border-color:rgba(0,194,255,0.25);display:flex;flex-direction:column">
         <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent">📋 GUÍA PARA EL CUERPO TÉCNICO</div>
         <div id="pj-guia-ct" style="padding:1rem 1.25rem;flex:1"></div>
@@ -14529,6 +14533,30 @@ function abrirModalEditarJugador(id) {
   document.getElementById('mo-editar-jugador').classList.add('open');
 }
 
+// ── LECTURA RÁPIDA DEL JUGADOR ─────────────────────────────────────
+// Una síntesis en 5 líneas, en lenguaje de cancha, con lo que ya calcula el
+// Perfil: cómo llega, su fuerza, lo que lo frena, bajo presión y cómo activarlo.
+function renderLecturaPJ(r){
+  const box=document.getElementById('pj-lectura'); if(!box) return;
+  const nom=(r.jugador_nombre||'').split(' ')[0]||'El jugador';
+  const D=r.disponibilidad||0, dd=r.dims||{};
+  const est=D>=80?['#22c55e','llega disponible']:D>=65?['#f59e0b','llega en precaución']:['#ef4444','llega con interferencia alta'];
+  const dims=Object.keys(DIM_LABELS).filter(k=>dd[k]>0).map(k=>({l:DIM_LABELS[k],v:Math.round(dd[k]/5*100)})).sort((a,b)=>b.v-a.v);
+  const capas=(typeof CAPAS_DEF_PJ!=='undefined'?CAPAS_DEF_PJ:[]).map(c=>{ const v=c.dims.map(k=>dd[k]).filter(x=>x>0); return {n:c.nombre,v:v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length/5*100):null}; }).filter(c=>c.v!=null).sort((a,b)=>a.v-b.v);
+  const disc=(r.primary_disc||'').charAt(0), di=(typeof PJ_DISC_INFO!=='undefined')?PJ_DISC_INFO[disc]:null;
+  const guia=(typeof GUIA_CT_DISC!=='undefined')?GUIA_CT_DISC[r.primary_disc]:null;
+  const rDef=(typeof ROLES_PUESTO!=='undefined')?ROLES_PUESTO[r.jugador_pos||'']:null;
+  const rol=rDef?rDef.rol:({S:'CALMA',D:'INTENSIDAD',C:'EQUILIBRIO',I:'DECISIÓN'})[disc]||null;
+  const fila=(ic,t,txt,col)=>txt?'<div style="display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px solid #1a3a6e44"><span style="font-size:15px;width:20px;text-align:center">'+ic+'</span><div style="flex:1;min-width:0"><span style="font-size:10.5px;font-weight:800;letter-spacing:0.06em;color:'+(col||'#94a3b8')+'">'+t+'</span><div style="font-size:13px;color:#e8eff8;line-height:1.45">'+txt+'</div></div></div>':'';
+  box.innerHTML='<div class="tw" style="margin:0;background:rgba(255,255,255,0.03);border-color:rgba(0,194,255,0.25);padding:10px 14px">'+
+    '<div style="font-size:14px;color:#e8eff8;line-height:1.5;margin-bottom:4px"><b>'+nom+'</b> <b style="color:'+est[0]+'">'+est[1]+' ('+D+')</b>'+(rol?' · rol en cancha <b style="color:#00c2ff">'+rol+'</b>':'')+'.</div>'+
+    fila('💪','SU FUERZA',dims.length?dims.slice(0,2).map(x=>x.l+' ('+x.v+')').join(' y ')+'.':'','#22c55e')+
+    fila('🧱','LO QUE LO FRENA',capas.length?'Su interferencia está en <b>'+capas[0].n+'</b> ('+capas[0].v+')'+(dims.length?'; lo más bajo es '+dims[dims.length-1].l.toLowerCase()+' ('+dims[dims.length-1].v+')':'')+'.':'','#f59e0b')+
+    fila('⚠️','BAJO PRESIÓN',di&&di.riesgo?di.riesgo+'. A trabajar: '+(di.estrategia||'').toLowerCase()+'.':'','#ef4444')+
+    fila('⚽','CÓMO ACTIVARLO',guia&&guia.previa?guia.previa:'','#00c2ff')+
+  '</div>';
+}
+
 // ── ALTA / BAJA DEL JUGADOR ─────────────────────────────────────────
 let BAJA_FICHA=null;
 async function cargarEstadoBaja(resultadoId){
@@ -17137,6 +17165,7 @@ function cargarPerfilJugador() {
   // Rol y desarrollo (antes pantalla "Roles y Desarrollo")
   try{ renderRolDesarrolloPJ(r); }catch(e){ console.warn('Rol y desarrollo:',e); }
   renderCartaVisual(r);
+  try{ renderLecturaPJ(r); }catch(e){ console.warn('Lectura rápida:',e); }
   cargarMPT(r);
   cargarResetPJ(r);
 }
@@ -17793,7 +17822,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='7/10/2026 · 6';
+const SC360_VERSION='8/10/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 
