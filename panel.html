@@ -2716,8 +2716,6 @@ tr:hover td{background:#0d1b3e40}
       </div>
       <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">2 · LECTURA RÁPIDA</div>
       <div id="pj-lectura" class="pj-print-hide"></div>
-      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">3 · SEGUIMIENTO</div>
-      <div id="pj-mpt-resumen" class="pj-print-hide"></div>
       <div id="pj-mpt" style="display:none"></div>
     </div>
 
@@ -2725,6 +2723,8 @@ tr:hover td{background:#0d1b3e40}
     <!-- fin pj-desktop-row -->
     <!-- FILAS DE ANCHO COMPLETO: cada fila con tarjetas de la misma altura (sin huecos) -->
     <div id="pj-filas" style="display:flex;flex-direction:column;gap:0.85rem;margin-top:0.85rem">
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">3 · SEGUIMIENTO</div>
+      <div id="pj-mpt-resumen" class="pj-print-hide"></div>
       <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">4 · DESARROLLO Y PERFIL</div>
       <div class="pj-fila3" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.85rem;align-items:stretch">
         <div style="display:flex;flex-direction:column">        <div class="tw pj-print-hide" style="margin:0;height:100%;background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08);display:flex;flex-direction:column">
@@ -14608,6 +14608,14 @@ function renderLecturaPJ(r){
     fila('🧱','LO QUE LO FRENA',capas.length?'Su interferencia está en <b>'+capas[0].n+'</b> ('+capas[0].v+')'+(dims.length?'; lo más bajo es '+dims[dims.length-1].l.toLowerCase()+' ('+dims[dims.length-1].v+')':'')+'.':'','#f59e0b')+
     fila('⚠️','BAJO PRESIÓN',di&&di.riesgo?di.riesgo+'. A trabajar: '+(di.estrategia||'').toLowerCase()+'.':'','#ef4444')+
     fila('⚽','CÓMO ACTIVARLO',guia&&guia.previa?guia.previa:'','#00c2ff')+
+    (function(){
+      const dias=r.fecha?Math.floor((Date.now()-new Date(String(r.fecha).slice(0,10)+'T12:00:00').getTime())/86400000):null;
+      const pp=(typeof MPT_ST!=='undefined'&&MPT_ST.r===r)?MPT_ST.pp:null;
+      const viejo=dias!=null&&dias>90;
+      return '<div id="pj-lectura-frescura" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+
+        '<span style="font-size:11.5px;border-radius:14px;padding:3px 10px;background:'+(viejo?'#ef444418':'#0a1024')+';border:1px solid '+(viejo?'#ef444466':'#1a3a6e')+';color:'+(viejo?'#fca5a5':'#b4c2d4')+'">📅 Evaluado '+(dias==null?'—':dias===0?'hoy':'hace '+dias+' día'+(dias===1?'':'s'))+(viejo?' · <b>reevaluar</b>':'')+'</span>'+
+        '<span id="pj-lectura-pp" style="font-size:11.5px;border-radius:14px;padding:3px 10px;background:#0a1024;border:1px solid #1a3a6e;color:#b4c2d4">⚽ Post Partido: '+(pp?pp.length:'…')+'</span></div>';
+    })()+
   '</div>';
 }
 
@@ -17768,7 +17776,7 @@ async function cargarResetPJ(r){
       '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">'+
         '<span style="font-size:10px;font-weight:800;color:'+col+';letter-spacing:0.06em">↺ RESINCRONIZACIÓN POST-ERROR</span>'+
         '<span><b style="font-size:18px;color:'+acrColor(x.val)+'">'+x.val+'</b>'+(x.delta?' <span style="font-size:11px;font-weight:700;color:'+(x.delta>0?'#22c55e':'#ef4444')+'">'+(x.delta>0?'▲ +':'▼ ')+x.delta+'</span>':'')+'</span></div>'+
-      '<div style="font-size:11px;color:#b4c2d4">Qué tan rápido vuelve a su nivel después de un error · últimos '+Math.min(3,x.n)+' partido'+(x.n>1?'s':'')+'</div>'+
+      '<div style="font-size:11px;color:#b4c2d4">Qué tan rápido vuelve a su nivel después de un error · últimos '+Math.min(3,x.n)+' partido'+(x.n>1?'s':'')+(x.n<3?' · <b style="color:#f59e0b">dato preliminar</b> (hacen falta 3 partidos)':'')+'</div>'+
       (s.length>1?'<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:34px;margin-top:4px"><polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="2"/>'+
         pts.split(' ').map(p=>'<circle cx="'+p.split(',')[0]+'" cy="'+p.split(',')[1]+'" r="2.6" fill="'+col+'"/>').join('')+'</svg>':'')+
       '<div style="font-size:9.5px;color:#4a5a78">Recuperación tras error · Aceptación del error · Eje ante adversidad</div></div>';
@@ -17876,7 +17884,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='8/10/2026 · 5';
+const SC360_VERSION='8/10/2026 · 6';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -18182,6 +18190,9 @@ async function cargarMPT(r){
     if(PJ_ACTUAL!==r) return;
     MPT_ST.tablaOk=Array.isArray(ints);
     MPT_ST.ints=Array.isArray(ints)?ints:[]; MPT_ST.tests=Array.isArray(tests)?tests:[]; MPT_ST.pp=Array.isArray(pp)?pp:[];
+    try{ const el=document.getElementById('pj-lectura-pp'); if(el){ const n=MPT_ST.pp.length, u=n?MPT_ST.pp[n-1].fecha:null;
+      const d=u?Math.floor((Date.now()-new Date(String(u).slice(0,10)+'T12:00:00').getTime())/86400000):null;
+      el.innerHTML='⚽ Post Partido: <b>'+n+'</b>'+(n?' · el último hace '+d+' día'+(d===1?'':'s'):' · sin cargar')+(n&&n<3?' · <span style="color:#f59e0b">pocos datos</span>':''); } }catch(e){}
     renderMPT();
   }catch(e){ box.innerHTML='<div class="es">No se pudo cargar el seguimiento.</div>'; }
 }
@@ -18261,12 +18272,13 @@ function renderMPTResumen(activa,ini,act,hayComp,ref,obs){
   const box=document.getElementById('pj-mpt-resumen'); if(!box) return;
   const ir="document.getElementById('pj-mpt-card').scrollIntoView({behavior:'smooth',block:'start'})";
   let cuerpo='';
+  if(hayComp&&!activa&&!ref) cuerpo+='<div style="font-size:11px;color:#94a3b8;margin-bottom:5px">Cambio entre la primera evaluación ('+mptFecha(ini.fecha)+') y la última ('+mptFecha(act.fecha)+'). Sin un proceso registrado, todavía no se puede atribuir a un trabajo.</div>';
   if(hayComp){
     const trab=new Set((ref&&ref.variables)||[]);
     const ev=Object.keys(DIM_LABELS).map(k=>({k,l:DIM_LABELS[k],d:(mptVal(act,k)||0)-(mptVal(ini,k)||0),ok:mptVal(act,k)!=null&&mptVal(ini,k)!=null})).filter(x=>x.ok)
       .filter(x=>trab.has(x.k)||Math.abs(x.d)>=3).sort((a,b)=>(trab.has(b.k)-trab.has(a.k))||(Math.abs(b.d)-Math.abs(a.d))).slice(0,3);
     const dD=(act.disponibilidad||0)-(ini.disponibilidad||0);
-    cuerpo='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+
+    cuerpo+='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'+
       '<span style="font-size:12px;background:#0a1024;border:1px solid #1a3a6e;border-radius:16px;padding:4px 10px;color:#e8eff8">Disponibilidad <b>'+(ini.disponibilidad||'—')+' → '+(act.disponibilidad||'—')+'</b> <b style="color:'+(dD>0?'#22c55e':dD<0?'#ef4444':'#94a3b8')+'">'+(dD>0?'+':'')+dD+'</b></span>'+
       ev.map(x=>'<span style="font-size:12px;background:#0a1024;border:1px solid '+(x.d>=5?'#22c55e55':x.d<=-5?'#ef444455':'#1a3a6e')+';border-radius:16px;padding:4px 10px;color:#e8eff8">'+(trab.has(x.k)?'🎯 ':'')+x.l+' <b style="color:'+(x.d>=5?'#22c55e':x.d<=-5?'#ef4444':'#94a3b8')+'">'+(x.d>0?'+':'')+x.d+'</b></span>').join('')+'</div>';
   } else {
