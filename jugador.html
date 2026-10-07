@@ -1025,6 +1025,10 @@ async function cogMostrarResultado(opts){
   });
 
   const resultadoId = (Array.isArray(resultado) && resultado.length) ? resultado[0].id : null;
+  // Si no se pudo guardar (sin señal), queda en el celular y se reenvía solo
+  if(!resultadoId && window.SC360_guardarPendiente){
+    SC360_guardarPendiente('ejercicios_cognitivos',[{jugador_id:ENT.jugadorId,jugador_nombre:ENT.jugadorNombre,club_nombre:ENT.clubNombre,tipo:COG.tipo,tiempos_ms:opts.tiempos_ms||[],promedio_ms:opts.promedio_ms!=null?opts.promedio_ms:null,mejor_ms:opts.mejor_ms!=null?opts.mejor_ms:null,peor_ms:opts.peor_ms!=null?opts.peor_ms:null,detalle:opts.detalle||null,origen:'jugador'}]);
+  }
 
   if(ENT.habId){
     await q('entrenamiento_habilitado?id=eq.'+ENT.habId, {
