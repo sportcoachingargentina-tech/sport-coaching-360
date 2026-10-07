@@ -311,8 +311,13 @@ function renderQ(){
       ${makeScale(current,['Nada','Mucho'])}
     </div>`;
   } else {
-    html=`<div class="textarea-block">
-      <div class="q-num">OPCIONAL</div>
+    html=`<div class="textarea-block" style="border-color:#00c2ff44">
+      <div class="q-num" style="color:#00c2ff">SITUACIONES DEL PARTIDO — OPCIONAL</div>
+      <div class="q-text" style="font-size:13px">¿Qué te pasó en este partido? Marcá todas las que correspondan.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${SITUACIONES.map(x=>`<button type="button" class="sit-chip" data-k="${x.k}" onclick="toggleSituacion('${x.k}')" style="padding:8px 12px;border-radius:18px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid ${sitMarcadas.has(x.k)?'#00c2ff':'#1a3a6e'};background:${sitMarcadas.has(x.k)?'#00c2ff22':'#0d1b3e'};color:${sitMarcadas.has(x.k)?'#fff':'#b4c2d4'}">${x.l}</button>`).join('')}</div>
+    </div>
+    <div class="textarea-block" style="margin-top:8px">
+      <div class="q-num">¿QUÉ PASÓ? — OPCIONAL</div>
       <div class="q-text">¿Hubo algún momento del partido que te afectó especialmente?</div>
       <textarea id="texto-libre" placeholder="Contalo en tus palabras..." oninput="textoLibre=this.value">${textoLibre}</textarea>
     </div>
@@ -320,6 +325,11 @@ function renderQ(){
       <div class="q-num" style="color:#8b5cf6">RESETEO POST ERROR — OPCIONAL</div>
       <div class="q-text" style="font-size:13px">¿Cómo procesaste los errores del partido? ¿Lograste resetear y seguir, o alguno te quedó dando vueltas?</div>
       <textarea id="texto-error" placeholder="Contalo con honestidad — es para ayudarte a trabajarlo..." oninput="textoError=this.value">${textoError}</textarea>
+    </div>
+    <div class="textarea-block" style="margin-top:8px">
+      <div class="q-num">¿CÓMO RESPONDISTE? — OPCIONAL</div>
+      <div class="q-text" style="font-size:13px">En ese momento, ¿qué hiciste? ¿Te ayudó?</div>
+      <textarea id="como-respondi" placeholder="Ej: respiré, me hablé, pedí la pelota..." oninput="comoRespondi=this.value">${comoRespondi}</textarea>
     </div>`;
   }
   document.getElementById('q-container').innerHTML=html;
@@ -350,6 +360,16 @@ function navQ(dir){
 }
 
 var enviando=false;
+// Situaciones del partido (para detectar patrones en el panel)
+const SITUACIONES=[{k:'gol_recibido',l:'Nos hicieron un gol'},{k:'gol_convertido',l:'Hicimos un gol'},{k:'error_propio',l:'Cometí un error'},
+  {k:'arbitro',l:'Decisión arbitral'},{k:'presion_rival',l:'Presión del rival'},{k:'presion_propia',l:'Presión propia / expectativas'},
+  {k:'cambio',l:'Cambio / sustitución'},{k:'molestia',l:'Lesión o molestia'},{k:'positiva',l:'Situación positiva'}];
+var sitMarcadas=new Set(), comoRespondi='';
+function toggleSituacion(k){
+  if(sitMarcadas.has(k)) sitMarcadas.delete(k); else sitMarcadas.add(k);
+  document.querySelectorAll('.sit-chip').forEach(b=>{ const on=sitMarcadas.has(b.dataset.k); b.style.borderColor=on?'#00c2ff':'#1a3a6e'; b.style.background=on?'#00c2ff22':'#0d1b3e'; b.style.color=on?'#fff':'#b4c2d4'; });
+}
+
 async function enviar(){
   if(enviando) return; // ya se está enviando — ignora un segundo toque
   enviando=true;
@@ -382,7 +402,7 @@ async function enviar(){
     q16_pct:toPct10(answers[nF+15]) // Autodiálogo — capturado aparte, no entra en mental_score_pct
   };
 
-  const data={
+  let data={
     partido_id:partidoData.id,
     partido_codigo:partidoData.codigo,
     grupo_codigo:partidoData.grupo_codigo,
@@ -404,10 +424,17 @@ async function enviar(){
     // Físico post
     dolor_comp:answers[nF+nM],dolor_post:answers[nF+nM+1],fatiga_post:answers[nF+nM+2],
     texto_libre:tl||null,
-    texto_error:document.getElementById('texto-error')?document.getElementById('texto-error').value.trim()||null:null
+    texto_error:document.getElementById('texto-error')?document.getElementById('texto-error').value.trim()||null:null,
+    situaciones:[...sitMarcadas],
+    como_respondi:(document.getElementById('como-respondi')?document.getElementById('como-respondi').value.trim():comoRespondi.trim())||null
   };
 
-  const res=await q('postpartido_jugador',{m:'POST',b:data});
+  let res=await q('postpartido_jugador',{m:'POST',b:data});
+  if(!res&&navigator.onLine!==false){
+    const d2=Object.assign({},data); delete d2.situaciones; delete d2.como_respondi;
+    res=await q('postpartido_jugador',{m:'POST',b:d2});
+    if(res) data=d2;
+  }
   if(res){
     try{ localStorage.removeItem(PP_PEND_KEY); }catch(e){}
     try{ await generarAlertas(data); }catch(e){ console.warn('Alertas:',e); }
