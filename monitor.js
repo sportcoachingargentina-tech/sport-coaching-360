@@ -67,4 +67,36 @@
     };
   }
   window.SC360_reportar=registrar;
+
+  // ── GUARDAR PRIMERO: cola de envíos pendientes ──────────────────────
+  // Si un guardado falla (mala señal, servidor caído), los datos quedan en
+  // este dispositivo y se reenvían solos al volver la conexión o al abrir
+  // de nuevo cualquier pantalla de SC360. Nunca se pierde una respuesta.
+  var PEND_KEY='sc360_pendientes';
+  function leerPend(){ try{ return JSON.parse(localStorage.getItem(PEND_KEY)||'[]'); }catch(e){ return []; } }
+  function escribirPend(l){ try{ localStorage.setItem(PEND_KEY,JSON.stringify(l)); }catch(e){} }
+  window.SC360_guardarPendiente=function(tabla,datos){
+    var l=leerPend(); l.push({tabla:tabla,datos:datos,cuando:Date.now(),intentos:0}); escribirPend(l);
+    registrar('pendiente','Guardado pendiente en '+tabla+' (se reenvía solo)',null,false);
+    return true;
+  };
+  var enviando=false;
+  window.SC360_enviarPendientes=function(){
+    if(enviando) return; var l=leerPend(); if(!l.length) return; enviando=true;
+    var restantes=[], i=0;
+    function sig(){
+      if(i>=l.length){ escribirPend(restantes.concat(leerPend().slice(l.length))); enviando=false; return; }
+      var it=l[i++];
+      of.call(window,SB+'/rest/v1/'+it.tabla,{method:'POST',headers:{apikey:K,Authorization:'Bearer '+K,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(it.datos)})
+        .then(function(r){
+          if(r.ok||r.status===409){ registrar('pendiente','Guardado pendiente enviado OK en '+it.tabla,null,false); }
+          else { it.intentos++; if(it.intentos<15) restantes.push(it); else registrar('guardado','Se descartó un guardado pendiente en '+it.tabla+' después de 15 intentos ('+r.status+')',JSON.stringify(it.datos).slice(0,1500),true); }
+          sig();
+        })
+        .catch(function(){ it.intentos++; restantes.push(it); sig(); });
+    }
+    sig();
+  };
+  window.addEventListener('online',function(){ window.SC360_enviarPendientes(); });
+  setTimeout(function(){ window.SC360_enviarPendientes(); },3000);
 })();
