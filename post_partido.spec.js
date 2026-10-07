@@ -44,3 +44,24 @@ test('el jugador elige su nombre de la lista del grupo', async ({ page }) => {
   await page.selectOption('#f-nombre-sel', '__otro');
   await expect(page.locator('#f-nombre')).toBeVisible();
 });
+
+test('el jugador marca situaciones del partido y se guardan', async ({ page }) => {
+  const srv = await simularServidor(page);
+  let cuerpo = null;
+  page.on('request', (r) => { if (r.method() === 'POST' && r.url().includes('/rest/v1/postpartido_jugador')) cuerpo = r.postData(); });
+  await page.goto('/postpartido.html?partido=PPTEST');
+  await page.fill('#f-nombre', 'Jugador Prueba'); await page.selectOption('#f-pos', 'Defensor'); await page.fill('#f-minutos', '90');
+  await page.evaluate(() => startForm());
+  for (let i = 0; i < 40; i++) {
+    const escala = page.locator('.scale-btn').nth(6);
+    if (await escala.count()) await escala.click();
+    const chip = page.locator('.sit-chip[data-k="gol_recibido"]');
+    if (await chip.count()) { await chip.click(); await page.fill('#como-respondi', 'Respiré y pedí la pelota'); }
+    const btn = page.locator('#btn-next'); const texto = await btn.innerText();
+    await btn.click();
+    if (texto.includes('ENVIAR')) break;
+  }
+  await expect(page.locator('#s-thanks')).toHaveClass(/active/);
+  expect(cuerpo).toContain('gol_recibido');
+  expect(cuerpo).toContain('Respiré y pedí la pelota');
+});
