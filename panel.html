@@ -200,6 +200,7 @@ tr:hover td{background:#0d1b3e40}
   .plantel-barra{bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}
   #adm-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}
   .partido-actions{flex-wrap:wrap}
+  .pj-fila3{grid-template-columns:1fr!important}
   .grp-nombre{flex:1 1 calc(100% - 40px)!important}
   .grp-nombre > div:first-child{white-space:normal!important;font-size:15px!important}
   .grp-acciones{width:100%}
@@ -2701,19 +2702,6 @@ tr:hover td{background:#0d1b3e40}
       <button id="pj-btn-estilo" onclick="compartirEstiloPensamiento()" class="bg" style="padding:10px 8px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🧠 Pedir Estilo de Pensamiento</button>
       <button onclick="window.print()" style="padding:10px 8px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap">🖨 Imprimir / PDF</button>
     </div>
-    <!-- Motivación y entorno: debajo de la carta, en 3 columnas -->
-    <div id="pj-motiv-wrap" class="tw" style="width:370px;max-width:100%;margin:6px auto 0;background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08)">
-        <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent;display:flex;justify-content:space-between;align-items:center">
-          <span>🚀 MOTIVACIÓN Y ENTORNO</span>
-          <span id="pj-modo-badge"></span>
-        </div>
-        <div id="pj-motivacion" style="padding:0.75rem"></div>
-    </div>
-    <!-- Objetivos de realización: en la columna de la carta, así la derecha no se alarga -->
-    <div class="tw" style="width:370px;max-width:100%;margin:6px auto 0;background:rgba(255,255,255,0.03);border-color:rgba(0,194,255,0.25);display:flex;flex-direction:column">
-      <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent">🏁 OBJETIVOS DE REALIZACIÓN</div>
-      <div id="pj-objetivos" style="padding:0.75rem;flex:1"></div>
-    </div>
     </div>
     <!-- fin pj-left-col -->
 
@@ -2721,21 +2709,25 @@ tr:hover td{background:#0d1b3e40}
          DISC en una fila de 2 tarjetas iguales; Motivación y Entorno
          debajo, en una franja horizontal de ancho completo. -->
     <div id="pj-grid-detalle" style="display:flex;flex-direction:column;gap:0.85rem;margin-bottom:0;flex:1 1 600px;min-width:0">
-      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">① · ESTADO HOY</div>
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">1 · ESTADO HOY</div>
       <div style="display:flex;gap:0.85rem;flex-wrap:wrap;align-items:stretch">
         <div id="pj-dti" style="flex:1 1 260px;min-width:260px;display:flex;flex-direction:column"></div>
         <div id="pj-idc" style="flex:1.4 1 320px;min-width:280px;display:flex;flex-direction:column"></div>
       </div>
-      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">② · LECTURA RÁPIDA</div>
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">2 · LECTURA RÁPIDA</div>
       <div id="pj-lectura" class="pj-print-hide"></div>
-      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">③ · SEGUIMIENTO</div>
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">3 · SEGUIMIENTO</div>
       <div id="pj-mpt-resumen" class="pj-print-hide"></div>
-      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">④ · DESARROLLO Y PERFIL</div>
-      <div style="display:flex;gap:0.85rem;flex-wrap:wrap;align-items:stretch">
-        <!-- Columna Foco + Objetivos: Objetivos toma el alto que sobre
-             (flex:1), así no queda hueco vacío debajo de Foco. -->
-        <div style="flex:1 1 260px;min-width:260px;display:flex;flex-direction:column;gap:0.85rem">
-        <div class="tw pj-print-hide" style="flex:0 0 auto;margin:0;background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08);display:flex;flex-direction:column">
+      <div id="pj-mpt" style="display:none"></div>
+    </div>
+
+    </div>
+    <!-- fin pj-desktop-row -->
+    <!-- FILAS DE ANCHO COMPLETO: cada fila con tarjetas de la misma altura (sin huecos) -->
+    <div id="pj-filas" style="display:flex;flex-direction:column;gap:0.85rem;margin-top:0.85rem">
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">4 · DESARROLLO Y PERFIL</div>
+      <div class="pj-fila3" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.85rem;align-items:stretch">
+        <div style="display:flex;flex-direction:column">        <div class="tw pj-print-hide" style="margin:0;height:100%;background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08);display:flex;flex-direction:column">
           <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent;display:flex;justify-content:space-between;align-items:center">
             <span>⚽ ROL Y DESARROLLO</span>
             <span id="pj-estado-badge"></span>
@@ -2745,24 +2737,32 @@ tr:hover td{background:#0d1b3e40}
           <!-- Foco de entrenamiento: oculto (ya está en D = T − I y en la Guía del CT) -->
           <div id="pj-cuadrante" style="display:none"></div>
           <div id="pj-cuadrante-pp" style="padding:0 0.75rem 0.75rem"></div>
-        </div>
-        </div>
-        <div class="tw" style="flex:1 1 260px;min-width:260px;margin:0;background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08);display:flex;flex-direction:column">
+        </div></div>
+        <div style="display:flex;flex-direction:column">        <div class="tw" style="margin:0;height:100%;background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08);display:flex;flex-direction:column">
           <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent">🎭 PERFIL CONDUCTUAL (DISC)</div>
           <div id="pj-disc" style="padding:0.75rem"></div>
           <div id="pj-disc-pp" style="padding:0 0.75rem 0.75rem"></div>
+        </div></div>
+        <div style="display:flex;flex-direction:column;gap:0.85rem">    <!-- Motivación y entorno: debajo de la carta, en 3 columnas -->
+    <div id="pj-motiv-wrap" class="tw" style="margin:0;background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.08)">
+        <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent;display:flex;justify-content:space-between;align-items:center">
+          <span>🚀 MOTIVACIÓN Y ENTORNO</span>
+          <span id="pj-modo-badge"></span>
         </div>
+        <div id="pj-motivacion" style="padding:0.75rem"></div>
+    </div>    <!-- Objetivos de realización: en la columna de la carta, así la derecha no se alarga -->
+    <div class="tw" style="margin:0;flex:1 1 auto;background:rgba(255,255,255,0.03);border-color:rgba(0,194,255,0.25);display:flex;flex-direction:column">
+      <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent">🏁 OBJETIVOS DE REALIZACIÓN</div>
+      <div id="pj-objetivos" style="padding:0.75rem;flex:1"></div>
+    </div></div>
       </div>
-      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">⑤ · CÓMO TRABAJARLO</div>
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">5 · CÓMO TRABAJARLO</div>
       <div class="tw" style="flex:1 1 auto;margin:0;background:rgba(255,255,255,0.03);border-color:rgba(0,194,255,0.25);display:flex;flex-direction:column">
         <div class="th" style="font-size:12px;padding:0.6rem 0.85rem;background:transparent">📋 GUÍA PARA EL CUERPO TÉCNICO</div>
         <div id="pj-guia-ct" style="padding:1rem 1.25rem;flex:1"></div>
       </div>
-      <div id="pj-mpt" style="display:none"></div>
     </div>
 
-    </div>
-    <!-- fin pj-desktop-row -->
     </div>
     <!-- fin marco exterior -->
 
@@ -17876,7 +17876,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='8/10/2026 · 4';
+const SC360_VERSION='8/10/2026 · 5';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
