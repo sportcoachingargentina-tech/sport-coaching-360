@@ -17876,9 +17876,30 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='8/10/2026 · 3';
+const SC360_VERSION='8/10/2026 · 4';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
+// ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
+// Cada 10 minutos (y al entrar) se fija si en el servidor hay un panel más nuevo
+// que el que está abierto. Si lo hay, muestra un aviso para actualizar con un toque
+// (limpia la copia guardada y recarga). Así nadie se queda con una versión vieja.
+async function chequearVersionNueva(){
+  try{
+    const r=await fetch('/panel.html?v='+Date.now(),{cache:'no-store'}); if(!r.ok) return;
+    const m=(await r.text()).match(/const SC360_VERSION='([^']+)'/); if(!m||m[1]===SC360_VERSION) return;
+    if(document.getElementById('aviso-version')) return;
+    const d=document.createElement('div'); d.id='aviso-version';
+    d.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:600;background:#00c2ff;color:#06182b;border-radius:12px;padding:10px 16px;font-weight:800;font-size:13.5px;box-shadow:0 10px 30px #000a;display:flex;gap:12px;align-items:center;max-width:94vw';
+    d.innerHTML='<span>✨ Hay una versión nueva del panel ('+m[1]+')</span><button onclick="actualizarPanel()" style="background:#06182b;color:#00c2ff;border:none;border-radius:8px;padding:7px 12px;font-weight:800;cursor:pointer">Actualizar</button>';
+    document.body.appendChild(d);
+  }catch(e){}
+}
+async function actualizarPanel(){
+  try{ if(navigator.serviceWorker){ const regs=await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map(x=>x.unregister())); } }catch(e){}
+  try{ if(window.caches){ const ks=await caches.keys(); await Promise.all(ks.map(k=>caches.delete(k))); } }catch(e){}
+  location.replace('/panel.html?actualizado='+Date.now());
+}
+setTimeout(chequearVersionNueva,4000); setInterval(chequearVersionNueva,600000);
 
 // ═══════════════════════════════════════════════════════════════
 // REPORTE DE JUGADORES ACTIVOS (base de la facturación)
