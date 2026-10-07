@@ -130,14 +130,15 @@ const SB='https://gltqhcnusblfovhxljcs.supabase.co';
 const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI';
 
 async function q(path,o){
-  const r=await fetch(SB+'/rest/v1/'+path,{
+  let r;
+  try{ r=await fetch(SB+'/rest/v1/'+path,{
     method:o&&o.m||'GET',
     headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=representation',...(o&&o.h||{})},
     body:o&&o.b?JSON.stringify(o.b):undefined
-  });
+  }); }catch(e){ return null; } // sin señal: no se traba, devuelve null
   if(!r.ok)return null;
   const t=await r.text();
-  return t?JSON.parse(t):null;
+  try{ return t?JSON.parse(t):null; }catch(e){ return null; }
 }
 
 // Previas — mismo territorio que el Índice de Hooper (sueño, energía, alimentación)
@@ -307,6 +308,10 @@ async function enviar(){
 
   const res=await q('entreno_jugador',{m:'POST',b:data});
   if(res){ showScreen('s-thanks'); }
+  else if(window.SC360_guardarPendiente&&SC360_guardarPendiente('entreno_jugador',data)){
+    alert('No había conexión, pero tu check-in quedó guardado en este celular y se va a enviar solo cuando vuelva la señal.');
+    showScreen('s-thanks');
+  }
   else{
     alert('Error al guardar. Intentá nuevamente.');
     enviando=false;
