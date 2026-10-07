@@ -262,21 +262,21 @@ async function finishTest(){
     if(!resp.ok){
       const errBody = await resp.text().catch(function(){return '';});
       console.error('Error guardando IDN — status '+resp.status+':', errBody);
-      mostrarAvisoGuardado(false);
+      if(resp.status>=500&&window.SC360_guardarPendiente&&SC360_guardarPendiente('nutricion_resultados',payload)) mostrarAvisoGuardado('pendiente'); else mostrarAvisoGuardado(false);
     }
   }catch(e){
     console.error('Error de red guardando IDN:',e);
-    mostrarAvisoGuardado(false);
+    if(window.SC360_guardarPendiente&&SC360_guardarPendiente('nutricion_resultados',payload)) mostrarAvisoGuardado('pendiente'); else mostrarAvisoGuardado(false);
   }
 
   renderResultado(dimScores,dimMax,pctTotal,nivel,totalPts);
 }
 
 function mostrarAvisoGuardado(ok){
-  if(ok) return;
+  if(ok===true) return;
   var box=document.createElement('div');
   box.style.cssText='background:#ef444422;border:1px solid #ef444466;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#fecaca;text-align:center';
-  box.textContent='⚠ Tu test se completó, pero hubo un problema al guardarlo. Avisale a tu entrenador para que lo revise.';
+  box.textContent=ok==='pendiente'?'📶 No había conexión: tu test quedó guardado en este celular y se va a enviar solo cuando vuelva la señal.':'⚠ Tu test se completó, pero hubo un problema al guardarlo. Avisale a tu entrenador para que lo revise.';
   var target=document.getElementById('result-content');
   if(target) target.parentNode.insertBefore(box, target);
 }
