@@ -364,6 +364,9 @@ tr:hover td{background:#0d1b3e40}
   <div class="mn-item" id="mn-alertas" onclick="go('alertas')">
     <span class="mn-icon">🔔</span>Alertas
   </div>
+  <div class="mn-item" id="mn-tracking" onclick="go('tracking')">
+    <span class="mn-icon">🧠</span>Tracking
+  </div>
   <div class="mn-item" id="mn-evolucion" onclick="go('evolucion')">
     <span class="mn-icon">📈</span>Evolución
   </div>
@@ -420,6 +423,7 @@ tr:hover td{background:#0d1b3e40}
     <div id="navgroup-rendimiento">
       <div data-nav="postpartido" class="nav-item" onclick="go('postpartido')"><span class="nav-icon">🎯</span> Post partido</div>
       <div data-nav="estadisticas" class="nav-item" onclick="go('estadisticas')"><span class="nav-icon">📊</span> Estadísticas <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
+      <div data-nav="tracking" class="nav-item" onclick="go('tracking')"><span class="nav-icon">🧠</span> Tracking</div>
       <div data-nav="evolucion" class="nav-item" onclick="go('evolucion')"><span class="nav-icon">📈</span> Evolución <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
     </div>
     <div class="nav-divider"></div>
@@ -2361,6 +2365,18 @@ tr:hover td{background:#0d1b3e40}
       <div id="rec-alertas" style="margin-top:1rem"></div>
     </div>
 
+    <div class="screen" id="screen-tracking">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+        <div><div class="page-title">🧠 Mental Performance Tracking</div>
+          <div style="font-size:13px;color:#c4b5fd;font-weight:800;letter-spacing:0.04em;margin-top:2px">AHORA LO MENTAL SE MIDE</div>
+          <div style="font-size:11.5px;color:#7c8fae">Diagnosticar · Medir · Evolucionar · Analizar · Predecir · Decidir</div></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="trk-grupo" onchange="renderTracking()" style="padding:8px 10px;background:#0d1b3e;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px"></select>
+          <select id="trk-var" onchange="renderTracking()" style="padding:8px 10px;background:#0d1b3e;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px" title="Variable del mapa del equipo"></select>
+        </div>
+      </div>
+      <div id="trk-cuerpo"></div>
+    </div>
     <div class="screen" id="screen-evolucion">
       <div class="page-title">Evolución</div>
       <div class="page-sub">Seguimiento a través de los partidos</div>
@@ -3485,6 +3501,7 @@ function go(name){
   if(name==='entreno')loadEntreno();
   if(name==='racha')loadRacha();
   if(name==='evolucion')loadEvolucion();
+  if(name==='tracking')loadTracking();
   if(name==='recuperacion')loadRecuperacion();
   if(name==='nutricion')loadNutricion();
   if(name==='selectivo')loadSelectivo();
@@ -6306,6 +6323,18 @@ function renderPredictivo(){
   }
   h+='</div>';
 
+  // Patrones por situación del partido (equipo o línea elegida)
+  try{
+    const rowsSel=(S.pp||[]).filter(x=>equipo||nombresSel.has((x.jugador_nombre||'').toLowerCase().trim()));
+    const pats=patronesSituacion(rowsSel,3).slice(0,3);
+    if(pats.length){
+      h+='<div style="background:#0d1b3e;border:1px solid #00c2ff44;border-radius:12px;padding:10px 14px;margin-bottom:1.25rem">'+
+        '<div style="font-size:10.5px;font-weight:800;color:#00c2ff;letter-spacing:0.08em;margin-bottom:4px">📊 PATRONES OBSERVADOS EN LOS PARTIDOS</div>'+
+        pats.map(p=>'<div style="font-size:12.5px;color:#e8eff8;padding:4px 0;line-height:1.5">'+patronTexto(p,'el')+'</div>').join('')+
+        '<div style="font-size:10.5px;color:#7c8fae;margin-top:4px">Escenario posible: si vuelve a pasar, prestar atención a la regulación y al foco. Basado en los Post Partido cargados; no es una predicción segura.</div></div>';
+    }
+  }catch(e){}
+
   if(S.alertasDT&&S.alertasDT.length) h+=idcAlertaHtml(S.alertasDT)+'<div style="height:12px"></div>';
 
   // Tabla individual
@@ -7632,7 +7661,7 @@ function clusterizarClubes(lista){
 const NAV_PANTALLA_LABEL={
   dashboard:'Dashboard', resultados:'Jugadores', perfiljugador:'Perfil de jugador',
   grupal:'Informe grupal', plantel:'Informe de plantel y predicciones', roles:'Roles y Desarrollo',
-  postpartido:'Post partido', estadisticas:'Estadísticas', evolucion:'Evolución',
+  postpartido:'Post partido', estadisticas:'Estadísticas', evolucion:'Evolución', tracking:'Mental Performance Tracking',
   entreno:'Post entreno', racha:'Racha', cognitivo:'Ejercicios Cognitivos',
   recuperacion:'Recuperación', nutricion:'Nutrición', planificacion:'Plan de trabajo',
   alertas:'Alertas', selectivo:'Selectivo', scouting:'Scouting', grupos:'Grupos',
@@ -14533,6 +14562,31 @@ function abrirModalEditarJugador(id) {
   document.getElementById('mo-editar-jugador').classList.add('open');
 }
 
+// ── PATRONES POR SITUACIÓN DEL PARTIDO ───────────────────────────────
+// Compara el estado mental (Post Partido, 0–100) en los partidos donde se marcó
+// una situación (ej. "nos hicieron un gol") contra los partidos donde no.
+// Lenguaje: patrón observado / variable a monitorear (nunca "va a pasar").
+const SIT_LBL={gol_recibido:'nos hacen un gol',gol_convertido:'hacen un gol',error_propio:'comete un error',arbitro:'hay una decisión arbitral en contra',
+  presion_rival:'el rival presiona',presion_propia:'siente presión propia o expectativas',cambio:'hay un cambio o sustitución',molestia:'tiene una lesión o molestia',positiva:'hay una situación positiva'};
+function ppMental(x){ const v=[]; for(let i=1;i<=15;i++){ const a=x['q'+i]; if(a!=null&&a!=='') v.push(Number(a)); } return v.length?v.reduce((a,b)=>a+b,0)/v.length*10:null; }
+function patronesSituacion(rows,minCada){
+  minCada=minCada||2;
+  const R=(rows||[]).map(x=>({sit:Array.isArray(x.situaciones)?x.situaciones:[],m:ppMental(x)})).filter(x=>x.m!=null);
+  if(!R.some(x=>x.sit.length)) return [];
+  const out=[];
+  Object.keys(SIT_LBL).forEach(k=>{
+    const con=R.filter(x=>x.sit.includes(k)), sin=R.filter(x=>!x.sit.includes(k));
+    if(con.length<minCada||sin.length<minCada) return;
+    const a=con.reduce((s,x)=>s+x.m,0)/con.length, b=sin.reduce((s,x)=>s+x.m,0)/sin.length;
+    out.push({k,lbl:SIT_LBL[k],con:Math.round(a),sin:Math.round(b),d:Math.round(a-b),nCon:con.length,nSin:sin.length});
+  });
+  return out.filter(p=>Math.abs(p.d)>=8).sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
+}
+function patronTexto(p,sujeto){
+  return 'Cuando '+p.lbl+', '+(sujeto||'su')+' estado mental '+(p.d<0?'<b style="color:#ef4444">baja '+Math.abs(p.d)+' puntos</b>':'<b style="color:#22c55e">sube '+p.d+' puntos</b>')+
+    ' <span style="color:#7c8fae">('+p.con+' contra '+p.sin+' · '+p.nCon+' partidos con esa situación, '+p.nSin+' sin)</span>.';
+}
+
 // ── LECTURA RÁPIDA DEL JUGADOR ─────────────────────────────────────
 // Una síntesis en 5 líneas, en lenguaje de cancha, con lo que ya calcula el
 // Perfil: cómo llega, su fuerza, lo que lo frena, bajo presión y cómo activarlo.
@@ -17822,7 +17876,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='8/10/2026 · 1';
+const SC360_VERSION='8/10/2026 · 3';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 
@@ -18102,7 +18156,7 @@ async function cargarMPT(r){
     const [ints,tests,pp]=await Promise.all([
       q('intervenciones?'+filtro+'&order=fecha_inicio.desc&limit=50'),
       q('resultados?'+filtro+'&select=id,fecha,disponibilidad,dims&order=fecha.asc&limit=50'),
-      q('postpartido_jugador?'+filtro+'&select=fecha,partido_codigo,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12,q13,q14,q15&order=fecha.asc&limit=200')
+      q('postpartido_jugador?'+filtro+'&order=fecha.asc&limit=200')
     ]);
     if(PJ_ACTUAL!==r) return;
     MPT_ST.tablaOk=Array.isArray(ints);
@@ -18216,6 +18270,8 @@ function renderMPTResumen(activa,ini,act,hayComp,ref,obs){
     '</div>'+
     (tabla?'<div id="pj-mpt-tabla-arriba" style="display:none;margin-top:8px">'+tabla+'</div>':'')+
     (hist.length?'<div id="pj-mpt-hist" style="display:none;margin-top:8px">'+hist.map(i=>'<div style="font-size:12px;color:#b4c2d4;padding:4px 0;border-bottom:1px solid #1a3a6e33">'+i.tipo+' · '+mptFecha(i.fecha_inicio)+' → '+mptFecha(i.fecha_fin)+(i.objetivo?' · '+i.objetivo:'')+'</div>').join('')+'</div>':'')+
+    (function(){ const pats=patronesSituacion(MPT_ST.pp,2).slice(0,2); if(!pats.length) return '';
+      return '<div style="margin-top:8px;font-size:12px;color:#e8eff8;line-height:1.5">'+pats.map(p=>'<div style="padding:4px 0">📊 <b style="color:#00c2ff">Patrón observado:</b> '+patronTexto(p)+' <span style="color:#f59e0b">Variable a monitorear.</span></div>').join('')+'</div>'; })()+
     (MPT_ST.tablaOk===false?'<div style="font-size:11px;color:#f59e0b;margin-top:6px">Falta crear la tabla de intervenciones (intervenciones.sql).</div>':'')+
   '</div>';
 }
@@ -18256,6 +18312,84 @@ async function mptFinalizar(id){
   if(!confirm('¿Finalizar este proceso? Queda en el historial.')) return;
   await q('intervenciones?id=eq.'+id,{m:'PATCH',b:{estado:'finalizada',fecha_fin:new Date().toISOString().slice(0,10)},h:{Prefer:'return=minimal'}});
   cargarMPT(MPT_ST.r);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANTALLA "🧠 TRACKING" — Mental Performance Tracking del plantel
+// • Jugadores en proceso: evolución desde que empezó la intervención.
+// • Mapa del equipo por variable: cada jugador en verde / amarillo / rojo.
+// Categorías (nunca "buenos" o "malos"): Evolución favorable · Requiere
+// seguimiento · Interferencia relevante.
+// ═══════════════════════════════════════════════════════════════
+let TRK={grupo:'',res:[],ints:[],variable:'regulacion'};
+async function loadTracking(){
+  const sel=document.getElementById('trk-grupo');
+  const gs=filtrarGrupos(AG&&AG.length?AG:(await q('grupos?order=nombre.asc')||[]));
+  if(sel&&!sel.dataset.ok){ sel.innerHTML='<option value="">Todos los planteles</option>'+gs.map(g=>'<option value="'+g.codigo+'">'+g.nombre+'</option>').join(''); sel.dataset.ok='1'; }
+  const vs=document.getElementById('trk-var');
+  if(vs&&!vs.dataset.ok){ vs.innerHTML='<option value="__D">Disponibilidad (D)</option>'+Object.keys(DIM_LABELS).map(k=>'<option value="'+k+'"'+(k==='regulacion'?' selected':'')+'>'+DIM_LABELS[k]+'</option>').join(''); vs.dataset.ok='1'; }
+  const cuerpo=document.getElementById('trk-cuerpo'); if(cuerpo) cuerpo.innerHTML='<div class="es">Cargando…</div>';
+  try{
+    const [res,ints]=await Promise.all([q('resultados?order=fecha.asc&limit=3000'),q('intervenciones?order=fecha_inicio.desc&limit=1000')]);
+    TRK.res=filtrarResultados(Array.isArray(res)?res:[]); TRK.ints=Array.isArray(ints)?ints:[];
+    renderTracking();
+  }catch(e){ if(cuerpo) cuerpo.innerHTML='<div class="es">No se pudo cargar.</div>'; }
+}
+function trkCat(d,dActual){
+  if(dActual!=null&&dActual<65) return ['🔴','Interferencia relevante','#ef4444'];
+  if(d>=5) return ['🟢','Evolución favorable','#22c55e'];
+  if(d<=-5) return ['🔴','Interferencia relevante','#ef4444'];
+  return ['🟡','Requiere seguimiento','#f59e0b'];
+}
+function renderTracking(){
+  const box=document.getElementById('trk-cuerpo'); if(!box) return;
+  const g=document.getElementById('trk-grupo').value, v=document.getElementById('trk-var').value;
+  const res=TRK.res.filter(r=>!g||r.grupo_codigo===g);
+  // Historial por jugador (ficha si existe; si no, nombre)
+  const porJ={}; res.forEach(r=>{ const k=r.jugador_uid||('n:'+activosNorm(r.jugador_nombre)); (porJ[k]=porJ[k]||[]).push(r); });
+  const jugadores=Object.entries(porJ).map(([k,arr])=>({k,arr:arr.sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))),ult:arr[arr.length-1]}));
+  const intDe=j=>TRK.ints.filter(i=>(i.jugador_uid&&i.jugador_uid===j.ult.jugador_uid)||activosNorm(i.jugador_nombre)===activosNorm(j.ult.jugador_nombre));
+  // 1) Jugadores en proceso
+  const enProc=[];
+  jugadores.forEach(j=>{
+    const ints=intDe(j); const act=ints.find(i=>i.estado==='activa')||null; if(!act) return;
+    const antes=j.arr.filter(t=>String(t.fecha).slice(0,10)<=act.fecha_inicio); const ini=antes.length?antes[antes.length-1]:j.arr[0];
+    const fin=j.ult; const hay=ini&&fin&&ini.id!==fin.id;
+    const vars=(act.variables&&act.variables.length)?act.variables:['regulacion'];
+    const dv=hay?Math.round(vars.map(k=>(mptVal(fin,k)||0)-(mptVal(ini,k)||0)).reduce((a,b)=>a+b,0)/vars.length):null;
+    enProc.push({j,act,ini,fin,hay,dv,dD:hay?(fin.disponibilidad||0)-(ini.disponibilidad||0):null});
+  });
+  const cats=enProc.filter(p=>p.hay).map(p=>trkCat(p.dv,p.fin.disponibilidad)[1]);
+  const cnt=t=>cats.filter(c=>c===t).length;
+  const card=(t,n,c)=>'<div style="flex:1 1 150px;background:#0d1b3e;border:1px solid '+c+'44;border-radius:10px;padding:10px 12px"><div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:0.06em;text-transform:uppercase">'+t+'</div><div style="font-size:24px;font-weight:900;color:'+c+';margin-top:2px">'+n+'</div></div>';
+  let h='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+
+    card('Jugadores en proceso',enProc.length,'#a78bfa')+card('🟢 Evolución favorable',cnt('Evolución favorable'),'#22c55e')+
+    card('🟡 Requiere seguimiento',cnt('Requiere seguimiento'),'#f59e0b')+card('🔴 Interferencia relevante',cnt('Interferencia relevante'),'#ef4444')+'</div>';
+  h+='<div class="tw" style="margin:0 0 14px"><div class="th">🧠 JUGADORES EN PROCESO</div><div style="padding:0.75rem">';
+  if(!enProc.length) h+='<div class="es">Todavía no hay procesos activos en este plantel. Se registran desde el Perfil de cada jugador → ③ Seguimiento → "+ Registrar intervención".</div>';
+  else h+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#94a3b8;font-size:10.5px;text-transform:uppercase"><th style="text-align:left;padding:6px 8px">Jugador</th><th style="text-align:left;padding:6px 8px">Proceso</th><th style="padding:6px 8px">Disponibilidad</th><th style="padding:6px 8px">Variables trabajadas</th><th style="padding:6px 8px">Estado</th></tr></thead><tbody>'+
+    enProc.sort((a,b)=>(b.dv??-99)-(a.dv??-99)).map(p=>{
+      const c=p.hay?trkCat(p.dv,p.fin.disponibilidad):['⏳','Falta reevaluar','#94a3b8'];
+      return '<tr onclick="irAPerfilJugador(\''+p.fin.id+'\')" style="cursor:pointer;border-top:1px solid #1a3a6e44">'+
+        '<td style="padding:8px;color:#e8eff8;font-weight:700">'+p.fin.jugador_nombre+'</td>'+
+        '<td style="padding:8px;color:#b4c2d4">'+p.act.tipo+'<div style="font-size:10.5px;color:#7c8fae">desde '+mptFecha(p.act.fecha_inicio)+'</div></td>'+
+        '<td style="padding:8px;text-align:center;color:#e8eff8">'+(p.hay?(p.ini.disponibilidad||'—')+' → <b>'+(p.fin.disponibilidad||'—')+'</b> <b style="color:'+(p.dD>0?'#22c55e':p.dD<0?'#ef4444':'#94a3b8')+'">'+(p.dD>0?'+':'')+p.dD+'</b>':'—')+'</td>'+
+        '<td style="padding:8px;text-align:center;color:#c4b5fd">'+(p.act.variables||[]).map(k=>DIM_LABELS[k]||k).join(', ')+(p.hay?' <b style="color:'+(p.dv>=5?'#22c55e':p.dv<=-5?'#ef4444':'#94a3b8')+'">'+(p.dv>0?'+':'')+p.dv+'</b>':'')+'</td>'+
+        '<td style="padding:8px;text-align:center;white-space:nowrap;color:'+c[2]+';font-weight:700">'+c[0]+' '+c[1]+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+  h+='</div></div>';
+  // 2) Mapa del equipo por variable
+  const vals=jugadores.map(j=>({r:j.ult,v:v==='__D'?(j.ult.disponibilidad||null):mptVal(j.ult,v)})).filter(x=>x.v!=null).sort((a,b)=>b.v-a.v);
+  const prom=vals.length?Math.round(vals.reduce((a,b)=>a+b.v,0)/vals.length):null;
+  const vNom=v==='__D'?'Disponibilidad (D)':DIM_LABELS[v];
+  h+='<div class="tw" style="margin:0"><div class="th" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span>🗺 MAPA DEL EQUIPO · '+(vNom||'').toUpperCase()+'</span>'+(prom!=null?'<span style="font-size:12px;color:#e8eff8">Promedio del equipo: <b style="color:'+(prom>=80?'#22c55e':prom>=65?'#f59e0b':'#ef4444')+'">'+prom+'</b></span>':'')+'</div><div style="padding:0.75rem">';
+  if(!vals.length) h+='<div class="es">Sin evaluaciones en este plantel.</div>';
+  else h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px">'+vals.map(x=>{ const c=x.v>=80?'#22c55e':x.v>=65?'#f59e0b':'#ef4444', ic=x.v>=80?'🟢':x.v>=65?'🟡':'🔴';
+      return '<div onclick="irAPerfilJugador(\''+x.r.id+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;background:#0a1024;border:1px solid '+c+'33;border-radius:8px;padding:7px 10px"><span>'+ic+'</span><span style="flex:1;min-width:0;color:#e8eff8;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+x.r.jugador_nombre+'</span>'+
+        '<div style="width:70px;height:6px;background:#1a3a6e55;border-radius:3px;overflow:hidden"><div style="height:100%;width:'+x.v+'%;background:'+c+'"></div></div><b style="color:'+c+';font-size:13px;width:28px;text-align:right">'+x.v+'</b></div>'; }).join('')+'</div>'+
+    '<div style="font-size:11px;color:#7c8fae;margin-top:8px">🟢 80 o más · 🟡 65 a 79 · 🔴 menos de 65 · Última evaluación de cada jugador. Tocá un jugador para ver su perfil.</div>';
+  h+='</div></div>';
+  box.innerHTML=h;
 }
 
 // ═══════════════════════════════════════════════════════════════
