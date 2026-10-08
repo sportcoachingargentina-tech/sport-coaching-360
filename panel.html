@@ -41,6 +41,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* TOPBAR con usuario */
 /* Dashboard del club — tarjetas visuales */
 .dsh-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.dsh-tiles.seis{grid-template-columns:repeat(6,1fr)}
+@media(max-width:1100px){ .dsh-tiles.seis{grid-template-columns:repeat(3,1fr)} }
+.solo-admin{display:none!important}
+body.es-admin .solo-admin{display:inline!important}
+.dec-res{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.dec-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:start}
+.dec-item{display:flex;gap:9px;align-items:flex-start;padding:9px 0;border-top:1px solid #1a3a6e44}
+.dec-item:first-of-type{border-top:none}
+@media(max-width:1000px){ .dec-cols{grid-template-columns:1fr} }
 .dsh-tile{background:#0d1b3e;border:1px solid #1a3a6e;border-radius:12px;padding:11px 8px;text-align:center;transition:transform .15s}
 .dsh-tile:hover{transform:translateY(-2px)}
 .dsh-tile-t{font-size:9.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.07em;font-weight:800}
@@ -56,7 +65,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pj-tab{flex:1;display:flex;flex-direction:column}
 .pj-tab-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1}
 @media(max-width:900px){ .pj-tab-cards{grid-template-columns:1fr} }
-@media(max-width:768px){ .dsh-tiles{grid-template-columns:repeat(2,1fr)} .dsh-tile-v{font-size:28px} .dsh-cards{grid-template-columns:1fr} .dsh-cards>.dsh-card,.dsh-cards>.dsh-card:nth-child(4),.dsh-cards>.dsh-card:nth-child(5){grid-column:span 1} #tb-rayo{display:none!important} .topbar-logo{white-space:nowrap;font-size:12px} }
+@media(max-width:768px){ .dsh-tiles,.dsh-tiles.seis{grid-template-columns:repeat(2,1fr)} .dec-res{gap:6px} .dsh-tile-v{font-size:28px} .dsh-cards{grid-template-columns:1fr} .dsh-cards>.dsh-card,.dsh-cards>.dsh-card:nth-child(4),.dsh-cards>.dsh-card:nth-child(5){grid-column:span 1} #tb-rayo{display:none!important} .topbar-logo{white-space:nowrap;font-size:12px} }
 @media(max-width:440px){ .topbar-logo{display:none!important} }
 /* Menú principal: 7 entradas claras; los grupos se despliegan */
 .nav-main{font-size:13.5px!important;font-weight:700!important;color:#cbd5e1!important;letter-spacing:0!important;text-transform:none!important;padding:10px 18px!important;cursor:pointer;display:flex!important;align-items:center;justify-content:space-between}
@@ -332,6 +341,7 @@ tr:hover td{background:#0d1b3e40}
   <div class="login-box">
     <div class="login-logo">SPORT COACHING 360</div>
     <div class="login-sub">Eduardo Meljin · sportcoachingpro.com</div>
+    <div style="font-size:11px;font-weight:800;letter-spacing:0.12em;color:#00c2ff;margin:-0.4rem 0 1.2rem">MEDIR → ENTENDER → DECIDIR → MEJORAR</div>
     <div class="login-title">Ingresá a tu panel</div>
     <div class="lf"><label>Email</label><input id="l-email" type="email" placeholder="tu@email.com" autocomplete="email"></div>
     <div class="lf"><label>Contraseña</label><input id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
@@ -382,11 +392,11 @@ tr:hover td{background:#0d1b3e40}
 <nav id="mobile-nav">
   <div class="mn-item active" id="mn-dashboard" onclick="go('dashboard')"><span class="mn-icon">📊</span>Inicio</div>
   <div class="mn-item" id="mn-resultados" onclick="go('resultados')"><span class="mn-icon">👥</span>Plantel</div>
-  <div class="mn-item" id="mn-tracking" onclick="go('tracking')"><span class="mn-icon">🧠</span>Mental</div>
+  <div class="mn-item" id="mn-tracking" onclick="go('tracking')"><span class="mn-icon">⚡</span>Rendimiento</div>
   <div class="mn-item" id="mn-postpartido" onclick="go('postpartido')"><span class="mn-icon">⚽</span>Partidos</div>
   <div class="mn-item" id="mn-evolucion" onclick="go('evolucion')"><span class="mn-icon">📈</span>Evolución</div>
   <div class="mn-item" id="mn-plantel" onclick="go('plantel')"><span class="mn-icon">🔮</span>Predicción</div>
-  <div class="mn-item" id="mn-alertas" onclick="go('alertas')"><span class="mn-icon">🎯</span>Decisiones</div>
+  <div class="mn-item" id="mn-decisiones" onclick="go('decisiones')"><span class="mn-icon">🎯</span>Decisiones</div>
   <div class="mn-item" id="mn-mas" onclick="toggleMenuMobile()"><span class="mn-icon">☰</span>Más</div>
 </nav>
 <div class="layout">
@@ -398,14 +408,14 @@ tr:hover td{background:#0d1b3e40}
       <div data-nav="perfiljugador" class="nav-item" onclick="go('perfiljugador')"><span class="nav-icon">🪪</span> Perfil de jugador <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
       <div data-nav="grupal" class="nav-item" onclick="go('grupal')"><span class="nav-icon">🧩</span> Informe grupal <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
     </div>
-    <div class="nav-main nav-section-label" onclick="toggleNavGroup('mental')"><span><span class="nav-icon">🧠</span> Mental</span><span class="nav-chevron" id="chev-mental">▾</span></div>
+    <div class="nav-main nav-section-label" onclick="toggleNavGroup('mental')"><span><span class="nav-icon">⚡</span> Rendimiento</span><span class="nav-chevron" id="chev-mental">▾</span></div>
     <div id="navgroup-mental" class="nav-sub">
-      <div data-nav="tracking" class="nav-item" onclick="go('tracking')"><span class="nav-icon">🧠</span> Tracking</div>
+      <div data-nav="tracking" class="nav-item" onclick="go('tracking')"><span class="nav-icon">🧠</span> Tracking mental</div>
       <div data-nav="cognitivo" class="nav-item" onclick="go('cognitivo')"><span class="nav-icon">🎯</span> Ejercicios cognitivos</div>
       <div data-nav="entreno" class="nav-item" onclick="go('entreno')"><span class="nav-icon">💪</span> Post entreno</div>
       <div data-nav="recuperacion" class="nav-item" onclick="go('recuperacion')"><span class="nav-icon">🫀</span> Recuperación</div>
       <div data-nav="nutricion" class="nav-item" id="nav-nutricion" onclick="go('nutricion')"><span class="nav-icon">🥗</span> Nutrición</div>
-      <div data-nav="racha" class="nav-item" onclick="go('racha')"><span class="nav-icon">🎮</span> Racha <span style="font-size:8px;font-weight:700;color:#f59e0b">PILOTO</span></div>
+      <div data-nav="racha" class="nav-item" onclick="go('racha')"><span class="nav-icon">🎮</span> Racha <span class="solo-admin" style="font-size:8px;font-weight:700;color:#f59e0b">PILOTO</span></div>
     </div>
     <div class="nav-main nav-section-label" onclick="toggleNavGroup('partidos')"><span><span class="nav-icon">⚽</span> Partidos</span><span class="nav-chevron" id="chev-partidos">▾</span></div>
     <div id="navgroup-partidos" class="nav-sub">
@@ -416,7 +426,7 @@ tr:hover td{background:#0d1b3e40}
     <div data-nav="plantel" class="nav-item nav-main" onclick="go('plantel')"><span class="nav-icon">🔮</span> Predicción <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
     <div class="nav-main nav-section-label" onclick="toggleNavGroup('decisiones')"><span><span class="nav-icon">🎯</span> Decisiones <span id="decisiones-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:2px">0</span></span><span class="nav-chevron" id="chev-decisiones">▾</span></div>
     <div id="navgroup-decisiones" class="nav-sub">
-      <div class="nav-item" onclick="irCentroDecisiones()"><span class="nav-icon">🧭</span> Centro de decisiones</div>
+      <div data-nav="decisiones" class="nav-item" onclick="go('decisiones')"><span class="nav-icon">🧭</span> Decisiones de hoy</div>
       <div data-nav="alertas" class="nav-item" onclick="go('alertas')"><span class="nav-icon">🔔</span> Alertas <span id="alertas-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:2px">0</span></div>
       <div data-nav="planificacion" class="nav-item" id="nav-planificacion" style="display:none" onclick="go('planificacion')"><span class="nav-icon">📅</span> Plan de trabajo</div>
     </div>
@@ -578,7 +588,7 @@ tr:hover td{background:#0d1b3e40}
           <div style="flex:1 1 180px;min-width:0">
             <div style="font-size:10px;font-weight:800;color:#00c2ff;letter-spacing:0.14em;text-transform:uppercase">Sport Coaching 360</div>
             <div id="dash-club-nombre" style="font-size:21px;font-weight:900;color:#fff;line-height:1.15;margin-top:2px;overflow-wrap:anywhere">—</div>
-            <div id="dash-club-sub" style="font-size:11.5px;color:#94a3b8;margin-top:3px">Inteligencia competitiva del plantel</div>
+            <div id="dash-club-sub" style="font-size:11.5px;color:#94a3b8;margin-top:3px">Medir → Entender → Decidir → Mejorar</div>
             <!-- Selector de plantel: un club de primera ve Primera, Reserva y juveniles por separado -->
             <select id="dash-plantel" onchange="dashCambiarPlantel(this.value)" style="display:none;margin-top:8px;max-width:100%;padding:7px 12px;border:1px solid #1a3a6e;border-radius:8px;font-size:13px;font-weight:700;background:#0a1024;color:#e8eff8;cursor:pointer"></select>
           </div>
@@ -1502,6 +1512,17 @@ tr:hover td{background:#0d1b3e40}
 
     <!-- FIN ESTADÍSTICAS -->
 
+    <div class="screen" id="screen-decisiones">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <div>
+          <div class="page-title">🎯 Decisiones de hoy</div>
+          <div class="page-sub" style="margin-bottom:0">Medir → Entender → <b style="color:#00c2ff">Decidir</b> → Mejorar · lo que SC360 recomienda mirar, ordenado por prioridad</div>
+        </div>
+        <button onclick="go('alertas')" class="bg" style="padding:8px 14px;font-size:12.5px">🔔 Ver todas las alertas →</button>
+      </div>
+      <div id="dec-contenido"><div class="es">Analizando el plantel…</div></div>
+    </div>
+
     <div class="screen" id="screen-alertas">
       <div class="page-title">🔔 Alertas</div>
       <div class="page-sub">Post Partido (discrepancia jugador / cuerpo técnico), Diagnóstico (caída de MDC, reevaluación pendiente) y Ausentismo (3+ faltas seguidas)</div>
@@ -1666,7 +1687,7 @@ tr:hover td{background:#0d1b3e40}
     <!-- PANTALLA RACHA (PILOTO)                    -->
     <!-- ══════════════════════════════════════════ -->
     <div class="screen" id="screen-racha">
-      <div class="page-title">🎮 Racha <span style="font-size:12px;font-weight:700;color:#f59e0b;background:#f59e0b18;border:1px solid #f59e0b40;padding:2px 10px;border-radius:10px;vertical-align:middle;margin-left:6px">PILOTO</span></div>
+      <div class="page-title">🎮 Racha <span class="solo-admin" style="font-size:12px;font-weight:700;color:#f59e0b;background:#f59e0b18;border:1px solid #f59e0b40;padding:2px 10px;border-radius:10px;vertical-align:middle;margin-left:6px">PILOTO</span></div>
       <div class="page-sub">Evaluación basada en juego para deportistas — persistencia, cognitivo, emocional, confianza y motivación en 2 minutos. Todavía en prueba: las fórmulas no están validadas con datos reales.</div>
 
       <div class="tw" style="margin-bottom:1.5rem">
@@ -3147,6 +3168,7 @@ function mostrarPanel(){
   if(navClubes)navClubes.style.display=rol==='admin'?'flex':'none';
   if(navGestion)navGestion.style.display=(rol==='admin')?'flex':'none';
   if(navAdminLabel)navAdminLabel.style.display='flex';
+  document.body.classList.toggle('es-admin',rol==='admin');
   const navAdminTxt=document.getElementById('nav-admin-txt');
   if(navAdminTxt) navAdminTxt.textContent=rol==='admin'?'⚙ Administración SC360':'⚙ Administración del club';
   if(navSelectivo)navSelectivo.style.display=(esAdmin||rol==='tecnico')?'flex':'none';
@@ -3487,7 +3509,7 @@ function go(name){
   if(sb)sb.classList.remove('mobile-open');
   // Sync mobile bottom nav
   document.querySelectorAll('.mn-item').forEach(n=>n.classList.remove('active'));
-  const MN_TAB={perfiljugador:'resultados',grupal:'resultados',cognitivo:'tracking',entreno:'tracking',recuperacion:'tracking',nutricion:'tracking',racha:'tracking',estadisticas:'postpartido',planificacion:'alertas'};
+  const MN_TAB={perfiljugador:'resultados',grupal:'resultados',cognitivo:'tracking',entreno:'tracking',recuperacion:'tracking',nutricion:'tracking',racha:'tracking',estadisticas:'postpartido',planificacion:'decisiones',alertas:'decisiones'};
   const mn=document.getElementById('mn-'+(MN_TAB[name]||name));
   if(mn)mn.classList.add('active');
   // Scroll mobile nav so active item is visible
@@ -3518,6 +3540,7 @@ function go(name){
   if(name==='clubes')loadClubes();
   if(name==='scouting')loadScouting();
   if(name==='perfiljugador')loadPerfilJugador();
+  if(name==='decisiones')loadDecisiones();
 }
 
 function toggleDeporteSelector(){
@@ -17894,7 +17917,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='9/10/2026 · 5';
+const SC360_VERSION='9/10/2026 · 6';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -18460,6 +18483,78 @@ function dashEscudoClub(gs){ const box=document.getElementById('dash-club-escudo
   const img=new Image(); img.alt='Escudo'; img.style.cssText='width:100%;height:100%;object-fit:contain;padding:5px';
   img.onload=()=>{ box.innerHTML=''; box.appendChild(img); }; img.src=g.logo_url; }
 
+// ═══════════════════════════════════════════════════════════════
+// DECISIONES DE HOY — transforma los datos en gestión: 🔴 riesgo,
+// 🟠 observar, 🟢 oportunidades. Usa lo que ya calcula el dashboard
+// (IDC, disponibilidad, Post Partido, alertas). Lenguaje: patrón
+// observado / variable a monitorear; nunca "va a pasar".
+// ═══════════════════════════════════════════════════════════════
+let DEC_CACHE=null;
+function decTendenciaPP(r,D){
+  const a=((D.pp||{})[idcNom(r.jugador_nombre)]||[]).map(x=>({f:String(D.fechas&&D.fechas[x.partido_codigo]||''),m:ppMental(x)})).filter(x=>x.m!=null).sort((x,y)=>x.f.localeCompare(y.f));
+  if(a.length<4) return null;
+  const n=Math.min(3,Math.floor(a.length/2)), pr=v=>v.reduce((s,x)=>s+x.m,0)/v.length;
+  return {d:Math.round(pr(a.slice(-n))-pr(a.slice(-2*n,-n))),n};
+}
+function decClasificar(C){
+  const out={rojo:[],naranja:[],verde:[]}; if(!C) return out;
+  const hist={}; (C.rL||[]).forEach(r=>{ const k=r.jugador_uid||activosNorm(r.jugador_nombre); (hist[k]=hist[k]||[]).push(r); });
+  C.jugs.forEach((r,i)=>{
+    const x=C.res[i]||{}, D=r.disponibilidad||0, t=decTendenciaPP(r,C.D);
+    const h=(hist[r.jugador_uid||activosNorm(r.jugador_nombre)]||[]).slice().sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)));
+    const dEval=h.length>=2?(h[h.length-1].disponibilidad||0)-(h[h.length-2].disponibilidad||0):null;
+    const motivos=[], go="irAPerfilJugador('"+r.id+"')";
+    let nivel=null;
+    if(D&&D<65){ nivel='rojo'; motivos.push('disponibilidad baja ('+D+')'); }
+    if(x.idc!=null&&x.idc<60){ nivel='rojo'; motivos.push('IDC '+x.idc); }
+    if(t&&t.d<=-15){ nivel='rojo'; motivos.push('↓ '+Math.abs(t.d)+' puntos de estado mental en sus últimos '+t.n+' partidos'); }
+    if(!nivel){
+      if(D&&D<80){ nivel='naranja'; motivos.push('disponibilidad en precaución ('+D+')'); }
+      if(x.idc!=null&&x.idc<75){ nivel='naranja'; motivos.push('IDC '+x.idc+(x.masBaja?' · lo que más lo baja: '+x.masBaja.nombre.toLowerCase():'')); }
+      if(t&&t.d<=-8){ nivel='naranja'; motivos.push('↓ '+Math.abs(t.d)+' de estado mental en sus últimos '+t.n+' partidos'); }
+      if(x.reset!=null&&x.reset<60){ nivel='naranja'; motivos.push('le cuesta reponerse después del error'); }
+    }
+    if(!nivel){
+      if(t&&t.d>=8){ nivel='verde'; motivos.push('↑ '+t.d+' de estado mental en sus últimos '+t.n+' partidos'); }
+      if(dEval!=null&&dEval>=5){ nivel='verde'; motivos.push('mejoró su disponibilidad +'+dEval+' desde la evaluación anterior'); }
+      if(D>=85&&(x.idc==null||x.idc>=80)&&!motivos.length){ nivel='verde'; motivos.push('alta disponibilidad ('+D+'): puede asumir más responsabilidad'); }
+    }
+    if(nivel) out[nivel].push({nom:r.jugador_nombre,pos:r.jugador_pos,txt:motivos.join(' · '),go,orden:nivel==='verde'?-(t?t.d:0)-(dEval||0):(x.idc!=null?x.idc:D)});
+  });
+  out.rojo.sort((a,b)=>a.orden-b.orden); out.naranja.sort((a,b)=>a.orden-b.orden); out.verde.sort((a,b)=>a.orden-b.orden);
+  // Señales del equipo
+  const act=(TODAS_ALERTAS||[]).filter(a=>a.estado==='activa').length;
+  if(act) out.rojo.unshift({equipo:true,nom:act+' alerta'+(act>1?'s':'')+' activa'+(act>1?'s':''),txt:'Discrepancias jugador / cuerpo técnico, caídas de MDC o ausencias. Conviene revisarlas.',go:"go('alertas')"});
+  if(C.riesgo&&C.riesgo.v<75) out.naranja.unshift({equipo:true,nom:'Equipo · '+C.riesgo.c.nombre,txt:'Es la capa más baja del plantel ('+Math.round(C.riesgo.v)+'). '+(C.accion||''),go:"go('grupal')"});
+  if(C.ventana) out.naranja.unshift({equipo:true,nom:'Próximo partido',txt:'Patrón observado: más goles en contra en los '+C.ventana.tramo+' ('+C.ventana.n+' de '+C.ventana.tot+'). Variable a monitorear: preparar una consigna para ese momento.',go:"go('plantel')"});
+  return out;
+}
+function decFila(it,col){
+  return '<div class="dec-item"><span style="width:9px;height:9px;border-radius:50%;background:'+col+';margin-top:6px;flex-shrink:0;box-shadow:0 0 6px '+col+'"></span>'+
+    '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:800;color:#fff">'+(it.equipo?'':'')+it.nom+(it.pos?' <span style="font-size:10.5px;font-weight:600;color:#7c8fae">· '+it.pos+'</span>':'')+'</div>'+
+    '<div style="font-size:12px;color:#b4c2d4;line-height:1.45;margin-top:1px">'+it.txt+'</div></div>'+
+    '<button onclick="'+it.go+'" style="white-space:nowrap;font-size:11px;padding:4px 9px;background:transparent;color:#00c2ff;border:1px solid #00c2ff55;border-radius:7px;cursor:pointer;flex-shrink:0">Ver →</button></div>';
+}
+function renderDecisiones(){
+  const box=document.getElementById('dec-contenido'); if(!box) return;
+  if(!DEC_CACHE){ box.innerHTML='<div class="es">Analizando el plantel…</div>'; return; }
+  const k=decClasificar(DEC_CACHE);
+  const G=[['rojo','🔴','En riesgo','Actuar esta semana','#ef4444',k.rojo],['naranja','🟠','Para observar','Seguir de cerca','#f59e0b',k.naranja],['verde','🟢','Oportunidades','Aprovechar y reforzar','#22c55e',k.verde]];
+  box.innerHTML='<div class="dec-res">'+G.map(g=>'<div class="dsh-tile" style="border-color:'+g[4]+'66;cursor:pointer" onclick="document.getElementById(\'dec-col-'+g[0]+'\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">'+
+      '<div class="dsh-tile-t">'+g[1]+' '+g[2]+'</div><div class="dsh-tile-v" style="color:'+g[4]+'">'+g[5].length+'</div><div class="dsh-tile-s">'+g[3]+'</div></div>').join('')+'</div>'+
+    '<div class="dec-cols">'+G.map(g=>{ const id='dec-mas-'+g[0], L=g[5];
+      return '<div class="dsh-card" id="dec-col-'+g[0]+'" style="border-top:3px solid '+g[4]+'"><div class="dsh-card-t" style="color:'+g[4]+'">'+g[1]+' '+g[2]+' · '+L.length+'</div>'+
+        (L.length? L.slice(0,8).map(it=>decFila(it,g[4])).join('')+(L.length>8?'<div id="'+id+'" style="display:none">'+L.slice(8).map(it=>decFila(it,g[4])).join('')+'</div><button onclick="this.previousElementSibling.style.display=\'block\';this.remove()" style="margin-top:6px;font-size:11.5px;background:none;border:none;color:#00c2ff;cursor:pointer">Ver '+(L.length-8)+' más ▾</button>':'')
+          : '<div style="font-size:12px;color:#7c8fae;padding:10px 0">'+(g[0]==='rojo'?'Nadie en riesgo hoy. 👏':g[0]==='naranja'?'Nada para observar por ahora.':'Aparecen cuando un jugador mejora o sostiene un nivel alto.')+'</div>')+'</div>'; }).join('')+'</div>'+
+    '<div style="font-size:10.5px;color:#4a5a78;margin-top:10px">Basado en los datos cargados (test, IDC, Post Partido y alertas). Son señales para decidir qué mirar primero, no certezas ni diagnósticos.</div>';
+}
+function loadDecisiones(){
+  renderDecisiones();
+  // Si el dashboard todavía no calculó (o pasaron más de 5 minutos), se recalcula
+  if(!DEC_CACHE||Date.now()-DEC_CACHE.ts>300000){ try{ loadD(); }catch(e){} }
+  try{ if(!(TODAS_ALERTAS||[]).length) loadAlertas(); }catch(e){}
+}
+
 async function dashCentroDecisiones(jugs,res,D,cods,rL){
   const box30=document.getElementById('dash-30s'), boxC=document.getElementById('dash-centro'); if(!box30||!boxC) return;
   try{
@@ -18532,15 +18627,24 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
         '<div style="display:flex;gap:5px;margin-top:4px">'+TR_CORTO.map(t=>'<div style="flex:1;text-align:center;font-size:9px;color:#4a5a78">'+t+"'</div>").join('')+'</div>'
       : '<div style="font-size:12px;color:#7c8fae;padding:10px 0">Cargá los goles con su minuto en cada partido para ver el patrón.</div>';
     const evolTxt=evol==null?'—':(evol>0?'▲ +':evol<0?'▼ ':'')+evol;
+    DEC_CACHE={jugs,res,D,cods,rL,ventana,riesgo,accion,ts:Date.now()};
+    const K=decClasificar(DEC_CACHE), nDec=K.rojo.length+K.naranja.length;
+    const recs=res.map(x=>x&&x.mod&&x.mod.recuperacion?x.mod.recuperacion.val:null).filter(v=>v!=null), recP=recs.length?Math.round(prom(recs)):null;
+    const mirarTop=K.rojo.filter(i=>!i.equipo).map(i=>[i,'#ef4444']).concat(K.naranja.map(i=>[i,'#f59e0b'])).slice(0,3);
+    const recomienda=mirarTop.length?'<div class="dsh-card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div class="dsh-card-t">🔎 SC360 recomienda mirar</div><button onclick="go(\'decisiones\')" style="white-space:nowrap;font-size:11.5px;font-weight:800;color:#0a0f1e;background:#00c2ff;border:none;border-radius:7px;padding:5px 11px;cursor:pointer">🎯 '+nDec+' decisiones hoy →</button></div>'+
+      mirarTop.map((p,i)=>'<div class="dec-item"><span style="min-width:22px;height:22px;border-radius:50%;background:'+p[1]+'22;border:1px solid '+p[1]+';color:'+p[1]+';font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">'+(i+1)+'</span><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:800;color:#fff">'+p[0].nom+'</div><div style="font-size:12px;color:#b4c2d4">'+p[0].txt+'</div></div><button onclick="'+p[0].go+'" style="white-space:nowrap;font-size:11px;padding:4px 9px;background:transparent;color:#00c2ff;border:1px solid #00c2ff55;border-radius:7px;cursor:pointer">Ver →</button></div>').join('')+'</div>':'';
+    try{ if(document.getElementById('screen-decisiones').classList.contains('active')) renderDecisiones(); }catch(e){}
     box30.innerHTML='<div style="margin-bottom:12px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:2px 2px 8px"><div style="font-size:17px;font-weight:900;color:#fff">¿Cómo está mi equipo?</div><div style="font-size:10px;color:#7c8fae;letter-spacing:0.08em">INTELIGENCIA COMPETITIVA · '+jugs.length+' JUGADORES</div></div>'+
-      '<div class="dsh-tiles">'+
+      '<div class="dsh-tiles seis">'+
         tile('Disponibilidad',Dp,'<b style="color:'+est[1]+'">'+est[0].toUpperCase()+'</b> · promedio',est[1],"go('resultados')")+
         tile('Jugadores evaluados',jugs.length,'con test inicial','#00c2ff',"go('resultados')")+
-        tile('A mirar',mirar.length,mirar.length?'necesitan atención':'nadie en alerta',mirar.length?'#f59e0b':'#22c55e',"document.getElementById('dash-mirar')&&document.getElementById('dash-mirar').scrollIntoView({behavior:'smooth'})")+
+        tile('En riesgo',K.rojo.length,'actuar esta semana',K.rojo.length?'#ef4444':'#22c55e',"go('decisiones')")+
         tile('Evolución',evolTxt,evol==null?'faltan Post Partido':'estado mental, últimos partidos',evol==null?'#94a3b8':evol>0?'#22c55e':evol<0?'#ef4444':'#e8eff8',"go('evolucion')")+
+        tile('Recuperación',recP==null?'—':recP,recP==null?'se completa con el Post Partido':'sueño y energía declarados',recP==null?'#94a3b8':colD(recP),"go('recuperacion')")+
+        tile('Decisiones hoy',nDec,nDec?'<b style="color:#ef4444">'+K.rojo.length+' en riesgo</b> · '+K.naranja.length+' a observar':'todo en orden',nDec?'#ef4444':'#22c55e',"go('decisiones')")+
       '</div>'+
-      '<div style="margin:10px 0;background:linear-gradient(90deg,#00c2ff1f,#00c2ff08);border:1px solid #00c2ff55;border-left:4px solid #00c2ff;border-radius:10px;padding:10px 13px;font-size:13.5px;color:#e8eff8;line-height:1.45"><b style="color:#00c2ff">🎯 Acción recomendada:</b> '+accion+'</div>'+
+      '<div style="margin:10px 0;background:linear-gradient(90deg,#00c2ff1f,#00c2ff08);border:1px solid #00c2ff55;border-left:4px solid #00c2ff;border-radius:10px;padding:10px 13px;font-size:13.5px;color:#e8eff8;line-height:1.45"><b style="color:#00c2ff">🎯 Acción recomendada:</b> '+accion+'</div>'+recomienda+
       '<div class="dsh-cards">'+
         card('🚦','Semáforo del plantel',semBody,'Cuántos jugadores están disponibles hoy para competir.')+
         card('🧩','Disponibilidad por línea',linBody,lineasCon.length>1?'La línea marcada es la más baja del equipo.':'')+
