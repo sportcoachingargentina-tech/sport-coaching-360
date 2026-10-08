@@ -53,6 +53,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .dsh-card{background:#0d1b3e;border:1px solid #1a3a6e;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column}
 .dsh-card-t{font-size:11px;font-weight:800;color:#e8eff8;letter-spacing:0.05em;text-transform:uppercase}
 .dsh-card-p{font-size:11px;color:#7c8fae;margin-top:auto;padding-top:8px;line-height:1.4}
+.pj-tab{flex:1;display:flex;flex-direction:column}
+.pj-tab-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1}
+@media(max-width:900px){ .pj-tab-cards{grid-template-columns:1fr} }
 @media(max-width:768px){ .dsh-tiles{grid-template-columns:repeat(2,1fr)} .dsh-tile-v{font-size:28px} .dsh-cards{grid-template-columns:1fr} .dsh-cards>.dsh-card,.dsh-cards>.dsh-card:nth-child(4),.dsh-cards>.dsh-card:nth-child(5){grid-column:span 1} #tb-rayo{display:none!important} .topbar-logo{white-space:nowrap;font-size:12px} }
 @media(max-width:440px){ .topbar-logo{display:none!important} }
 .topbar{background:linear-gradient(90deg,#0a0f1e 0%,#0d1b3e 60%,#0a1628 100%);border-bottom:1px solid #1a3a6e;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px}
@@ -2741,13 +2744,8 @@ tr:hover td{background:#0d1b3e40}
          DISC en una fila de 2 tarjetas iguales; Motivación y Entorno
          debajo, en una franja horizontal de ancho completo. -->
     <div id="pj-grid-detalle" style="display:flex;flex-direction:column;gap:0.85rem;margin-bottom:0;flex:1 1 600px;min-width:0">
-      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">1 · ESTADO HOY</div>
-      <div style="display:flex;gap:0.85rem;flex-wrap:wrap;align-items:stretch">
-        <div id="pj-dti" style="flex:1 1 260px;min-width:260px;display:flex;flex-direction:column"></div>
-        <div id="pj-idc" style="flex:1.4 1 320px;min-width:280px;display:flex;flex-direction:column"></div>
-      </div>
-      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">2 · LECTURA RÁPIDA</div>
-      <div id="pj-lectura" class="pj-print-hide"></div>
+      <div id="pj-tablero" style="flex:1;display:flex;flex-direction:column"></div>
+      <div id="pj-dti" style="display:flex;flex-direction:column"></div>
       <div id="pj-mpt" style="display:none"></div>
     </div>
 
@@ -2755,6 +2753,10 @@ tr:hover td{background:#0d1b3e40}
     <!-- fin pj-desktop-row -->
     <!-- FILAS DE ANCHO COMPLETO: cada fila con tarjetas de la misma altura (sin huecos) -->
     <div id="pj-filas" style="display:flex;flex-direction:column;gap:0.85rem;margin-top:0.85rem">
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">1 · LECTURA RÁPIDA</div>
+      <div id="pj-lectura" class="pj-print-hide"></div>
+      <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">2 · IDC POR MÓDULOS</div>
+      <div id="pj-idc" style="display:flex;flex-direction:column"></div>
       <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">3 · SEGUIMIENTO</div>
       <div id="pj-mpt-resumen" class="pj-print-hide"></div>
       <div class="pj-print-hide" style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#5d7391;margin:2px 0 -6px">4 · DESARROLLO Y PERFIL</div>
@@ -17262,6 +17264,7 @@ function cargarPerfilJugador() {
   try{ renderRolDesarrolloPJ(r); }catch(e){ console.warn('Rol y desarrollo:',e); }
   renderCartaVisual(r);
   try{ renderLecturaPJ(r); }catch(e){ console.warn('Lectura rápida:',e); }
+  PJ_TAB={r,idc:null}; try{ renderTableroPJ(); }catch(e){ console.warn('Tablero perfil:',e); }
   cargarMPT(r);
   cargarResetPJ(r);
 }
@@ -17681,6 +17684,7 @@ async function idcCargarPerfil(r){
     const D=await idcCargarDatos({grupoCodigos:cod?[cod]:[], ids:base.__ids||[r.id]});
     if(PJ_ACTUAL!==r) return;
     const x=idcCalcularJugador(base,D);
+    if(typeof PJ_TAB!=='undefined'&&PJ_TAB.r===r){ PJ_TAB.idc=x; try{ renderTableroPJ(); }catch(e){} }
     if(x.idc==null){ box.innerHTML=''; return; }
     const col=idcColor(x.idc);
     box.innerHTML='<div style="background:#0a1024;border:1px solid '+col+'55;border-radius:12px;padding:12px 14px;flex:1;display:flex;flex-direction:column;justify-content:center">'+
@@ -17920,7 +17924,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='9/10/2026 · 2';
+const SC360_VERSION='9/10/2026 · 3';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -18230,6 +18234,7 @@ async function cargarMPT(r){
       const d=u?Math.floor((Date.now()-new Date(String(u).slice(0,10)+'T12:00:00').getTime())/86400000):null;
       el.innerHTML='⚽ Post Partido: <b>'+n+'</b>'+(n?' · el último hace '+d+' día'+(d===1?'':'s'):' · sin cargar')+(n&&n<3?' · <span style="color:#f59e0b">pocos datos</span>':''); } }catch(e){}
     renderMPT();
+    try{ renderTableroPJ(); }catch(e){}
   }catch(e){ box.innerHTML='<div class="es">No se pudo cargar el seguimiento.</div>'; }
 }
 function renderMPT(){
@@ -18593,6 +18598,64 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
         '<button onclick="'+it.go+'" style="white-space:nowrap;font-size:11.5px;padding:5px 10px;background:transparent;color:#00c2ff;border:1px solid #00c2ff55;border-radius:7px;cursor:pointer">Ver análisis →</button></div>').join('')+
       '<div style="font-size:10.5px;color:#4a5a78;margin-top:4px">Basado en los datos cargados del plantel. Las señales no son certezas: sirven para decidir qué mirar primero.</div></div></div>';
   }catch(e){ console.warn('Centro de decisiones:',e); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TABLERO DEL PERFIL — mismo lenguaje visual que el dashboard del club:
+// 4 números grandes + acción + 2 gráficos. Se completa a medida que
+// llegan el IDC y el seguimiento (tests y Post Partido).
+// ═══════════════════════════════════════════════════════════════
+let PJ_TAB={r:null,idc:null};
+function renderTableroPJ(){
+  const box=document.getElementById('pj-tablero'); const r=PJ_TAB.r; if(!box||!r||PJ_ACTUAL!==r) return;
+  const colD=v=>v==null?'#4a5a78':v>=80?'#22c55e':v>=65?'#f59e0b':'#ef4444';
+  const nom=(r.jugador_nombre||'').split(' ')[0]||'el jugador';
+  const D=r.disponibilidad||0, est=D>=80?'DISPONIBLE':D>=65?'PRECAUCIÓN':'EN RIESGO';
+  const st=(typeof MPT_ST!=='undefined'&&MPT_ST.r===r)?MPT_ST:null;
+  // Evolución: última evaluación contra la anterior
+  let evol=null; if(st&&st.tests.length>=2){ const t=st.tests; evol=(t[t.length-1].disponibilidad||0)-(t[t.length-2].disponibilidad||0); }
+  // Estado mental en partidos: promedio de los últimos 3 Post Partido
+  const serie=st?st.pp.map(ppMental).filter(v=>v!=null).map(v=>Math.round(v)):[];
+  const ult3=serie.slice(-3), mentalPP=ult3.length?Math.round(ult3.reduce((a,b)=>a+b,0)/ult3.length):null;
+  const idc=PJ_TAB.idc&&PJ_TAB.idc.idc!=null?PJ_TAB.idc.idc:null;
+  // Capas MDC
+  const dd=r.dims||{};
+  const capas=CAPAS_DEF_PJ.map(c=>{ const v=c.dims.map(k=>dd[k]).filter(x=>x>0); return {c,v:v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length/5*100):null}; });
+  const conV=capas.filter(x=>x.v!=null), baja=conV.length?conV.slice().sort((a,b)=>a.v-b.v)[0]:null;
+  const accion=baja&&typeof ACCION_CAPA!=='undefined'?ACCION_CAPA[baja.c.key]:null;
+  const tile=(t,v,sub,col)=>'<div class="dsh-tile" style="border-color:'+col+'55;padding:10px 6px"><div class="dsh-tile-t">'+t+'</div><div class="dsh-tile-v" style="color:'+col+';font-size:28px">'+v+'</div><div class="dsh-tile-s">'+sub+'</div></div>';
+  const cargando='<span style="font-size:16px;color:#4a5a78">…</span>';
+  const barras=capas.map(x=>{ const marca=baja&&x===baja; const col=marca?'#f59e0b':colD(x.v);
+    return '<div style="display:flex;align-items:center;gap:8px;margin:6px 0"><div title="'+x.c.nombre+'" style="width:132px;flex-shrink:0;font-size:12px;color:'+(marca?'#fff':'#b4c2d4')+';font-weight:'+(marca?800:500)+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+x.c.nombre+'</div>'+
+      '<div style="flex:1;height:11px;background:#0a1024;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+(x.v==null?0:Math.max(4,x.v))+'%;background:linear-gradient(90deg,'+col+'99,'+col+');border-radius:6px"></div></div>'+
+      '<div style="width:28px;text-align:right;font-size:12.5px;font-weight:900;color:'+col+'">'+(x.v==null?'—':x.v)+'</div>'+(marca?'<span style="font-size:9px;color:#f59e0b">◀</span>':'<span style="width:7px"></span>')+'</div>'; }).join('');
+  let linea;
+  const sv=serie.slice(-8);
+  if(sv.length>=2){
+    const W=300,H=96,px=14,py=16, mn=Math.min(...sv,60)-5, mx=Math.max(...sv,90)+5;
+    const X=i=>px+i*(W-2*px)/(sv.length-1), Y=v=>H-py-(v-mn)/(mx-mn)*(H-2*py);
+    const pts=sv.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' '), u=sv[sv.length-1];
+    linea='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block;margin-top:6px">'+
+      '<line x1="'+px+'" x2="'+(W-px)+'" y1="'+Y(80).toFixed(1)+'" y2="'+Y(80).toFixed(1)+'" stroke="#22c55e44" stroke-dasharray="4 4"/>'+
+      '<polygon points="'+X(0).toFixed(1)+','+(H-py)+' '+pts+' '+X(sv.length-1).toFixed(1)+','+(H-py)+'" fill="#00c2ff18"/>'+
+      '<polyline points="'+pts+'" fill="none" stroke="#00c2ff" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+
+      sv.map((v,i)=>'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(v).toFixed(1)+'" r="'+(i===sv.length-1?5:3.5)+'" fill="'+colD(v)+'" stroke="#0a1530" stroke-width="1.5"/>').join('')+
+      '<text x="'+X(sv.length-1).toFixed(1)+'" y="'+(Y(u)-9).toFixed(1)+'" fill="#fff" font-size="12" font-weight="800" text-anchor="end">'+u+'</text></svg>'+
+      '<div style="display:flex;justify-content:space-between;font-size:9.5px;color:#4a5a78"><span>hace '+(sv.length-1)+' partidos</span><span>último</span></div>';
+  } else linea='<div style="font-size:12px;color:#7c8fae;padding:12px 0">'+(st?'Aparece cuando cargue el Post Partido de al menos 2 partidos'+(serie.length?' (tiene 1).':'.'):'Cargando partidos…')+'</div>';
+  box.innerHTML='<div class="pj-tab">'+
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 2px 8px"><div style="font-size:16px;font-weight:900;color:#fff">¿Cómo está '+nom+'?</div><div style="font-size:10px;color:#7c8fae;letter-spacing:0.08em">'+(r.jugador_pos||'').toUpperCase()+'</div></div>'+
+    '<div class="dsh-tiles">'+
+      tile('Disponibilidad',D||'—','<b style="color:'+colD(D)+'">'+est+'</b>',colD(D))+
+      tile('IDC',idc==null?(PJ_TAB.idc?'—':cargando):idc,'índice competitivo',idc==null?'#94a3b8':colD(idc))+
+      tile('Evolución',evol==null?(st?'—':cargando):(evol>0?'▲ +':evol<0?'▼ ':'')+evol,evol==null?'necesita 2 evaluaciones':'vs. evaluación anterior',evol==null?'#94a3b8':evol>0?'#22c55e':evol<0?'#ef4444':'#e8eff8')+
+      tile('En partidos',mentalPP==null?(st?'—':cargando):mentalPP,mentalPP==null?'sin Post Partido':'estado mental · últimos '+ult3.length,mentalPP==null?'#94a3b8':colD(mentalPP))+
+    '</div>'+
+    (accion?'<div style="margin:10px 0;background:linear-gradient(90deg,#00c2ff1f,#00c2ff08);border:1px solid #00c2ff55;border-left:4px solid #00c2ff;border-radius:10px;padding:9px 12px;font-size:13px;color:#e8eff8;line-height:1.45"><b style="color:#00c2ff">🎯 Foco de trabajo:</b> '+accion+'</div>':'<div style="height:10px"></div>')+
+    '<div class="pj-tab-cards">'+
+      '<div class="dsh-card"><div class="dsh-card-t">⚠️ Capas MDC</div>'+barras+(baja?'<div class="dsh-card-p">Su principal interferencia está en <b style="color:#f59e0b">'+baja.c.nombre+'</b>.</div>':'')+'</div>'+
+      '<div class="dsh-card"><div class="dsh-card-t">📈 Estado mental por partido</div>'+linea+'<div class="dsh-card-p">Post Partido del jugador. La línea punteada marca 80 (nivel óptimo).</div></div>'+
+    '</div></div>';
 }
 
 // ═══════════════════════════════════════════════════════════════
