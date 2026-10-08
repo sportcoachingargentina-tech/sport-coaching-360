@@ -58,6 +58,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 @media(max-width:900px){ .pj-tab-cards{grid-template-columns:1fr} }
 @media(max-width:768px){ .dsh-tiles{grid-template-columns:repeat(2,1fr)} .dsh-tile-v{font-size:28px} .dsh-cards{grid-template-columns:1fr} .dsh-cards>.dsh-card,.dsh-cards>.dsh-card:nth-child(4),.dsh-cards>.dsh-card:nth-child(5){grid-column:span 1} #tb-rayo{display:none!important} .topbar-logo{white-space:nowrap;font-size:12px} }
 @media(max-width:440px){ .topbar-logo{display:none!important} }
+/* Menú principal: 7 entradas claras; los grupos se despliegan */
+.nav-main{font-size:13.5px!important;font-weight:700!important;color:#cbd5e1!important;letter-spacing:0!important;text-transform:none!important;padding:10px 18px!important;cursor:pointer;display:flex!important;align-items:center;justify-content:space-between}
+.nav-main.nav-item{justify-content:flex-start}
+.nav-main.active{color:#00c2ff!important}
+.nav-section-label.nav-main:hover{background:#0d1b3e;border-radius:0 8px 8px 0;margin-right:8px}
+.nav-sub .nav-item{padding:7px 18px 7px 30px;font-size:12.5px}
+.nav-admin{cursor:pointer;display:flex;align-items:center;justify-content:space-between;color:#4a6280!important}
 .topbar{background:linear-gradient(90deg,#0a0f1e 0%,#0d1b3e 60%,#0a1628 100%);border-bottom:1px solid #1a3a6e;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px}
 .topbar-logo{font-size:15px;font-weight:800;color:#fff;letter-spacing:0.04em;display:flex;align-items:center;gap:8px}
 .topbar-logo::before{content:'';display:inline-block;width:8px;height:8px;background:#00c2ff;border-radius:50%;box-shadow:0 0 8px #00c2ff}
@@ -217,6 +224,7 @@ tr:hover td{background:#0d1b3e40}
     -webkit-overflow-scrolling:touch;scrollbar-width:none;
   }
   #mobile-nav::-webkit-scrollbar{display:none}
+  #mobile-nav .mn-item{flex:1 1 0;min-width:0!important;padding:0 1px!important;font-size:8.5px!important;white-space:nowrap}
   .plantel-barra{bottom:calc(72px + env(safe-area-inset-bottom,0px))!important}
   #adm-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}
   .partido-actions{flex-wrap:wrap}
@@ -364,122 +372,60 @@ tr:hover td{background:#0d1b3e40}
 
 <!-- MOBILE BOTTOM NAV — solo visible en mobile via CSS -->
 <nav id="mobile-nav">
-  <div class="mn-item active" id="mn-dashboard" onclick="go('dashboard')">
-    <span class="mn-icon">📊</span>Dashboard
-  </div>
-  <div class="mn-item" id="mn-resultados" onclick="go('resultados')">
-    <span class="mn-icon">📋</span>Jugadores
-  </div>
-  <div class="mn-item" id="mn-grupal" onclick="go('grupal')">
-    <span class="mn-icon">👥</span>Grupal
-  </div>
-  <div class="mn-item" id="mn-postpartido" onclick="go('postpartido')">
-    <span class="mn-icon">🎯</span>Post partido
-  </div>
-  <div class="mn-item" id="mn-entreno" onclick="go('entreno')">
-    <span class="mn-icon">💪</span>Post entreno
-  </div>
-  <div class="mn-item" id="mn-estadisticas" onclick="go('estadisticas')">
-    <span class="mn-icon">📊</span>Stats
-  </div>
-  <div class="mn-item" id="mn-alertas" onclick="go('alertas')">
-    <span class="mn-icon">🔔</span>Alertas
-  </div>
-  <div class="mn-item" id="mn-tracking" onclick="go('tracking')">
-    <span class="mn-icon">🧠</span>Tracking
-  </div>
-  <div class="mn-item" id="mn-evolucion" onclick="go('evolucion')">
-    <span class="mn-icon">📈</span>Evolución
-  </div>
-  <div class="mn-item" id="mn-plantel" onclick="go('plantel')">
-    <span class="mn-icon">📋</span>Predicciones
-  </div>
-  <div class="mn-item" id="mn-grupos" onclick="go('grupos')">
-    <span class="mn-icon">🔗</span>Grupos
-  </div>
-  <div class="mn-item" id="mn-recuperacion" onclick="go('recuperacion')">
-    <span class="mn-icon">🫀</span>Recup.
-  </div>
-  <div class="mn-item" id="mn-cognitivo" onclick="go('cognitivo')">
-    <span class="mn-icon">🧠</span>Cognitivo
-  </div>
-  <div class="mn-item" id="mn-nutricion" onclick="go('nutricion')">
-    <span class="mn-icon">🥗</span>Nutrición
-  </div>
-  <div class="mn-item" id="mn-selectivo" style="display:none" onclick="go('selectivo')">
-    <span class="mn-icon">⭐</span>Selectivo
-  </div>
-  <div class="mn-item" id="mn-planificacion" style="display:none" onclick="go('planificacion')">
-    <span class="mn-icon">📅</span>Plan
-  </div>
-  <div class="mn-item" id="mn-asistencia" style="display:none" onclick="go('asistencia')">
-    <span class="mn-icon">✅</span>Asistencia
-  </div>
-  <div class="mn-item" id="mn-usuarios" style="display:none" onclick="go('usuarios')">
-    <span class="mn-icon">👤</span>Usuarios
-  </div>
-  <div class="mn-item" id="mn-clubes" style="display:none" onclick="go('clubes')">
-    <span class="mn-icon">🏟</span>Clubes
-  </div>
+  <div class="mn-item active" id="mn-dashboard" onclick="go('dashboard')"><span class="mn-icon">📊</span>Inicio</div>
+  <div class="mn-item" id="mn-resultados" onclick="go('resultados')"><span class="mn-icon">👥</span>Plantel</div>
+  <div class="mn-item" id="mn-tracking" onclick="go('tracking')"><span class="mn-icon">🧠</span>Mental</div>
+  <div class="mn-item" id="mn-postpartido" onclick="go('postpartido')"><span class="mn-icon">⚽</span>Partidos</div>
+  <div class="mn-item" id="mn-evolucion" onclick="go('evolucion')"><span class="mn-icon">📈</span>Evolución</div>
+  <div class="mn-item" id="mn-plantel" onclick="go('plantel')"><span class="mn-icon">🔮</span>Predicción</div>
+  <div class="mn-item" id="mn-alertas" onclick="go('alertas')"><span class="mn-icon">🎯</span>Decisiones</div>
+  <div class="mn-item" id="mn-mas" onclick="toggleMenuMobile()"><span class="mn-icon">☰</span>Más</div>
 </nav>
 <div class="layout">
   <div class="sidebar">
-    <div data-nav="dashboard" class="nav-item active" onclick="go('dashboard')"><span class="nav-icon">📊</span> Dashboard</div>
-    <div class="nav-divider"></div>
-
-    <div class="nav-section-label" onclick="toggleNavGroup('plantel')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between">
-      <span>👥 Plantel &amp; Jugadores</span><span class="nav-chevron" id="chev-plantel">▾</span>
-    </div>
-    <div id="navgroup-plantel">
-      <div data-nav="resultados" class="nav-item" onclick="go('resultados')"><span class="nav-icon">📋</span> <span style="line-height:1.15">Jugadores<br><span style="font-size:10px;color:#94a3b8;font-weight:500">diagnóstico y edición</span></span></div>
+    <div data-nav="dashboard" class="nav-item nav-main active" onclick="go('dashboard')"><span class="nav-icon">📊</span> Dashboard</div>
+    <div class="nav-main nav-section-label" onclick="toggleNavGroup('plantel')"><span><span class="nav-icon">👥</span> Plantel</span><span class="nav-chevron" id="chev-plantel">▾</span></div>
+    <div id="navgroup-plantel" class="nav-sub">
+      <div data-nav="resultados" class="nav-item" onclick="go('resultados')"><span class="nav-icon">📋</span> Jugadores</div>
       <div data-nav="perfiljugador" class="nav-item" onclick="go('perfiljugador')"><span class="nav-icon">🪪</span> Perfil de jugador <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
-      <div data-nav="grupal" class="nav-item" onclick="go('grupal')"><span class="nav-icon">👥</span> Informe grupal <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
-      <div data-nav="plantel" class="nav-item" onclick="go('plantel')"><span class="nav-icon">📋</span> Informe de plantel y predicciones <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
+      <div data-nav="grupal" class="nav-item" onclick="go('grupal')"><span class="nav-icon">🧩</span> Informe grupal <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
     </div>
-    <div class="nav-divider"></div>
-
-    <div class="nav-section-label" onclick="toggleNavGroup('rendimiento')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between">
-      <span>⚽ Partido &amp; Rendimiento</span><span class="nav-chevron" id="chev-rendimiento">▾</span>
-    </div>
-    <div id="navgroup-rendimiento">
-      <div data-nav="postpartido" class="nav-item" onclick="go('postpartido')"><span class="nav-icon">🎯</span> Post partido</div>
-      <div data-nav="estadisticas" class="nav-item" onclick="go('estadisticas')"><span class="nav-icon">📊</span> Estadísticas <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
+    <div class="nav-main nav-section-label" onclick="toggleNavGroup('mental')"><span><span class="nav-icon">🧠</span> Mental</span><span class="nav-chevron" id="chev-mental">▾</span></div>
+    <div id="navgroup-mental" class="nav-sub">
       <div data-nav="tracking" class="nav-item" onclick="go('tracking')"><span class="nav-icon">🧠</span> Tracking</div>
-      <div data-nav="evolucion" class="nav-item" onclick="go('evolucion')"><span class="nav-icon">📈</span> Evolución <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
-    </div>
-    <div class="nav-divider"></div>
-
-    <div class="nav-section-label" onclick="toggleNavGroup('salud')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between">
-      <span>💪 Entrenamiento &amp; Salud</span><span class="nav-chevron" id="chev-salud">▾</span>
-    </div>
-    <div id="navgroup-salud">
+      <div data-nav="cognitivo" class="nav-item" onclick="go('cognitivo')"><span class="nav-icon">🎯</span> Ejercicios cognitivos</div>
       <div data-nav="entreno" class="nav-item" onclick="go('entreno')"><span class="nav-icon">💪</span> Post entreno</div>
-      <div data-nav="racha" class="nav-item" onclick="go('racha')"><span class="nav-icon">🎮</span> Racha <span style="font-size:8px;font-weight:700;color:#f59e0b">PILOTO</span></div>
-      <div data-nav="cognitivo" class="nav-item" onclick="go('cognitivo')"><span class="nav-icon">🧠</span> Ejercicios Cognitivos</div>
       <div data-nav="recuperacion" class="nav-item" onclick="go('recuperacion')"><span class="nav-icon">🫀</span> Recuperación</div>
       <div data-nav="nutricion" class="nav-item" id="nav-nutricion" onclick="go('nutricion')"><span class="nav-icon">🥗</span> Nutrición</div>
+      <div data-nav="racha" class="nav-item" onclick="go('racha')"><span class="nav-icon">🎮</span> Racha <span style="font-size:8px;font-weight:700;color:#f59e0b">PILOTO</span></div>
+    </div>
+    <div class="nav-main nav-section-label" onclick="toggleNavGroup('partidos')"><span><span class="nav-icon">⚽</span> Partidos</span><span class="nav-chevron" id="chev-partidos">▾</span></div>
+    <div id="navgroup-partidos" class="nav-sub">
+      <div data-nav="postpartido" class="nav-item" onclick="go('postpartido')"><span class="nav-icon">🎯</span> Post partido</div>
+      <div data-nav="estadisticas" class="nav-item" onclick="go('estadisticas')"><span class="nav-icon">📊</span> Estadísticas <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
+    </div>
+    <div data-nav="evolucion" class="nav-item nav-main" onclick="go('evolucion')"><span class="nav-icon">📈</span> Evolución <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
+    <div data-nav="plantel" class="nav-item nav-main" onclick="go('plantel')"><span class="nav-icon">🔮</span> Predicción <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
+    <div class="nav-main nav-section-label" onclick="toggleNavGroup('decisiones')"><span><span class="nav-icon">🎯</span> Decisiones <span id="decisiones-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:2px">0</span></span><span class="nav-chevron" id="chev-decisiones">▾</span></div>
+    <div id="navgroup-decisiones" class="nav-sub">
+      <div class="nav-item" onclick="irCentroDecisiones()"><span class="nav-icon">🧭</span> Centro de decisiones</div>
+      <div data-nav="alertas" class="nav-item" onclick="go('alertas')"><span class="nav-icon">🔔</span> Alertas <span id="alertas-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:2px">0</span></div>
       <div data-nav="planificacion" class="nav-item" id="nav-planificacion" style="display:none" onclick="go('planificacion')"><span class="nav-icon">📅</span> Plan de trabajo</div>
     </div>
-    <div class="nav-divider"></div>
-
-    <div data-nav="alertas" class="nav-item" onclick="go('alertas')"><span class="nav-icon">🔔</span> Alertas <span id="alertas-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:2px">0</span></div>
-    <div class="nav-divider"></div>
-
-    <div class="nav-section-label" id="nav-admin-label" onclick="toggleNavGroup('gestion')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between">
-      <span>⚙ Gestión &amp; Reclutamiento</span><span class="nav-chevron" id="chev-gestion">▾</span>
-    </div>
-    <div id="navgroup-gestion">
+    <div class="nav-divider" style="margin-top:1rem"></div>
+    <div class="nav-section-label nav-admin" id="nav-admin-label" onclick="toggleNavGroup('gestion')"><span id="nav-admin-txt">⚙ Administración</span><span class="nav-chevron" id="chev-gestion">▾</span></div>
+    <div id="navgroup-gestion" class="nav-sub">
+      <div data-nav="grupos" class="nav-item" onclick="go('grupos')"><span class="nav-icon">🔗</span> Grupos y links</div>
+      <div data-nav="asistencia" class="nav-item" id="nav-asistencia" style="display:none" onclick="go('asistencia')"><span class="nav-icon">✅</span> Asistencia</div>
       <div data-nav="selectivo" class="nav-item" id="nav-selectivo" style="display:none" onclick="go('selectivo')"><span class="nav-icon">⭐</span> Selectivo</div>
       <div data-nav="scouting" class="nav-item" id="nav-scouting" style="display:none" onclick="go('scouting')"><span class="nav-icon">🔍</span> Scouting</div>
-      <div data-nav="grupos" class="nav-item" onclick="go('grupos')"><span class="nav-icon">🔗</span> Grupos</div>
-      <div data-nav="asistencia" class="nav-item" id="nav-asistencia" style="display:none" onclick="go('asistencia')"><span class="nav-icon">✅</span> Asistencia</div>
-      <div data-nav="leads" class="nav-item" id="nav-leads" style="display:none" onclick="go('leads')"><span class="nav-icon">💼</span> Leads</div>
-      <div data-nav="crm" class="nav-item" id="nav-crm" style="display:none" onclick="go('crm')"><span class="nav-icon">🎯</span> CRM Ventas</div>
       <div data-nav="usuarios" class="nav-item" id="nav-usuarios" style="display:none" onclick="go('usuarios')"><span class="nav-icon">👤</span> Usuarios</div>
       <div data-nav="clubes" class="nav-item" id="nav-clubes" style="display:none" onclick="go('clubes')"><span class="nav-icon">🏟</span> Clubes</div>
+      <div data-nav="leads" class="nav-item" id="nav-leads" style="display:none" onclick="go('leads')"><span class="nav-icon">💼</span> Leads</div>
+      <div data-nav="crm" class="nav-item" id="nav-crm" style="display:none" onclick="go('crm')"><span class="nav-icon">🎯</span> CRM Ventas</div>
       <div data-nav="gestion" class="nav-item" id="nav-gestion" style="display:none" onclick="go('gestion')"><span class="nav-icon">📊</span> Resumen de Gestión</div>
-      <div class="sc-version" style="font-size:10px;color:#4a5a78;padding:14px 16px 10px;letter-spacing:0.03em"></div>
     </div>
+    <div class="sc-version" style="font-size:10px;color:#4a5a78;padding:14px 16px 10px;letter-spacing:0.03em"></div>
   </div>
   <div class="main">
 
@@ -3192,7 +3138,9 @@ function mostrarPanel(){
   if(navUsuarios)navUsuarios.style.display=esAdmin?'flex':'none';
   if(navClubes)navClubes.style.display=rol==='admin'?'flex':'none';
   if(navGestion)navGestion.style.display=(rol==='admin')?'flex':'none';
-  if(navAdminLabel)navAdminLabel.style.display='block';
+  if(navAdminLabel)navAdminLabel.style.display='flex';
+  const navAdminTxt=document.getElementById('nav-admin-txt');
+  if(navAdminTxt) navAdminTxt.textContent=rol==='admin'?'⚙ Administración SC360':'⚙ Administración del club';
   if(navSelectivo)navSelectivo.style.display=(esAdmin||rol==='tecnico')?'flex':'none';
   const navPlanificacion=document.getElementById('nav-planificacion');
   if(navPlanificacion)navPlanificacion.style.display=(esAdmin||rol==='tecnico')?'flex':'none';
@@ -3460,6 +3408,12 @@ async function q(path,o){
   finally{ if(cacheable) Q_VUELO.delete(path); }
 }
 
+function irCentroDecisiones(){
+  go('dashboard');
+  let n=0; const t=setInterval(function(){ const el=document.getElementById('dash-centro'); n++;
+    if(el&&el.innerHTML.trim()){ clearInterval(t); el.scrollIntoView({behavior:'smooth',block:'start'}); }
+    else if(n>40) clearInterval(t); },150);
+}
 function toggleMenuMobile(){
   document.querySelector('.sidebar').classList.toggle('mobile-open');
 }
@@ -3477,9 +3431,12 @@ function toggleNavGroup(nombre){
   try{ localStorage.setItem('navgroup_'+nombre, cerrado?'abierto':'cerrado'); }catch(e){}
 }
 function restaurarNavGroups(){
-  ['plantel','rendimiento','salud','gestion'].forEach(function(nombre){
+  ['plantel','mental','partidos','decisiones','gestion'].forEach(function(nombre){
     let estado=null;
     try{ estado=localStorage.getItem('navgroup_'+nombre); }catch(e){}
+    // Menú corto por defecto: los grupos arrancan plegados (se abre solo el de la pantalla actual).
+    // Administración queda abierta solo para el admin de SC360.
+    if(estado==null) estado=(nombre==='gestion'&&USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin')?'abierto':'cerrado';
     if(estado==='cerrado'){
       const cont=document.getElementById('navgroup-'+nombre);
       const chev=document.getElementById('chev-'+nombre);
@@ -3513,13 +3470,14 @@ function go(name){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   const navEl=document.querySelector('.nav-item[data-nav="'+name+'"]');
-  if(navEl)navEl.classList.add('active');
+  if(navEl){ navEl.classList.add('active'); const gp=navEl.closest('.nav-sub'); if(gp&&gp.style.display==='none'){ const k=gp.id.replace('navgroup-',''); toggleNavGroup(k); } }
   // Cerrar el menú desplegable mobile al elegir una pantalla
   const sb=document.querySelector('.sidebar');
   if(sb)sb.classList.remove('mobile-open');
   // Sync mobile bottom nav
   document.querySelectorAll('.mn-item').forEach(n=>n.classList.remove('active'));
-  const mn=document.getElementById('mn-'+name);
+  const MN_TAB={perfiljugador:'resultados',grupal:'resultados',cognitivo:'tracking',entreno:'tracking',recuperacion:'tracking',nutricion:'tracking',racha:'tracking',estadisticas:'postpartido',planificacion:'alertas'};
+  const mn=document.getElementById('mn-'+(MN_TAB[name]||name));
   if(mn)mn.classList.add('active');
   // Scroll mobile nav so active item is visible
   if(mn&&window.innerWidth<=768){mn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}
@@ -8920,6 +8878,7 @@ async function loadAlertas(resetVista){
   const badge=document.getElementById('alertas-badge');
   if(activas>0){badge.textContent=activas;badge.style.display='inline';}
   else{badge.style.display='none';}
+  const bd=document.getElementById('decisiones-badge'); if(bd){ bd.textContent=activas; bd.style.display=activas>0?'inline':'none'; }
   renderAlertas();
 }
 
@@ -17924,7 +17883,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='9/10/2026 · 3';
+const SC360_VERSION='9/10/2026 · 4';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
