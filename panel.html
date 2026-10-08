@@ -600,6 +600,9 @@ tr:hover td{background:#0d1b3e40}
 
         <!-- PRIMEROS PASOS — checklist de onboarding, se autooculta cuando ya no hace falta -->
         <!-- Avisos de uso del club (los mismos de "Cuentas a atender" del admin, solo con sus datos) -->
+        <!-- ¿Cómo está mi equipo? + Centro de decisiones (lo primero que ve el cuerpo técnico) -->
+        <div id="dash-30s"></div>
+        <div id="dash-centro"></div>
         <div id="dash-avisos-uso" style="display:none;margin-bottom:1rem"></div>
         <div id="dash-onboarding" style="display:none;margin-bottom:1rem;background:linear-gradient(135deg,#0d1b3e,#0a1530);border:1px solid #00c2ff33;border-radius:12px;padding:12px 14px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
@@ -17602,6 +17605,7 @@ async function idcActualizarDashboard(rL, codigosAccesibles){
     const D=await idcCargarDatos({grupoCodigos:cods, ids:jugs.flatMap(r=>r.__ids)});
     const resTodos=jugs.map(r=>idcCalcularJugador(r,D));
     dashRenderMirar(jugs,resTodos);
+    dashCentroDecisiones(jugs,resTodos,D,cods,rL);
     const res=resTodos.filter(x=>x.idc!=null);
     if(!res.length) return;
     const idcEq=Math.round(idcProm(res.map(x=>x.idc)));
@@ -17884,7 +17888,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='8/10/2026 · 6';
+const SC360_VERSION='9/10/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -18423,6 +18427,78 @@ function renderTracking(){
     '<div style="font-size:11px;color:#7c8fae;margin-top:8px">🟢 80 o más · 🟡 65 a 79 · 🔴 menos de 65 · Última evaluación de cada jugador. Tocá un jugador para ver su perfil.</div>';
   h+='</div></div>';
   box.innerHTML=h;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD DEL CLUB · "¿CÓMO ESTÁ MI EQUIPO?" + CENTRO DE DECISIONES
+// Responde en 30 segundos: disponibilidad del plantel, estado, principal
+// riesgo, jugadores a mirar, evolución, predicción y una acción recomendada.
+// Todo con reglas sobre los datos existentes (no inventa nada).
+// ═══════════════════════════════════════════════════════════════
+const ACCION_CAPA={
+  autoconocimiento:'Trabajar el autoconocimiento: una charla breve con cada jugador sobre sus fortalezas y su rol.',
+  talento:'Reforzar lo que cada uno hace mejor: tareas donde pueda mostrar su talento diferencial.',
+  regulacion:'Trabajar la respuesta al error y la respiración dentro de las tareas de la semana.',
+  energia:'Fijar objetivos cortos y alcanzables para reactivar la energía y la motivación.',
+  destreza:'Entrenar situaciones de juego con presión real, para ejecutar bajo carga.'};
+function lineaDePos(p){ const n=(p||'').toLowerCase();
+  if(/arquer|portero/.test(n)) return 'Arqueros'; if(/lateral|central|defens|zaguer|libero/.test(n)) return 'Defensa';
+  if(/volante|medio|pivote|interior|conten|enganche/.test(n)) return 'Mediocampo'; if(/extremo|delanter|punta|wing/.test(n)) return 'Ataque'; return null; }
+async function dashCentroDecisiones(jugs,res,D,cods,rL){
+  const box30=document.getElementById('dash-30s'), boxC=document.getElementById('dash-centro'); if(!box30||!boxC) return;
+  try{
+    const prom=a=>{ const v=a.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((s,x)=>s+x,0)/v.length:null; };
+    const Dp=Math.round(prom(jugs.map(r=>r.disponibilidad))||0);
+    const est=Dp>=80?['Alta','#22c55e']:Dp>=65?['Media','#f59e0b']:Dp>=50?['Baja','#f97316']:['Crítica','#ef4444'];
+    // Principal riesgo: la capa más baja del plantel
+    const capas=CAPAS_DEF_PJ.map(c=>({c,v:prom(jugs.map(r=>{ const d=r.dims||{}; const xs=c.dims.map(k=>d[k]).filter(x=>x>0); return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length/5*100:null; }))})).filter(x=>x.v!=null).sort((a,b)=>a.v-b.v);
+    const riesgo=capas[0]||null;
+    // Jugadores a mirar
+    const mirar=jugs.map((r,i)=>({r,x:res[i]})).filter(p=>(p.x&&p.x.idc!=null&&p.x.idc<65)||(p.r.disponibilidad<65)||(p.x&&p.x.reset!=null&&p.x.reset<60));
+    // Evolución: estado mental del plantel en los últimos 3 partidos contra los 3 anteriores
+    const ppAll=Object.values(D.pp||{}).flat();
+    const porPartido={}; ppAll.forEach(x=>{ const m=ppMental(x); if(m==null) return; (porPartido[x.partido_codigo]=porPartido[x.partido_codigo]||[]).push(m); });
+    const ordP=Object.keys(porPartido).sort((a,b)=>String(D.fechas[a]||'').localeCompare(String(D.fechas[b]||''))).map(k=>prom(porPartido[k]));
+    let evol=null; if(ordP.length>=4){ const n=Math.min(3,Math.floor(ordP.length/2)); evol=Math.round(prom(ordP.slice(-n))-prom(ordP.slice(-2*n,-n))); }
+    // Predicción: ventana con más goles en contra
+    let ventana=null;
+    try{ const parts=await q('partidos?grupo_codigo=in.('+cods.map(encodeURIComponent).join(',')+')&select=codigo,goles_detalle&order=fecha.desc&limit=60');
+      const contra=[0,0,0,0,0,0]; (parts||[]).forEach(p=>{ let d=p.goles_detalle; if(typeof d==='string'){ try{ d=JSON.parse(d); }catch(e){ d=null; } } (d&&d.contra||[]).forEach(g=>{ const t=predTramo(g); if(t!=null) contra[t]++; }); });
+      const TRAMO_TXT=['minutos 0–15 del 1er tiempo','minutos 15–30 del 1er tiempo','final del 1er tiempo','minutos 0–15 del 2do tiempo','minutos 15–30 del 2do tiempo','últimos 15 minutos del partido'];
+      const tot=contra.reduce((a,b)=>a+b,0); if(tot>=3){ const i=contra.indexOf(Math.max(...contra)); ventana={tramo:TRAMO_TXT[i]||PRED_TRAMOS[i],n:contra[i],tot}; } }catch(e){}
+    const accion=riesgo?ACCION_CAPA[riesgo.c.key]:'Completar los Post Partido para tener una recomendación más precisa.';
+    const kpi=(ic,t,v,sub,col)=>'<div style="flex:1 1 150px;min-width:140px;background:#0a1024;border:1px solid #1a3a6e;border-radius:10px;padding:9px 11px"><div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:0.06em">'+ic+' '+t+'</div><div style="font-size:19px;font-weight:900;color:'+(col||'#e8eff8')+';margin-top:2px;line-height:1.15">'+v+'</div>'+(sub?'<div style="font-size:10.5px;color:#7c8fae;margin-top:2px">'+sub+'</div>':'')+'</div>';
+    box30.innerHTML='<div style="background:linear-gradient(135deg,#0d1b3e,#0a1530);border:1px solid #00c2ff44;border-radius:14px;padding:12px 14px;margin-bottom:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px"><div style="font-size:16px;font-weight:900;color:#fff">¿Cómo está mi equipo?</div><div style="font-size:10.5px;color:#7c8fae;letter-spacing:0.06em">INTELIGENCIA COMPETITIVA · '+jugs.length+' JUGADORES</div></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+        kpi('🧠','DISPONIBILIDAD',Dp+' <span style="font-size:12px;color:'+est[1]+'">· '+est[0]+'</span>','promedio del plantel',est[1])+
+        kpi('⚠️','PRINCIPAL RIESGO',riesgo?riesgo.c.nombre:'—',riesgo?'la capa más baja del plantel ('+Math.round(riesgo.v)+')':'',riesgo&&riesgo.v<75?'#f59e0b':'#e8eff8')+
+        kpi('👥','JUGADORES A MIRAR',mirar.length,'disponibilidad o IDC bajo, o reset bajo',mirar.length?'#f59e0b':'#22c55e')+
+        kpi('📈','EVOLUCIÓN',evol==null?'—':(evol>0?'+':'')+evol,evol==null?'faltan Post Partido':'estado mental, últimos partidos',evol==null?'#94a3b8':evol>0?'#22c55e':evol<0?'#ef4444':'#e8eff8')+
+        kpi('🔮','PREDICCIÓN',ventana?'<span style="font-size:14px">'+ventana.tramo.charAt(0).toUpperCase()+ventana.tramo.slice(1)+'</span>':'—',ventana?'ventana con más goles en contra ('+ventana.n+' de '+ventana.tot+')':'faltan goles con minuto',ventana?'#f59e0b':'#94a3b8')+
+      '</div>'+
+      '<div style="margin-top:9px;background:#00c2ff12;border:1px solid #00c2ff44;border-radius:9px;padding:8px 11px;font-size:13px;color:#e8eff8"><b style="color:#00c2ff">🎯 Acción recomendada:</b> '+accion+'</div></div>';
+    // ── Centro de decisiones: 3 a 5 prioridades
+    const items=[];
+    const porLinea={}; jugs.forEach(r=>{ const l=lineaDePos(r.jugador_pos); if(l) (porLinea[l]=porLinea[l]||[]).push(r.disponibilidad); });
+    const lineas=Object.entries(porLinea).filter(([l,a])=>a.length>=2).map(([l,a])=>({l,v:Math.round(prom(a))})).sort((a,b)=>a.v-b.v);
+    if(lineas.length&&lineas[0].v<Dp) items.push({c:'#ef4444',t:'RIESGO',txt:'<b>'+lineas[0].l+'</b> es la línea con menor disponibilidad ('+lineas[0].v+', el plantel está en '+Dp+').'+(riesgo?' El punto más bajo del equipo es <b>'+riesgo.c.nombre+'</b>.':''),go:"go('grupal')"});
+    else if(riesgo) items.push({c:'#ef4444',t:'RIESGO',txt:'El punto más bajo del plantel es <b>'+riesgo.c.nombre+'</b> ('+Math.round(riesgo.v)+').',go:"go('grupal')"});
+    const peor=jugs.map((r,i)=>({r,x:res[i]})).filter(p=>p.x&&p.x.idc!=null).sort((a,b)=>a.x.idc-b.x.idc)[0];
+    if(peor&&peor.x.idc<75) items.push({c:'#f97316',t:'JUGADOR',txt:'<b>'+peor.r.jugador_nombre+'</b> tiene el IDC más bajo del plantel ('+peor.x.idc+')'+(peor.x.masBaja?'; lo que más lo baja: '+peor.x.masBaja.nombre.toLowerCase()+'.':'.'),go:"irAPerfilJugador('"+peor.r.id+"')"});
+    // Evolución individual: mayor suba de disponibilidad entre sus dos últimas evaluaciones
+    const hist={}; (rL||[]).forEach(r=>{ const k=r.jugador_uid||activosNorm(r.jugador_nombre); (hist[k]=hist[k]||[]).push(r); });
+    const sub=Object.values(hist).filter(a=>a.length>=2).map(a=>{ a.sort((x,y)=>String(x.fecha).localeCompare(String(y.fecha))); const u=a[a.length-1], p=a[a.length-2]; return {r:u,d:(u.disponibilidad||0)-(p.disponibilidad||0)}; }).sort((a,b)=>b.d-a.d)[0];
+    if(sub&&sub.d>=5) items.push({c:'#22c55e',t:'EVOLUCIÓN',txt:'<b>'+sub.r.jugador_nombre+'</b> mejoró su disponibilidad <b>+'+sub.d+'</b> desde su evaluación anterior.',go:"irAPerfilJugador('"+sub.r.id+"')"});
+    items.push({c:'#00c2ff',t:'ACCIÓN',txt:accion,go:"go('grupal')"});
+    if(ventana) items.push({c:'#a78bfa',t:'PREDICCIÓN',txt:'Los datos muestran una señal de riesgo en los <b>'+ventana.tramo+'</b> ('+ventana.n+' de '+ventana.tot+' goles en contra). Conviene preparar una consigna para ese momento.',go:"go('plantel')"});
+    boxC.innerHTML='<div class="tw" style="margin:0 0 12px"><div class="th" style="display:flex;justify-content:space-between;align-items:center"><span>🎯 CENTRO DE DECISIONES · QUÉ TIENE QUE SABER EL CUERPO TÉCNICO HOY</span></div><div style="padding:0.6rem 0.85rem">'+
+      items.slice(0,5).map((it,i)=>'<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;'+(i?'border-top:1px solid #1a3a6e44':'')+'">'+
+        '<span style="min-width:24px;height:24px;border-radius:50%;background:'+it.c+'22;border:1px solid '+it.c+';color:'+it.c+';font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center">'+(i+1)+'</span>'+
+        '<div style="flex:1;min-width:0"><div style="font-size:10.5px;font-weight:800;color:'+it.c+';letter-spacing:0.08em">'+it.t+'</div><div style="font-size:13px;color:#e8eff8;line-height:1.45">'+it.txt+'</div></div>'+
+        '<button onclick="'+it.go+'" style="white-space:nowrap;font-size:11.5px;padding:5px 10px;background:transparent;color:#00c2ff;border:1px solid #00c2ff55;border-radius:7px;cursor:pointer">Ver análisis →</button></div>').join('')+
+      '<div style="font-size:10.5px;color:#4a5a78;margin-top:4px">Basado en los datos cargados del plantel. Las señales no son certezas: sirven para decidir qué mirar primero.</div></div></div>';
+  }catch(e){ console.warn('Centro de decisiones:',e); }
 }
 
 // ═══════════════════════════════════════════════════════════════
