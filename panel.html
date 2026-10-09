@@ -66,7 +66,14 @@ body.es-admin .solo-admin{display:inline!important}
 .pj-tab-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1}
 @media(max-width:900px){ .pj-tab-cards{grid-template-columns:1fr} }
 @media(max-width:768px){ .dsh-tiles,.dsh-tiles.seis{grid-template-columns:repeat(2,1fr)} .dec-res{gap:6px} .dsh-tile-v{font-size:28px} .dsh-cards{grid-template-columns:1fr} .dsh-cards>.dsh-card,.dsh-cards>.dsh-card:nth-child(4),.dsh-cards>.dsh-card:nth-child(5){grid-column:span 1} #tb-rayo{display:none!important} .topbar-logo{white-space:nowrap;font-size:12px} }
-@media(max-width:440px){ .topbar-logo{display:none!important} }
+@media(max-width:440px){
+  .topbar-logo{font-size:11px!important;letter-spacing:0.02em!important;gap:5px!important}
+  .topbar-logo::before{width:6px!important;height:6px!important}
+  .topbar-sub{display:block!important;font-size:9px!important;margin-top:1px!important;white-space:nowrap}
+  .topbar .tb-txt{display:none}
+  .topbar button{padding:5px 8px!important}
+  .topbar > div:first-child{gap:8px!important}
+}
 /* Menú principal: 7 entradas claras; los grupos se despliegan */
 .nav-main{font-size:13.5px!important;font-weight:700!important;color:#cbd5e1!important;letter-spacing:0!important;text-transform:none!important;padding:10px 18px!important;cursor:pointer;display:flex!important;align-items:center;justify-content:space-between}
 .nav-main.nav-item{justify-content:flex-start}
@@ -383,7 +390,7 @@ tr:hover td{background:#0d1b3e40}
   <div style="display:flex;align-items:center;gap:10px">
     <div id="topbar-user" style="font-size:11px;color:#94a3b8;text-align:right;line-height:1.3;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
     <div id="user-rol" style="font-size:11px;color:#94a3b8;padding:4px 10px;background:#0d1b3e;border-radius:20px;border:1px solid #1a3a6e"></div>
-    <button onclick="abrirCambioPass()" style="padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:#0d1b3e;color:#b4c2d4;border:1px solid #1a3a6e">🔑 Clave</button>
+    <button onclick="abrirCambioPass()" style="padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:#0d1b3e;color:#b4c2d4;border:1px solid #1a3a6e" title="Cambiar clave">🔑<span class="tb-txt"> Clave</span></button>
     <button onclick="doLogout()" style="padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:#0d1b3e;color:#b4c2d4;border:1px solid #1a3a6e">Salir</button>
   </div>
 </div>
@@ -3112,10 +3119,12 @@ async function doLogin(){
 }
 
 async function cargarUsuario(user){
-  const resp=await fetch(SB_URL+'/rest/v1/usuarios?email=eq.'+encodeURIComponent(user.email)+'&limit=1',{
-    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(USER_ACCESS_TOKEN||SB_KEY)}
-  });
-  const data=await resp.json();
+  const H={headers:{'apikey':SB_KEY,'Authorization':'Bearer '+(USER_ACCESS_TOKEN||SB_KEY)}};
+  const em=String(user.email||'').trim().toLowerCase();
+  let resp=await fetch(SB_URL+'/rest/v1/usuarios?email=eq.'+encodeURIComponent(em)+'&limit=1',H);
+  let data=await resp.json();
+  // Si el mail se cargó con mayúsculas, se busca sin distinguir mayúsculas
+  if(!(Array.isArray(data)&&data.length)){ try{ resp=await fetch(SB_URL+'/rest/v1/usuarios?email=ilike.'+encodeURIComponent(em)+'&limit=1',H); data=await resp.json(); }catch(e){} }
   if(data&&data.length){
     USUARIO_ACTUAL=data[0];
     if(USUARIO_ACTUAL.habilitado===false){
@@ -3728,7 +3737,8 @@ function filtrarGrupos(grupos){
   // Coordinador: ve TODAS las divisiones de su club por nombre, siempre.
   // No depende de que cada división nueva se le agregue a mano a
   // grupos_codigos — evita el bug de "cargué una división y no la veo".
-  if(u.rol==='coordinador' && u.club_nombre){
+  // Excepción: coordinador marcado "solo_asignados" ve únicamente sus divisiones.
+  if(u.rol==='coordinador' && u.club_nombre && !u.solo_asignados){
     const club=normClub(u.club_nombre);
     return grupos.filter(g=>clubCoincide(g.club,club));
   }
@@ -3756,7 +3766,7 @@ function filtrarResultados(resultados){
   if(!USUARIO_ACTUAL||USUARIO_ACTUAL.rol==='admin') return resultados;
   const u=USUARIO_ACTUAL;
   // Coordinador: todo su club, según el club del GRUPO de cada test.
-  if(u.rol==='coordinador' && u.club_nombre){
+  if(u.rol==='coordinador' && u.club_nombre && !u.solo_asignados){
     const club=normClub(u.club_nombre);
     return resultados.filter(r=>clubCoincide(clubDelTest(r),club));
   }
@@ -8344,7 +8354,7 @@ async function crearClub(){
 
   // Crear perfil en tabla usuarios
   await q('usuarios',{m:'POST',b:{
-    email:coordEmail,
+    email:String(coordEmail||'').trim().toLowerCase(),
     nombre:coordNombre||coordEmail,
     rol:'coordinador',
     club_nombre:nombre+(ciudad?' — '+ciudad:''),
@@ -8492,7 +8502,7 @@ async function crearUsuario(){
 
   // Crear perfil en tabla usuarios
   const perfil=await q('usuarios',{m:'POST',b:{
-    email,nombre,rol,
+    email:String(email||'').trim().toLowerCase(),nombre,rol,
     club_nombre:USUARIO_ACTUAL?.club_nombre||'',
     grupos_codigos:grupos,
     habilitado:true,
@@ -8534,13 +8544,22 @@ async function editarUsuario(id){
       <input type="checkbox" value="${g.codigo}" ${(usuario.grupos_codigos||[]).includes(g.codigo)?'checked':''} style="width:16px;height:16px;accent-color:#00c2ff;flex-shrink:0"> ${g.nombre}
     </label>`
   ).join('') || '<div class="es">No hay divisiones creadas todavía.</div>';
+  // Coordinador: por defecto ve TODO su club; con esta opción, solo las divisiones tildadas
+  if(usuario.rol==='coordinador'){
+    document.getElementById('med-lista').insertAdjacentHTML('afterbegin',
+      `<label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:#fbbf24;padding:8px 6px;margin-bottom:6px;background:#f59e0b14;border:1px solid #f59e0b44;border-radius:8px">
+        <input type="checkbox" id="med-solo" ${usuario.solo_asignados?'checked':''} style="width:16px;height:16px;accent-color:#f59e0b;flex-shrink:0;margin-top:1px">
+        <span><b>Ver solo las divisiones tildadas</b><br><span style="color:#b4c2d4;font-size:11.5px">Si no se marca, el coordinador ve todas las divisiones de su club (también las nuevas).</span></span>
+      </label>`);
+  }
   document.getElementById('mo-editar-divisiones').classList.add('open');
 }
 
 async function guardarDivisionesUsuario(){
   if(!EDITANDO_USUARIO_ID)return;
-  const codigos=Array.from(document.querySelectorAll('#med-lista input:checked')).map(i=>i.value);
-  await q('usuarios?id=eq.'+EDITANDO_USUARIO_ID,{m:'PATCH',b:{grupos_codigos:codigos},h:{'Prefer':'return=minimal'}});
+  const codigos=Array.from(document.querySelectorAll('#med-lista input:checked')).map(i=>i.value).filter(v=>v&&v!=='on');
+  const b={grupos_codigos:codigos}; const so=document.getElementById('med-solo'); if(so) b.solo_asignados=so.checked;
+  await q('usuarios?id=eq.'+EDITANDO_USUARIO_ID,{m:'PATCH',b,h:{'Prefer':'return=minimal'}});
   cerrar('mo-editar-divisiones');
   loadUsuarios();
 }
@@ -12278,6 +12297,9 @@ async function loadSelectivo(){
     // El técnico solo ve los jugadores que él mismo marcó en Selectivo
     const miNombre=USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email||'';
     filtrados=data.filter(function(s){ return s.creado_por===miNombre; });
+  } else if(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='coordinador'&&USUARIO_ACTUAL.solo_asignados){
+    const codigos=USUARIO_ACTUAL.grupos_codigos||[];
+    filtrados=data.filter(function(s){ return s.grupo_codigo&&codigos.includes(s.grupo_codigo); });
   } else if(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='coordinador'){
     const codigos=USUARIO_ACTUAL.grupos_codigos||[];
     const clubN=normClub(USUARIO_ACTUAL.club_nombre||'');
@@ -17917,7 +17939,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='9/10/2026 · 6';
+const SC360_VERSION='9/10/2026 · 9';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
