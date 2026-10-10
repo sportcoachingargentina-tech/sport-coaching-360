@@ -89,6 +89,31 @@ body.es-admin .solo-admin{display:inline!important}
 .sidebar.mobile-open .nav-sub .nav-item{font-size:14px;padding:10px 12px}
 .sidebar.mobile-open .nav-sub .nav-icon{font-size:16px}
 .nav-admin{cursor:pointer;display:flex;align-items:center;justify-content:space-between;color:#4a6280!important}
+
+/* ── PDF del perfil del jugador: hoja propia, con el mismo diseño del Perfil ── */
+#pj-pdf{display:none}
+@media print{
+  body.pdf-pj{background:#070d1c!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body.pdf-pj *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body.pdf-pj #panel-wrap,body.pdf-pj #login-wrap,body.pdf-pj #mobile-nav,body.pdf-pj .sc-toast{display:none!important}
+  body.pdf-pj #pj-pdf{display:block!important}
+  @page{size:A4;margin:0}
+}
+.pdf-hoja{width:210mm;min-height:296mm;box-sizing:border-box;padding:9mm 10mm 8mm;background:linear-gradient(160deg,#0b1b3d 0%,#070d1c 55%,#05080f 100%);color:#e8eff8;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;display:flex;flex-direction:column;gap:4mm}
+.pdf-hoja + .pdf-hoja{break-before:page;page-break-before:always}
+.pdf-cab{display:flex;align-items:center;gap:10px;border-bottom:1px solid #00c2ff55;padding-bottom:3mm}
+.pdf-tit{font-size:10px;font-weight:800;letter-spacing:0.14em;color:#5d7391;text-transform:uppercase;margin:1mm 0 -1mm}
+.pdf-fila{display:grid;grid-template-columns:68mm 1fr;gap:5mm;align-items:center}
+.pdf-tres{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3.5mm;align-items:stretch;zoom:0.86}
+.pdf-tres > *{min-width:0;display:flex;flex-direction:column}
+.pdf-dos{display:grid;grid-template-columns:1.55fr 1fr;gap:4mm;align-items:start;zoom:0.9}
+#pj-pdf .dsh-tiles{grid-template-columns:repeat(2,1fr)!important;gap:2.5mm}
+#pj-pdf .dsh-tile{padding:2.5mm 2mm}
+#pj-pdf .dsh-tile-v{font-size:24px!important}
+#pj-pdf .dsh-card{flex:1}
+#pj-pdf .dsh-card,#pj-pdf .tw{break-inside:avoid;page-break-inside:avoid}
+#pj-pdf [onclick],#pj-pdf button{display:none!important}
+.pdf-pie{margin-top:auto;padding-top:3mm;border-top:1px solid #1a3a6e;display:flex;justify-content:space-between;gap:8px;font-size:9px;color:#5d7391}
 .topbar{background:linear-gradient(90deg,#0a0f1e 0%,#0d1b3e 60%,#0a1628 100%);border-bottom:1px solid #1a3a6e;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px}
 .topbar-logo{font-size:15px;font-weight:800;color:#fff;letter-spacing:0.04em;display:flex;align-items:center;gap:8px}
 .topbar-logo::before{content:'';display:inline-block;width:8px;height:8px;background:#00c2ff;border-radius:50%;box-shadow:0 0 8px #00c2ff}
@@ -2717,7 +2742,7 @@ tr:hover td{background:#0d1b3e40}
       <button id="pj-btn-carta" onclick="cartaParaRedes()" class="btn-p" style="padding:10px 8px;font-size:13px;white-space:nowrap" title="Imagen lista para Instagram: foto grande, número, radar, rol y fortalezas">🖼 Carta para redes</button>
       <button onclick="compartirPerfilJugador()" class="bg" style="padding:10px 8px;font-size:13px;white-space:nowrap">📤 Enviar perfil</button>
       <button id="pj-btn-estilo" onclick="compartirEstiloPensamiento()" class="bg" style="padding:10px 8px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🧠 Pedir Estilo de Pensamiento</button>
-      <button onclick="window.print()" style="padding:10px 8px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap">🖨 Imprimir / PDF</button>
+      <button onclick="imprimirPerfilPDF()" style="padding:10px 8px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap">📄 PDF del perfil</button>
     </div>
     </div>
     <!-- fin pj-left-col -->
@@ -3609,7 +3634,7 @@ async function loadG(){
     const lkEstilo=window.location.origin+window.location.pathname.replace('panel.html','estilo-pensamiento.html')+'?grupo='+g.codigo;
     const meta=[g.club,g.categoria?'Cat. '+g.categoria:'',g.deporte||g.tipo].filter(Boolean).join(' · ');
     const logoHtml=g.logo_url?`<img src="${g.logo_url}" onclick="editarLogoGrupo('${g.id}','${(g.logo_url||'').replace(/'/g,"\\'")}')" title="Tocar para cambiar el escudo" style="height:24px;width:24px;border-radius:4px;object-fit:cover;border:1px solid #1a3a6e;background:#0d1b3e;flex-shrink:0;cursor:pointer" onerror="this.style.display='none'"/>`:
-      `<div onclick="editarLogoGrupo('${g.id}','')" title="Tocar para agregar el escudo del club" style="width:24px;height:24px;border-radius:4px;background:#1a3a6e;display:flex;align-items:center;justify-content:center;font-size:11px;color:#94a3b8;flex-shrink:0;cursor:pointer">⚽</div>`;
+      `<div onclick="editarLogoGrupo('${g.id}','')" title="Tocar para subir el escudo del club" style="width:24px;height:24px;border-radius:4px;background:#1a3a6e;display:flex;align-items:center;justify-content:center;font-size:11px;color:#94a3b8;flex-shrink:0;cursor:pointer">⚽</div>`;
     const nomJs=(g.nombre||'').replace(/'/g,"\\'").replace(/"/g,'');
     return `<div class="grp-fila" style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:9px 14px;background:#0d1b3e;border:1px solid #1a3a6e22;border-radius:10px;margin-bottom:5px;transition:border-color 0.2s" onmouseover="this.style.borderColor='#1a3a6e'" onmouseout="this.style.borderColor='#1a3a6e22'">
       ${logoHtml}
@@ -3652,11 +3677,41 @@ async function editarDeporteGrupo(id,actual){
   await q('grupos?id=eq.'+id,{m:'PATCH',b:{deporte:val},h:{'Prefer':'return=minimal'}});
   loadG();
 }
+// ── ESCUDO DEL CLUB: se sube como archivo (foto o imagen del celular/PC) ──
+function elegirImagen(){ return new Promise(res=>{ const i=document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=()=>res(i.files&&i.files[0]||null); i.click(); }); }
+async function subirEscudo(file,clave){
+  const blob=await new Promise((resolve,reject)=>{ const rd=new FileReader(); rd.onload=e=>{ const img=new Image(); img.onload=()=>{
+      const max=256; let w=img.width,h=img.height; const k=Math.min(1,max/Math.max(w,h)); w=Math.round(w*k); h=Math.round(h*k);
+      const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); c.toBlob(b=>resolve(b),'image/png'); };
+    img.onerror=reject; img.src=e.target.result; }; rd.onerror=reject; rd.readAsDataURL(file); });
+  const nombre='escudo_'+String(clave||'club').replace(/[^a-z0-9]/gi,'_').toLowerCase()+'_'+Date.now()+'.png';
+  const r=await fetch(SB_URL+'/storage/v1/object/fotos-jugadores/'+nombre,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'image/png'},body:blob});
+  if(!r.ok) throw new Error('Error al subir ('+r.status+')');
+  return SB_URL+'/storage/v1/object/public/fotos-jugadores/'+nombre;
+}
+// Desde Grupos: sube el escudo y ofrece usarlo en todas las divisiones del club
 async function editarLogoGrupo(id,actual){
-  const nuevo=prompt('URL de la imagen del escudo (tiene que ser un link directo a la imagen, ej: https://miclub.com/escudo.png):', actual||'');
-  if(nuevo===null)return; // canceló
-  await q('grupos?id=eq.'+id,{m:'PATCH',b:{logo_url:nuevo.trim()||null},h:{'Prefer':'return=minimal'}});
-  loadG();
+  const g=(AG||[]).find(x=>x.id===id)||{};
+  const file=await elegirImagen(); if(!file) return;
+  try{
+    const url=await subirEscudo(file,g.club||id);
+    const club=(g.club||'').trim();
+    if(club&&confirm('¿Usar este escudo en todas las divisiones de '+club+'?')) await q('grupos?club=eq.'+encodeURIComponent(club),{m:'PATCH',b:{logo_url:url},h:{'Prefer':'return=minimal'}});
+    else await q('grupos?id=eq.'+id,{m:'PATCH',b:{logo_url:url},h:{'Prefer':'return=minimal'}});
+    loadG();
+  }catch(e){ alert('No se pudo subir el escudo: '+e.message); }
+}
+// Desde el Dashboard del club: tocar el escudo para cambiarlo (coordinador o admin)
+async function cambiarEscudoDashboard(){
+  const rol=USUARIO_ACTUAL&&USUARIO_ACTUAL.rol; if(rol!=='admin'&&rol!=='coordinador') return;
+  const gs=DASH_GRUPOS_CLUB||[]; if(!gs.length){ alert('No hay divisiones del club para asignarle el escudo.'); return; }
+  const file=await elegirImagen(); if(!file) return;
+  const box=document.getElementById('dash-club-escudo-box'); if(box) box.innerHTML='<span style="font-size:11px;color:#94a3b8">Subiendo…</span>';
+  try{
+    const url=await subirEscudo(file,gs[0].club||'club');
+    await q('grupos?id=in.('+gs.map(g=>g.id).join(',')+')',{m:'PATCH',b:{logo_url:url},h:{'Prefer':'return=minimal'}});
+    gs.forEach(g=>g.logo_url=url); dashEscudoClub(gs);
+  }catch(e){ alert('No se pudo subir el escudo: '+e.message); if(box) box.textContent='⚽'; }
 }
 async function eliminarG(btn){
   var card=btn.closest('.gc');
@@ -17939,7 +17994,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='9/10/2026 · 9';
+const SC360_VERSION='9/10/2026 · 11';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -18500,7 +18555,11 @@ function lineaDePos(p){ const n=(p||'').toLowerCase();
 function dashRingIDC(v,col){ const c=document.getElementById('dash-idc-ring'); if(!c) return;
   const n=Math.max(0,Math.min(100,parseFloat(v)||0)); const L=2*Math.PI*42;
   c.setAttribute('stroke-dasharray',(n/100*L).toFixed(1)+' '+L.toFixed(1)); if(col) c.setAttribute('stroke',col); }
-function dashEscudoClub(gs){ const box=document.getElementById('dash-club-escudo-box'); if(!box) return;
+let DASH_GRUPOS_CLUB=[];
+function dashEscudoClub(gs){ DASH_GRUPOS_CLUB=gs||[]; const box=document.getElementById('dash-club-escudo-box'); if(!box) return;
+  const puede=USUARIO_ACTUAL&&(USUARIO_ACTUAL.rol==='admin'||USUARIO_ACTUAL.rol==='coordinador');
+  if(puede){ box.style.cursor='pointer'; box.title='Tocar para cargar o cambiar el escudo del club'; box.onclick=cambiarEscudoDashboard;
+    if(!(gs||[]).some(x=>x&&x.logo_url)) box.innerHTML='<div style="text-align:center;line-height:1.1"><div style="font-size:20px">📷</div><div style="font-size:8.5px;color:#7fd8ff;font-weight:700">ESCUDO</div></div>'; }
   const g=(gs||[]).find(x=>x&&x.logo_url); if(!g) return;
   const img=new Image(); img.alt='Escudo'; img.style.cssText='width:100%;height:100%;object-fit:contain;padding:5px';
   img.onload=()=>{ box.innerHTML=''; box.appendChild(img); }; img.src=g.logo_url; }
@@ -20024,6 +20083,52 @@ async function cartaParaRedes(){
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=nombreArch; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
   }catch(e){ console.error('Carta para redes:',e); alert('No se pudo armar la carta: '+e.message); }
   finally{ if(btn) btn.textContent=t0; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PDF DEL PERFIL — arma una hoja A4 con el mismo diseño del Perfil:
+// carta + "¿Cómo está?" + D = T − I + capas y partidos (pág. 1) y
+// lectura rápida + objetivos (pág. 2). Se guarda con "Guardar como PDF".
+// No incluye la Guía del cuerpo técnico ni el análisis con IA.
+// ═══════════════════════════════════════════════════════════════
+function imprimirPerfilPDF(){
+  const r=PJ_ACTUAL; if(!r){ alert('Elegí un jugador primero.'); return; }
+  let box=document.getElementById('pj-pdf'); if(!box){ box=document.createElement('div'); box.id='pj-pdf'; document.body.appendChild(box); }
+  const H=id=>{ const el=document.getElementById(id); return el?el.innerHTML:''; };
+  const tab=document.getElementById('pj-tablero');
+  const parte=sel=>{ const el=tab&&tab.querySelector(sel); return el?el.outerHTML:''; };
+  const tiles=parte('.dsh-tiles'), cards=parte('.pj-tab-cards');
+  const foco=(()=>{ const t=tab&&tab.querySelector('.dsh-tiles'); const f=t&&t.nextElementSibling; return f&&f.textContent.trim()?f.outerHTML:''; })();
+  const carta=(document.getElementById('pj-card-visual')||{}).style&&document.getElementById('pj-card-visual').style.display!=='none'?document.getElementById('pj-card-img').src:'';
+  const logo=(document.querySelector('.topbar img')||{}).src||'';
+  const esc=document.getElementById('pj-escudo'); const escudo=esc&&esc.style.display!=='none'&&esc.src?esc.src:'';
+  const nom=r.jugador_nombre||'', club=r.jugador_club||'', fecha=new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+  const cab=(sub)=>'<div class="pdf-cab">'+(logo?'<img src="'+logo+'" style="width:34px;height:34px;border-radius:8px">':'')+
+    '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:900;letter-spacing:0.06em">SPORT COACHING 360</div><div style="font-size:9.5px;color:#7fd8ff;letter-spacing:0.05em">'+sub+'</div></div>'+
+    '<div style="text-align:right"><div style="font-size:15px;font-weight:900">'+nom+'</div><div style="font-size:10px;color:#94a3b8">'+[r.jugador_pos,club].filter(Boolean).join(' · ')+'</div></div>'+
+    (escudo?'<img src="'+escudo+'" style="width:34px;height:34px;object-fit:contain">':'')+'</div>';
+  const pie=(n)=>'<div class="pdf-pie"><span>Sport Coaching 360 · app.sportcoachingpro.com · '+fecha+'</span><span>Medir → Entender → Decidir → Mejorar · No es un diagnóstico clínico</span></div>';
+  const objetivos=H('pj-objetivos');
+  const tc=tab&&tab.querySelectorAll('.pj-tab-cards > .dsh-card');
+  const cardCapas=tc&&tc[0]?tc[0].outerHTML:'', cardPP=tc&&tc[1]?tc[1].outerHTML:'';
+  box.innerHTML=
+    '<div class="pdf-hoja">'+cab('PERFIL DE RENDIMIENTO MENTAL')+
+      '<div class="pdf-fila">'+
+        '<div>'+(carta?'<img src="'+carta+'" style="width:100%;border-radius:12px;display:block">':'')+'</div>'+
+        '<div style="display:flex;flex-direction:column;gap:3.5mm"><div style="font-size:17px;font-weight:900">¿Cómo está '+(nom.split(' ')[0]||'')+'?</div>'+tiles+foco+'</div>'+
+      '</div>'+
+      '<div class="pdf-tres"><div>'+H('pj-dti')+'</div>'+cardCapas+cardPP+'</div>'+
+      '<div class="pdf-dos"><div><div class="pdf-tit" style="margin-bottom:2mm">Lectura rápida</div>'+H('pj-lectura')+'</div>'+
+        '<div><div class="pdf-tit" style="margin-bottom:2mm">Objetivos de realización</div><div class="tw" style="margin:0;padding:3.5mm;background:rgba(255,255,255,0.03)">'+(objetivos||'<div style="font-size:12px;color:#94a3b8">Se generan a partir de sus partidos.</div>')+'</div></div></div>'+
+      pie()+
+    '</div>';
+  const titulo=document.title; document.title=nom+' — Perfil SC360';
+  document.body.classList.add('pdf-pj');
+  const fin=()=>{ document.body.classList.remove('pdf-pj'); document.title=titulo; window.removeEventListener('afterprint',fin); };
+  window.addEventListener('afterprint',fin);
+  // Esperar a que carguen las imágenes antes de abrir la ventana de impresión
+  const imgs=[...box.querySelectorAll('img')].filter(i=>!i.complete);
+  Promise.all(imgs.map(i=>new Promise(res=>{ i.onload=i.onerror=res; }))).then(()=>setTimeout(()=>window.print(),150));
 }
 
 function compartirPerfilJugador() {
