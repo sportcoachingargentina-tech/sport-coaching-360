@@ -443,6 +443,7 @@ tr:hover td{background:#0d1b3e40}
     <div class="nav-main nav-section-label" onclick="toggleNavGroup('mental')"><span><span class="nav-icon">⚡</span> Rendimiento</span><span class="nav-chevron" id="chev-mental">▾</span></div>
     <div id="navgroup-mental" class="nav-sub">
       <div data-nav="tracking" class="nav-item" onclick="go('tracking')"><span class="nav-icon">🧠</span> Tracking mental</div>
+      <div data-nav="checkin" class="nav-item" onclick="go('checkin')"><span class="nav-icon">⚡</span> Check-in diario</div>
       <div data-nav="cognitivo" class="nav-item" onclick="go('cognitivo')"><span class="nav-icon">🎯</span> Ejercicios cognitivos</div>
       <div data-nav="entreno" class="nav-item" onclick="go('entreno')"><span class="nav-icon">💪</span> Post entreno</div>
       <div data-nav="recuperacion" class="nav-item" onclick="go('recuperacion')"><span class="nav-icon">🫀</span> Recuperación</div>
@@ -2408,6 +2409,20 @@ tr:hover td{background:#0d1b3e40}
       <div id="rec-alertas" style="margin-top:1rem"></div>
     </div>
 
+    <div class="screen" id="screen-checkin">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <div>
+          <div class="page-title">⚡ Check-in diario</div>
+          <div class="page-sub" style="margin-bottom:0">Cómo llega cada jugador hoy · 5 preguntas con emojis, 30 segundos desde el celular</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select id="ck-grupo" onchange="ckCambiarGrupo(this.value)" style="padding:8px 12px;border:1px solid #1a3a6e;border-radius:8px;font-size:13px;font-weight:700;background:#0d1b3e;color:#e8eff8"></select>
+          <button class="btn-p" onclick="ckEnviarLink()" style="padding:8px 14px;font-size:12.5px">📲 Enviar link a los jugadores</button>
+        </div>
+      </div>
+      <div id="ck-contenido"><div class="es">Cargando…</div></div>
+    </div>
+
     <div class="screen" id="screen-tracking">
       <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px">
         <div><div class="page-title">🧠 Mental Performance Tracking</div>
@@ -3442,7 +3457,7 @@ const PP_PREGS_ORDEN=['Recuperación tras error','Decisión bajo presión','Conc
 //   datos viejos después de editar algo.
 // • Alertas, errores y usuarios nunca se cachean (tienen que estar al día).
 const Q_CACHE=new Map(), Q_VUELO=new Map(), Q_TTL=90000;
-const Q_SIN_CACHE=/^(alertas|errores_app|usuarios|navegacion_log)\b/;
+const Q_SIN_CACHE=/^(alertas|errores_app|usuarios|navegacion_log|checkin_diario)\b/;
 function qLimpiarCache(){ Q_CACHE.clear(); }
 // Guardados hechos con fetch directo (no por q): también vacían la caché
 (function(){ const f0=window.fetch; if(!f0||window.__qCacheFetch) return; window.__qCacheFetch=true;
@@ -3543,7 +3558,7 @@ function go(name){
   if(sb)sb.classList.remove('mobile-open');
   // Sync mobile bottom nav
   document.querySelectorAll('.mn-item').forEach(n=>n.classList.remove('active'));
-  const MN_TAB={perfiljugador:'resultados',grupal:'resultados',cognitivo:'tracking',entreno:'tracking',recuperacion:'tracking',nutricion:'tracking',racha:'tracking',estadisticas:'postpartido',planificacion:'decisiones',alertas:'decisiones'};
+  const MN_TAB={perfiljugador:'resultados',grupal:'resultados',cognitivo:'tracking',entreno:'tracking',recuperacion:'tracking',nutricion:'tracking',racha:'tracking',estadisticas:'postpartido',planificacion:'decisiones',alertas:'decisiones',checkin:'tracking'};
   const mn=document.getElementById('mn-'+(MN_TAB[name]||name));
   if(mn)mn.classList.add('active');
   // Scroll mobile nav so active item is visible
@@ -3575,6 +3590,7 @@ function go(name){
   if(name==='scouting')loadScouting();
   if(name==='perfiljugador')loadPerfilJugador();
   if(name==='decisiones')loadDecisiones();
+  if(name==='checkin')loadCheckin();
 }
 
 function toggleDeporteSelector(){
@@ -17994,7 +18010,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='9/10/2026 · 11';
+const SC360_VERSION='13/10/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -18570,6 +18586,104 @@ function dashEscudoClub(gs){ DASH_GRUPOS_CLUB=gs||[]; const box=document.getElem
 // (IDC, disponibilidad, Post Partido, alertas). Lenguaje: patrón
 // observado / variable a monitorear; nunca "va a pasar".
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// CHECK-IN DIARIO — 5 preguntas (1 a 5) que el jugador responde desde
+// checkin.html?g=CODIGO. Bienestar = promedio de las 5, llevado a 0–100.
+// ═══════════════════════════════════════════════════════════════
+const CK_VARS=[{k:'animo',n:'Ánimo',e:['😞','😕','😐','🙂','😄']},{k:'energia',n:'Energía',e:['🪫','😩','😐','💪','⚡']},{k:'sueno',n:'Sueño',e:['😫','😕','😐','😌','😴']},{k:'cuerpo',n:'Cuerpo',e:['🤕','😣','😐','🙂','💪']},{k:'ganas',n:'Ganas',e:['😒','😕','😐','😃','🔥']}];
+function ckBienestar(x){ const v=CK_VARS.map(c=>Number(x[c.k])).filter(n=>n>=1&&n<=5); return v.length?Math.round((v.reduce((a,b)=>a+b,0)/v.length-1)/4*100):null; }
+function ckHoy(){ return new Date().toLocaleDateString('en-CA',{timeZone:'America/Argentina/Buenos_Aires'}); }
+function ckDiasAtras(n){ const d=new Date(ckHoy()+'T12:00:00'); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
+// Último check-in de cada jugador por día
+function ckPorJugadorDia(rows){ const m={}; (rows||[]).forEach(x=>{ const k=idcNom(x.jugador_nombre)+'|'+x.fecha; if(!m[k]||String(x.creado_en)>String(m[k].creado_en)) m[k]=x; }); return Object.values(m); }
+// Señal de un check-in: nivel y motivos (para la pantalla y para Decisiones)
+function ckSenal(x){
+  const bajos=CK_VARS.filter(c=>Number(x[c.k])<=2).map(c=>({c,v:Number(x[c.k])}));
+  const b=ckBienestar(x);
+  const nivel=(bajos.some(z=>z.v===1)||(b!=null&&b<35))?'rojo':bajos.length?'naranja':null;
+  const FR={animo:['ánimo muy bajo','ánimo bajo'],energia:['sin energía','poca energía'],sueno:['durmió muy mal','durmió mal'],cuerpo:['dolor fuerte','molestia física'],ganas:['sin ganas','pocas ganas']};
+  const txt=bajos.map(z=>z.c.e[z.v-1]+' '+FR[z.c.k][z.v===1?0:1]).join(' · ')+(x.molestia_zona?' ('+x.molestia_zona.toLowerCase()+')':'');
+  return {nivel,txt,b};
+}
+let CK_GRUPO='';
+async function loadCheckin(){
+  const sel=document.getElementById('ck-grupo'), box=document.getElementById('ck-contenido');
+  try{
+    const gs=filtrarGrupos((await q('grupos?select=id,codigo,nombre,club,habilitado&habilitado=eq.true&order=nombre.asc'))||[]);
+    if(!gs.length){ box.innerHTML='<div class="es">No hay divisiones para mostrar.</div>'; return; }
+    let v=''; try{ v=localStorage.getItem('sc360_ck_grupo')||''; }catch(e){}
+    if(!gs.some(g=>g.codigo===v)) v=gs[0].codigo;
+    sel.innerHTML=gs.map(g=>'<option value="'+g.codigo+'"'+(g.codigo===v?' selected':'')+'>'+g.nombre+(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin'?' · '+(g.club||''):'')+'</option>').join('');
+    CK_GRUPO=v; ckRender();
+  }catch(e){ box.innerHTML='<div class="es">No se pudo cargar.</div>'; }
+}
+function ckCambiarGrupo(v){ CK_GRUPO=v; try{ localStorage.setItem('sc360_ck_grupo',v); }catch(e){} ckRender(); }
+async function ckEnviarLink(){
+  if(!CK_GRUPO) return;
+  const link=window.location.origin+window.location.pathname.replace('panel.html','checkin.html')+'?g='+CK_GRUPO;
+  const txt='⚡ Check-in diario: contale al cuerpo técnico cómo llegás hoy. Son 30 segundos, todos los días: '+link;
+  if(navigator.share){ try{ await navigator.share({title:'Check-in diario — Sport Coaching 360',text:txt}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
+  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+}
+async function ckRender(){
+  const box=document.getElementById('ck-contenido'); if(!box) return;
+  box.innerHTML='<div class="es">Cargando…</div>';
+  const g=CK_GRUPO, hoy=ckHoy();
+  const [rows,plantel]=await Promise.all([
+    q('checkin_diario?grupo_codigo=eq.'+encodeURIComponent(g)+'&fecha=gte.'+ckDiasAtras(13)+'&order=creado_en.asc&limit=4000',{sinCache:true}),
+    q('rpc/jugadores_de_grupo',{m:'POST',b:{p_codigo:g}})
+  ]);
+  if(!Array.isArray(rows)){
+    box.innerHTML='<div class="tw" style="padding:1.25rem;font-size:13px;color:#fbbf24">Falta crear la tabla del check-in: corré <b>checkin_diario.sql</b> en Supabase (SQL Editor → pegar → Run).</div>'; return; }
+  const dia=ckPorJugadorDia(rows), deHoy=dia.filter(x=>x.fecha===hoy).sort((a,b)=>(ckBienestar(a)||0)-(ckBienestar(b)||0));
+  const nombres=(Array.isArray(plantel)?plantel:[]).map(x=>x.nombre);
+  const respondio=new Set(deHoy.map(x=>idcNom(x.jugador_nombre)));
+  const faltan=nombres.filter(n=>!respondio.has(idcNom(n)));
+  const total=Math.max(nombres.length,deHoy.length);
+  const prom=a=>{ const v=a.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((s,x)=>s+x,0)/v.length:null; };
+  const bHoy=prom(deHoy.map(ckBienestar)); const colB=v=>v==null?'#94a3b8':v>=70?'#22c55e':v>=50?'#f59e0b':'#ef4444';
+  // Tendencia del equipo (14 días)
+  const serie=[]; for(let i=13;i>=0;i--){ const f=ckDiasAtras(i), d=dia.filter(x=>x.fecha===f); serie.push({f,b:prom(d.map(ckBienestar)),n:d.length}); }
+  const conDato=serie.filter(x=>x.b!=null);
+  let linea='<div style="font-size:12px;color:#7c8fae;padding:12px 0">La curva aparece con 2 días o más de check-in.</div>';
+  if(conDato.length>=2){
+    const W=320,H=100,px=14,py=16, X=i=>px+i*(W-2*px)/13, Y=v=>H-py-(v/100)*(H-2*py);
+    const pts=serie.map((x,i)=>x.b==null?null:[X(i),Y(x.b),x.b]).filter(Boolean);
+    linea='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block;margin-top:6px"><line x1="'+px+'" x2="'+(W-px)+'" y1="'+Y(70).toFixed(1)+'" y2="'+Y(70).toFixed(1)+'" stroke="#22c55e44" stroke-dasharray="4 4"/>'+
+      '<polyline points="'+pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+'" fill="none" stroke="#00c2ff" stroke-width="2.5" stroke-linejoin="round"/>'+
+      pts.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="3.5" fill="'+colB(p[2])+'" stroke="#0a1530" stroke-width="1.5"/>').join('')+'</svg>'+
+      '<div style="display:flex;justify-content:space-between;font-size:9.5px;color:#4a5a78"><span>hace 13 días</span><span>hoy</span></div>';
+  }
+  // Por variable, hoy
+  const barras=CK_VARS.map(c=>{ const v=prom(deHoy.map(x=>Number(x[c.k]))); const p=v==null?null:Math.round((v-1)/4*100), col=colB(p);
+    return '<div style="display:flex;align-items:center;gap:8px;margin:6px 0"><div style="width:88px;font-size:12.5px;color:#b4c2d4">'+(v==null?'':c.e[Math.round(v)-1])+' '+c.n+'</div><div style="flex:1;height:11px;background:#0a1024;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+(p==null?0:Math.max(4,p))+'%;background:'+col+'"></div></div><div style="width:34px;text-align:right;font-size:12.5px;font-weight:900;color:'+col+'">'+(v==null?'—':v.toFixed(1))+'</div></div>'; }).join('');
+  // Para mirar hoy + bajando
+  const mirar=[]; deHoy.forEach(x=>{ const s=ckSenal(x); const prev=dia.filter(y=>idcNom(y.jugador_nombre)===idcNom(x.jugador_nombre)&&y.fecha<hoy).map(ckBienestar).filter(v=>v!=null);
+    const pm=prev.length>=3?prom(prev):null, caida=pm!=null&&s.b!=null&&pm-s.b>=15;
+    if(s.nivel||caida) mirar.push({x,nivel:s.nivel||'naranja',txt:[s.txt,caida?'↓ '+Math.round(pm-s.b)+' puntos contra sus días anteriores':''].filter(Boolean).join(' · ')}); });
+  mirar.sort((a,b)=>(a.nivel==='rojo'?0:1)-(b.nivel==='rojo'?0:1));
+  const fila=m=>{ const col=m.nivel==='rojo'?'#ef4444':'#f59e0b';
+    return '<div class="dec-item"><span style="width:9px;height:9px;border-radius:50%;background:'+col+';margin-top:6px;flex-shrink:0"></span><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:800;color:#fff">'+m.x.jugador_nombre+' <span style="font-size:11px;color:'+colB(ckBienestar(m.x))+'">· bienestar '+ckBienestar(m.x)+'</span></div><div style="font-size:12px;color:#b4c2d4">'+m.txt+'</div>'+(m.x.comentario?'<div style="font-size:12px;color:#e8eff8;margin-top:3px;font-style:italic">💬 "'+String(m.x.comentario).replace(/</g,'&lt;')+'"</div>':'')+'</div></div>'; };
+  const tabla=deHoy.length?'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:480px"><thead><tr style="color:#7c8fae;font-size:10.5px;text-align:center"><th style="text-align:left;padding:6px 4px">JUGADOR</th>'+CK_VARS.map(c=>'<th>'+c.n.toUpperCase()+'</th>').join('')+'<th>BIENESTAR</th></tr></thead><tbody>'+
+    deHoy.map(x=>'<tr style="border-top:1px solid #1a3a6e44;text-align:center"><td style="text-align:left;padding:6px 4px;color:#e8eff8;font-weight:700">'+x.jugador_nombre+(x.comentario?' 💬':'')+'</td>'+CK_VARS.map(c=>'<td style="font-size:18px" title="'+x[c.k]+'/5">'+(c.e[x[c.k]-1]||'—')+'</td>').join('')+'<td style="font-weight:900;color:'+colB(ckBienestar(x))+'">'+ckBienestar(x)+'</td></tr>').join('')+'</tbody></table></div>':'<div style="font-size:12.5px;color:#7c8fae;padding:8px 0">Todavía nadie respondió hoy. Enviá el link al grupo con el botón de arriba.</div>';
+  const tile=(t,v,sub,col)=>'<div class="dsh-tile" style="border-color:'+col+'55"><div class="dsh-tile-t">'+t+'</div><div class="dsh-tile-v" style="color:'+col+'">'+v+'</div><div class="dsh-tile-s">'+sub+'</div></div>';
+  const pct=total?Math.round(deHoy.length/total*100):0;
+  box.innerHTML='<div class="dsh-tiles" style="margin-bottom:10px">'+
+      tile('Respondieron hoy',deHoy.length+(total?'<span style="font-size:15px;color:#7c8fae">/'+total+'</span>':''),total?pct+'% del plantel':'',pct>=70?'#22c55e':pct>=40?'#f59e0b':'#ef4444')+
+      tile('Bienestar del equipo',bHoy==null?'—':Math.round(bHoy),'promedio de hoy (0–100)',colB(bHoy))+
+      tile('Para mirar hoy',mirar.length,mirar.length?'valores bajos o en caída':'todo en orden',mirar.length?'#f59e0b':'#22c55e')+
+      tile('Sin responder',faltan.length,faltan.length?'recordales el link':'¡respondieron todos!',faltan.length?'#94a3b8':'#22c55e')+
+    '</div>'+
+    '<div class="dsh-cards" style="grid-template-columns:repeat(auto-fit,minmax(290px,1fr));align-items:start">'+
+      '<div class="dsh-card" style="grid-column:auto"><div class="dsh-card-t">🔎 Para mirar hoy · '+mirar.length+'</div>'+(mirar.length?mirar.map(fila).join(''):'<div style="font-size:12.5px;color:#7c8fae;padding:8px 0">Nadie con valores bajos hoy. 👏</div>')+'</div>'+
+      '<div class="dsh-card" style="grid-column:auto"><div class="dsh-card-t">📊 Cómo llega el equipo hoy</div>'+barras+'<div class="dsh-card-p">Promedio de 1 (mal) a 5 (excelente).</div></div>'+
+      '<div class="dsh-card" style="grid-column:auto"><div class="dsh-card-t">📈 Bienestar del equipo · 14 días</div>'+linea+'<div class="dsh-card-p">La línea punteada marca 70 (buen nivel).</div></div>'+
+    '</div>'+
+    '<div class="dsh-card" style="margin-top:10px"><div class="dsh-card-t">🗒 Respuestas de hoy</div>'+tabla+'</div>'+
+    (faltan.length?'<div class="dsh-card" style="margin-top:10px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div class="dsh-card-t">⏳ Sin responder hoy · '+faltan.length+'</div><button onclick="ckEnviarLink()" class="bg" style="padding:5px 11px;font-size:11.5px">📲 Recordar por WhatsApp</button></div><div style="font-size:12.5px;color:#b4c2d4;margin-top:6px;line-height:1.7">'+faltan.join(' · ')+'</div></div>':'')+
+    '<div style="font-size:10.5px;color:#4a5a78;margin-top:10px">Son señales para decidir qué mirar primero, no un diagnóstico. Los comentarios los ve solo el cuerpo técnico.</div>';
+}
+
 let DEC_CACHE=null;
 function decTendenciaPP(r,D){
   const a=((D.pp||{})[idcNom(r.jugador_nombre)]||[]).map(x=>({f:String(D.fechas&&D.fechas[x.partido_codigo]||''),m:ppMental(x)})).filter(x=>x.m!=null).sort((x,y)=>x.f.localeCompare(y.f));
@@ -18589,11 +18703,14 @@ function decClasificar(C){
     if(D&&D<65){ nivel='rojo'; motivos.push('disponibilidad baja ('+D+')'); }
     if(x.idc!=null&&x.idc<60){ nivel='rojo'; motivos.push('IDC '+x.idc); }
     if(t&&t.d<=-15){ nivel='rojo'; motivos.push('↓ '+Math.abs(t.d)+' puntos de estado mental en sus últimos '+t.n+' partidos'); }
+    const ck=C.ck&&C.ck[idcNom(r.jugador_nombre)]; const sk=ck?ckSenal(ck):null;
+    if(sk&&sk.nivel==='rojo'){ nivel='rojo'; motivos.push('check-in de hoy: '+sk.txt); }
     if(!nivel){
       if(D&&D<80){ nivel='naranja'; motivos.push('disponibilidad en precaución ('+D+')'); }
       if(x.idc!=null&&x.idc<75){ nivel='naranja'; motivos.push('IDC '+x.idc+(x.masBaja?' · lo que más lo baja: '+x.masBaja.nombre.toLowerCase():'')); }
       if(t&&t.d<=-8){ nivel='naranja'; motivos.push('↓ '+Math.abs(t.d)+' de estado mental en sus últimos '+t.n+' partidos'); }
       if(x.reset!=null&&x.reset<60){ nivel='naranja'; motivos.push('le cuesta reponerse después del error'); }
+      if(sk&&sk.nivel==='naranja'){ nivel='naranja'; motivos.push('check-in de hoy: '+sk.txt); }
     }
     if(!nivel){
       if(t&&t.d>=8){ nivel='verde'; motivos.push('↑ '+t.d+' de estado mental en sus últimos '+t.n+' partidos'); }
@@ -18708,7 +18825,9 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
         '<div style="display:flex;gap:5px;margin-top:4px">'+TR_CORTO.map(t=>'<div style="flex:1;text-align:center;font-size:9px;color:#4a5a78">'+t+"'</div>").join('')+'</div>'
       : '<div style="font-size:12px;color:#7c8fae;padding:10px 0">Cargá los goles con su minuto en cada partido para ver el patrón.</div>';
     const evolTxt=evol==null?'—':(evol>0?'▲ +':evol<0?'▼ ':'')+evol;
-    DEC_CACHE={jugs,res,D,cods,rL,ventana,riesgo,accion,ts:Date.now()};
+    let ck={}; try{ const cr=await q('checkin_diario?grupo_codigo=in.('+cods.map(encodeURIComponent).join(',')+')&fecha=eq.'+ckHoy()+'&order=creado_en.asc&limit=2000');
+      if(Array.isArray(cr)) cr.forEach(x=>{ ck[idcNom(x.jugador_nombre)]=x; }); }catch(e){}
+    DEC_CACHE={jugs,res,D,cods,rL,ventana,riesgo,accion,ck,ts:Date.now()};
     const K=decClasificar(DEC_CACHE), nDec=K.rojo.length+K.naranja.length;
     const recs=res.map(x=>x&&x.mod&&x.mod.recuperacion?x.mod.recuperacion.val:null).filter(v=>v!=null), recP=recs.length?Math.round(prom(recs)):null;
     const mirarTop=K.rojo.filter(i=>!i.equipo).map(i=>[i,'#ef4444']).concat(K.naranja.map(i=>[i,'#f59e0b'])).slice(0,3);
