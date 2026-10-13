@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/monitor.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Check-in diario — Sport Coaching 360</title>
+<meta property="og:title" content="⚡ Check-in diario — Sport Coaching 360">
+<meta property="og:description" content="30 segundos: contale al cuerpo técnico cómo llegás hoy.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0a0f1e">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:radial-gradient(circle at 50% -10%,#0d2a55 0%,#0a0f1e 55%);color:#e8eff8;min-height:100vh}
+.top{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-bottom:1px solid #1a3a6e}
+.top b{font-size:13px;letter-spacing:0.08em;color:#fff}
+.top span{width:8px;height:8px;border-radius:50%;background:#00c2ff;box-shadow:0 0 8px #00c2ff}
+.app{max-width:520px;margin:0 auto;padding:16px 16px 40px}
+.pant{display:none}.pant.on{display:block}
+h1{font-size:22px;font-weight:900;color:#fff;line-height:1.2}
+h1 em{font-style:normal;color:#00c2ff}
+.sub{font-size:13.5px;color:#94a3b8;margin:6px 0 16px;line-height:1.5}
+.card{background:#0d1b3e;border:1px solid #1a3a6e;border-radius:16px;padding:14px;margin-bottom:12px}
+label.l{display:block;font-size:12px;color:#94a3b8;margin-bottom:6px;font-weight:700;letter-spacing:0.04em}
+select,input,textarea{width:100%;padding:12px;border:1px solid #1a3a6e;border-radius:12px;font-size:15px;background:#0a1024;color:#e8eff8;font-family:inherit;-webkit-appearance:none}
+textarea{min-height:64px;resize:vertical}
+.btn{width:100%;padding:15px;border:none;border-radius:14px;font-size:16px;font-weight:800;background:#00c2ff;color:#06182b;cursor:pointer;margin-top:6px}
+.btn:disabled{background:#1a3a6e;color:#7c8fae}
+.q{background:#0d1b3e;border:1px solid #1a3a6e;border-radius:16px;padding:13px 12px 11px;margin-bottom:10px;transition:border-color .2s}
+.q.ok{border-color:#00c2ff66}
+.q-t{font-size:15px;font-weight:800;color:#fff;margin-bottom:10px}
+.q-t small{display:block;font-size:11.5px;font-weight:500;color:#7c8fae;margin-top:2px}
+.emos{display:flex;gap:6px}
+.emo{flex:1;border:1px solid #1a3a6e;background:#0a1024;border-radius:12px;padding:8px 0 6px;text-align:center;cursor:pointer;transition:all .15s;user-select:none}
+.emo i{display:block;font-style:normal;font-size:28px;line-height:1.1;filter:grayscale(0.35)}
+.emo span{display:block;font-size:9.5px;color:#7c8fae;margin-top:3px;font-weight:600}
+.emo.sel{border-color:#00c2ff;background:#00c2ff1f;transform:scale(1.06)}
+.emo.sel i{filter:none}
+.emo.sel span{color:#00c2ff}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{padding:7px 12px;border:1px solid #1a3a6e;border-radius:20px;font-size:12.5px;color:#b4c2d4;cursor:pointer;background:#0a1024}
+.chip.sel{border-color:#f59e0b;color:#fbbf24;background:#f59e0b18}
+.prog{height:5px;background:#0d1b3e;border-radius:4px;overflow:hidden;margin:4px 0 12px}
+.prog div{height:100%;width:0;background:linear-gradient(90deg,#00c2ff,#22c55e);transition:width .3s}
+.yo{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#b4c2d4;margin-bottom:10px}
+.yo a{color:#00c2ff;font-size:12px;cursor:pointer}
+.fin{text-align:center;padding:40px 10px}
+.fin .big{font-size:64px}
+.racha{display:inline-block;margin-top:14px;padding:8px 16px;border-radius:20px;background:#f59e0b18;border:1px solid #f59e0b55;color:#fbbf24;font-weight:800;font-size:14px}
+.nota{font-size:11px;color:#4a5a78;text-align:center;margin-top:14px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="top"><span></span><b>SPORT COACHING 360</b></div>
+<div class="app">
+
+  <!-- 1 · Quién sos (solo la primera vez en este celular) -->
+  <div class="pant" id="p-nombre">
+    <h1>Check-in <em>diario</em> ⚡</h1>
+    <div class="sub">30 segundos para contarle al cuerpo técnico cómo llegás hoy. Lo hacés una vez y este celular te recuerda.</div>
+    <div class="card">
+      <label class="l">TU NOMBRE</label>
+      <select id="f-sel" style="display:none" onchange="elegirLista()"></select>
+      <input id="f-nombre" placeholder="Nombre y apellido" autocomplete="name">
+      <div id="f-ayuda" style="display:none;font-size:11.5px;color:#7c8fae;margin-top:6px">Tocá tu nombre. Si no aparecés, elegí "No estoy en la lista".</div>
+    </div>
+    <button class="btn" onclick="confirmarNombre()">Empezar →</button>
+    <div id="sin-grupo" style="display:none;font-size:13px;color:#f59e0b;margin-top:12px;text-align:center">Este link no tiene el código del grupo. Pedile el link correcto a tu entrenador.</div>
+  </div>
+
+  <!-- 2 · Las 5 preguntas -->
+  <div class="pant" id="p-form">
+    <div class="yo"><span>👋 <b id="yo-nombre"></b></span><a onclick="cambiarNombre()">No soy yo</a></div>
+    <h1 style="font-size:19px">¿Cómo llegás <em>hoy</em>?</h1>
+    <div class="prog"><div id="prog"></div></div>
+    <div id="preguntas"></div>
+    <div class="q" id="q-coment">
+      <div class="q-t">¿Algo que quieras contarle al cuerpo técnico? <small>Opcional · lo ve solo el cuerpo técnico</small></div>
+      <textarea id="f-coment" maxlength="300" placeholder="Escribí acá si querés…"></textarea>
+    </div>
+    <button class="btn" id="btn-enviar" disabled onclick="enviar()">Enviar check-in</button>
+    <div class="nota">Tus respuestas ayudan a cuidar tu rendimiento. No son un diagnóstico.</div>
+  </div>
+
+  <!-- 3 · Listo -->
+  <div class="pant" id="p-fin">
+    <div class="fin">
+      <div class="big">✅</div>
+      <h1 style="margin-top:8px">¡Listo, <em id="fin-nombre"></em>!</h1>
+      <div class="sub" id="fin-txt">Tu check-in ya le llegó al cuerpo técnico. Mañana de nuevo.</div>
+      <div class="racha" id="fin-racha" style="display:none"></div>
+      <div style="margin-top:22px"><a onclick="mostrar('p-form')" style="color:#7c8fae;font-size:12.5px;cursor:pointer;text-decoration:underline">Corregir mis respuestas</a></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB='https://gltqhcnusblfovhxljcs.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI';
+const P=new URLSearchParams(location.search);
+const GRUPO=(P.get('g')||P.get('grupo')||'').trim().toUpperCase();
+const K_NOM='sc360_checkin_nombre_'+GRUPO, K_DIAS='sc360_checkin_dias_'+GRUPO;
+// 5 preguntas, escala 1 (mal) a 5 (excelente)
+const PREG=[
+  {k:'animo',  t:'¿Cómo te sentís de ánimo?',     e:['😞','😕','😐','🙂','😄'], l:['Muy mal','Mal','Normal','Bien','Muy bien']},
+  {k:'energia',t:'¿Cuánta energía tenés?',         e:['🪫','😩','😐','💪','⚡'], l:['Nada','Poca','Normal','Bastante','A full']},
+  {k:'sueno',  t:'¿Cómo dormiste anoche?',          e:['😫','😕','😐','😌','😴'], l:['Muy mal','Mal','Normal','Bien','Excelente']},
+  {k:'cuerpo', t:'¿Cómo está tu cuerpo?',           e:['🤕','😣','😐','🙂','💪'], l:['Dolor fuerte','Molestia','Algo cargado','Bien','Perfecto'], sub:'Molestias, dolores o cansancio físico'},
+  {k:'ganas',  t:'¿Con cuántas ganas venís a entrenar?', e:['😒','😕','😐','😃','🔥'], l:['Ninguna','Pocas','Normal','Muchas','A full']},
+];
+const ZONAS=['Tobillo','Rodilla','Muslo','Gemelo','Cadera / ingle','Espalda','Hombro','Otra'];
+let R={}, zona=null, nombre='';
+const hoy=()=>new Date().toLocaleDateString('en-CA',{timeZone:'America/Argentina/Buenos_Aires'});
+function mostrar(id){ document.querySelectorAll('.pant').forEach(p=>p.classList.toggle('on',p.id===id)); window.scrollTo(0,0); }
+function esc(t){ return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function render(){
+  document.getElementById('preguntas').innerHTML=PREG.map(p=>
+    '<div class="q'+(R[p.k]?' ok':'')+'" id="q-'+p.k+'"><div class="q-t">'+p.t+(p.sub?'<small>'+p.sub+'</small>':'')+'</div><div class="emos">'+
+    p.e.map((em,i)=>'<div class="emo'+(R[p.k]===i+1?' sel':'')+'" onclick="elegir(\''+p.k+'\','+(i+1)+')"><i>'+em+'</i><span>'+p.l[i]+'</span></div>').join('')+'</div>'+
+    (p.k==='cuerpo'&&R.cuerpo&&R.cuerpo<=2?'<div style="font-size:12px;color:#fbbf24;margin-top:10px;font-weight:700">¿Dónde?</div><div class="chips">'+ZONAS.map(z=>'<div class="chip'+(zona===z?' sel':'')+'" onclick="elegirZona(\''+z+'\')">'+z+'</div>').join('')+'</div>':'')+
+    '</div>').join('');
+  const n=PREG.filter(p=>R[p.k]).length;
+  document.getElementById('prog').style.width=(n/PREG.length*100)+'%';
+  document.getElementById('btn-enviar').disabled=n<PREG.length;
+}
+function elegir(k,v){ R[k]=v; if(k==='cuerpo'&&v>2) zona=null; render();
+  // pasar solo a la siguiente pregunta sin respuesta
+  const sig=PREG.find(p=>!R[p.k]); if(sig){ const el=document.getElementById('q-'+sig.k); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); } }
+function elegirZona(z){ zona=zona===z?null:z; render(); }
+
+async function cargarLista(){
+  if(!GRUPO) return;
+  try{
+    const r=await fetch(SB+'/rest/v1/rpc/jugadores_de_grupo',{method:'POST',headers:{apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify({p_codigo:GRUPO})});
+    const l=r.ok?await r.json():[];
+    const ns=(l||[]).map(x=>x.nombre).filter(Boolean).sort((a,b)=>a.localeCompare(b,'es'));
+    if(!ns.length) return;
+    const sel=document.getElementById('f-sel');
+    sel.innerHTML='<option value="">— Tocá tu nombre —</option>'+ns.map(n=>'<option>'+esc(n)+'</option>').join('')+'<option value="__otro">No estoy en la lista</option>';
+    sel.style.display='block'; document.getElementById('f-nombre').style.display='none'; document.getElementById('f-ayuda').style.display='block';
+  }catch(e){}
+}
+function elegirLista(){ const s=document.getElementById('f-sel'), i=document.getElementById('f-nombre');
+  if(s.value==='__otro'){ i.style.display='block'; i.value=''; i.focus(); } else { i.style.display='none'; i.value=s.value; } }
+function confirmarNombre(){
+  const n=document.getElementById('f-nombre').value.trim().replace(/\s+/g,' ');
+  if(!GRUPO){ document.getElementById('sin-grupo').style.display='block'; return; }
+  if(n.length<3){ alert('Elegí o escribí tu nombre y apellido.'); return; }
+  nombre=n; try{ localStorage.setItem(K_NOM,n); }catch(e){}
+  irAlForm();
+}
+function cambiarNombre(){ try{ localStorage.removeItem(K_NOM); }catch(e){} nombre=''; mostrar('p-nombre'); cargarLista(); }
+function irAlForm(){ document.getElementById('yo-nombre').textContent=nombre; render(); mostrar('p-form'); }
+
+function rachaDias(){
+  let d=[]; try{ d=JSON.parse(localStorage.getItem(K_DIAS)||'[]'); }catch(e){}
+  const h=hoy(); if(!d.includes(h)) d.push(h); d=d.slice(-60); try{ localStorage.setItem(K_DIAS,JSON.stringify(d)); }catch(e){}
+  let n=0; const f=new Date(h+'T12:00:00');
+  while(d.includes(f.toISOString().slice(0,10))){ n++; f.setDate(f.getDate()-1); }
+  return n;
+}
+let enviando=false;
+async function enviar(){
+  if(enviando) return; enviando=true;
+  const b=document.getElementById('btn-enviar'); b.disabled=true; b.textContent='Enviando…';
+  const datos={fecha:hoy(),grupo_codigo:GRUPO,jugador_nombre:nombre,animo:R.animo,energia:R.energia,sueno:R.sueno,cuerpo:R.cuerpo,ganas:R.ganas,
+    molestia_zona:R.cuerpo<=2?(zona||null):null,comentario:document.getElementById('f-coment').value.trim()||null};
+  let ok=false;
+  try{
+    const r=await fetch(SB+'/rest/v1/checkin_diario',{method:'POST',headers:{apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(datos)});
+    ok=r.ok;
+  }catch(e){}
+  let txt='Tu check-in ya le llegó al cuerpo técnico. Mañana de nuevo.';
+  if(!ok){ // sin señal: queda guardado en el celular y se envía solo al volver la conexión
+    if(window.SC360_guardarPendiente) window.SC360_guardarPendiente('checkin_diario',datos);
+    txt='No hay señal ahora: tu check-in quedó guardado en este celular y se envía solo cuando vuelva la conexión.';
+  }
+  const n=rachaDias();
+  document.getElementById('fin-nombre').textContent=nombre.split(' ')[0];
+  document.getElementById('fin-txt').textContent=txt;
+  const rc=document.getElementById('fin-racha'); if(n>=2){ rc.textContent='🔥 '+n+' días seguidos'; rc.style.display='inline-block'; } else rc.style.display='none';
+  b.textContent='Enviar check-in'; enviando=false;
+  mostrar('p-fin');
+}
+
+(function iniciar(){
+  try{ nombre=localStorage.getItem(K_NOM)||''; }catch(e){}
+  if(!GRUPO){ mostrar('p-nombre'); document.getElementById('sin-grupo').style.display='block'; return; }
+  if(nombre) irAlForm(); else { mostrar('p-nombre'); cargarLista(); }
+})();
+</script>
+</body>
+</html>
