@@ -2429,11 +2429,17 @@ tr:hover td{background:#0d1b3e40}
           <div style="font-size:13px;color:#c4b5fd;font-weight:800;letter-spacing:0.04em;margin-top:2px">AHORA LO MENTAL SE MIDE</div>
           <div style="font-size:11.5px;color:#7c8fae">Diagnosticar · Medir · Evolucionar · Analizar · Predecir · Decidir</div></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <select id="trk-grupo" onchange="renderTracking()" style="padding:8px 10px;background:#0d1b3e;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px"></select>
-          <select id="trk-var" onchange="renderTracking()" style="padding:8px 10px;background:#0d1b3e;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px" title="Variable del mapa del equipo"></select>
+          <select id="trk-grupo" onchange="renderTracking();ppaCargar()" style="padding:8px 10px;background:#0d1b3e;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px"></select>
+          <select id="trk-var" onchange="renderTracking()" style="display:none;padding:8px 10px;background:#0d1b3e;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px" title="Variable del mapa del equipo"></select>
         </div>
       </div>
-      <div id="trk-cuerpo"></div>
+      <div class="pp-tab-bar" style="margin-bottom:12px">
+        <div class="pp-tab active" id="trk-tab-partidos" onclick="trkTab('partidos')">⚽ Partido a partido</div>
+        <div class="pp-tab" id="trk-tab-procesos" onclick="trkTab('procesos')">🧠 Procesos</div>
+        <div class="pp-tab" id="trk-tab-mapa" onclick="trkTab('mapa')">🗺 Mapa del equipo</div>
+      </div>
+      <div id="trk-partidos"></div>
+      <div id="trk-cuerpo" style="display:none"></div>
     </div>
     <div class="screen" id="screen-evolucion">
       <div class="page-title">Evolución</div>
@@ -18010,7 +18016,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='13/10/2026 · 1';
+const SC360_VERSION='15/10/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -18481,7 +18487,7 @@ async function mptFinalizar(id){
 // Categorías (nunca "buenos" o "malos"): Evolución favorable · Requiere
 // seguimiento · Interferencia relevante.
 // ═══════════════════════════════════════════════════════════════
-let TRK={grupo:'',res:[],ints:[],variable:'regulacion'};
+let TRK={grupo:'',res:[],ints:[],variable:'regulacion',tab:'partidos'};
 async function loadTracking(){
   const sel=document.getElementById('trk-grupo');
   const gs=filtrarGrupos(AG&&AG.length?AG:(await q('grupos?order=nombre.asc')||[]));
@@ -18492,9 +18498,162 @@ async function loadTracking(){
   try{
     const [res,ints]=await Promise.all([q('resultados?order=fecha.asc&limit=3000'),q('intervenciones?order=fecha_inicio.desc&limit=1000')]);
     TRK.res=filtrarResultados(Array.isArray(res)?res:[]); TRK.ints=Array.isArray(ints)?ints:[];
-    renderTracking();
+    renderTracking(); ppaCargar();
   }catch(e){ if(cuerpo) cuerpo.innerHTML='<div class="es">No se pudo cargar.</div>'; }
 }
+// ═══════════════════════════════════════════════════════════════
+// TRACKING · PARTIDO A PARTIDO — estado emocional y cognitivo después de
+// cada partido (Post Partido del jugador). 3 niveles: resumen (dirigente),
+// último partido (DT) y análisis (psicólogo). Es autopercepción del
+// jugador: se lee como "cómo lo vivió", junto a la mirada del DT.
+// ═══════════════════════════════════════════════════════════════
+const PPA_EMO=[1,4,5,6,7,11,12,13,16], PPA_COG=[2,3,8,9,10,14,15];
+const PPA_EJES=[{n:'Control emocional',q:[7,13]},{n:'Reacción al error',q:[1,4,16]},{n:'Foco',q:[3,5]},{n:'Decisión',q:[2,10,14]},{n:'Confianza',q:[6,9,15]},{n:'Energía y disfrute',q:[8,11,12]}];
+const PPA_MIN_RESP=4, PPA_MIN_PART=3;
+let PPA={rows:[],dt:[],partidos:{},jug:''};
+function trkTab(t){
+  TRK.tab=t; ['partidos','procesos','mapa'].forEach(k=>document.getElementById('trk-tab-'+k).classList.toggle('active',k===t));
+  document.getElementById('trk-partidos').style.display=t==='partidos'?'block':'none';
+  document.getElementById('trk-cuerpo').style.display=t==='partidos'?'none':'block';
+  document.getElementById('trk-var').style.display=t==='mapa'?'':'none';
+  if(t==='partidos') ppaRender(); else renderTracking();
+}
+function ppaQ(x,qs){ const v=qs.map(i=>x['q'+i]).filter(a=>a!=null&&a!=='').map(Number).filter(n=>!isNaN(n)); return v.length?v.reduce((a,b)=>a+b,0)/v.length*10:null; }
+function ppaProm(a){ const v=a.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((s,x)=>s+x,0)/v.length:null; }
+async function ppaCargar(){
+  const box=document.getElementById('trk-partidos'); if(!box) return;
+  box.innerHTML='<div class="es">Cargando partidos…</div>';
+  try{
+    const g=document.getElementById('trk-grupo').value;
+    let cods=g?[g]:filtrarGrupos((AG&&AG.length)?AG:((await q('grupos?select=codigo,club,nombre'))||[])).map(x=>x.codigo);
+    if(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin'&&!g) cods=null;
+    const f=cods?('grupo_codigo=in.('+(cods.length?cods.map(encodeURIComponent).join(','):'__ninguno__')+')&'):'';
+    const [rows,dt,parts]=await Promise.all([
+      q('postpartido_jugador?'+f+'select=jugador_nombre,jugador_uid,partido_codigo,grupo_codigo,situaciones,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12,q13,q14,q15,q16&limit=5000'),
+      q('postpartido_dt?'+f+'select=jugador_nombre,partido_codigo,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12&limit=5000'),
+      q('partidos?'+f+'select=codigo,fecha,rival,goles_favor,goles_contra&limit=2000')
+    ]);
+    PPA.rows=(Array.isArray(rows)?rows:[]).filter(x=>ppMental(x)!=null);
+    PPA.dt=Array.isArray(dt)?dt:[];
+    PPA.partidos={}; (Array.isArray(parts)?parts:[]).forEach(p=>PPA.partidos[p.codigo]=p);
+    ppaRender();
+  }catch(e){ box.innerHTML='<div class="es">No se pudo cargar el Post Partido.</div>'; }
+}
+function ppaColor(v){ return v==null?'#4a5a78':v>=80?'#22c55e':v>=65?'#00c2ff':v>=50?'#f59e0b':'#ef4444'; }
+function ppaLinea(series,labels,opts){
+  // series: [{n,c,v:[...]}], labels: [...]
+  const W=640,H=180,px=34,py=18, n=labels.length; if(n<2) return '';
+  const all=series.flatMap(s=>s.v).filter(v=>v!=null); const mn=Math.max(0,Math.floor((Math.min(...all,60)-5)/10)*10), mx=Math.min(100,Math.ceil((Math.max(...all,85)+5)/10)*10);
+  const X=i=>px+i*(W-px-12)/(n-1), Y=v=>H-py-(v-mn)/(mx-mn)*(H-2*py);
+  let g='';
+  [mn,(mn+mx)/2,mx].forEach(t=>{ g+='<line x1="'+px+'" x2="'+(W-12)+'" y1="'+Y(t).toFixed(1)+'" y2="'+Y(t).toFixed(1)+'" stroke="#1a3a6e" stroke-width="1"/><text x="'+(px-6)+'" y="'+(Y(t)+4).toFixed(1)+'" fill="#7c8fae" font-size="10" text-anchor="end">'+Math.round(t)+'</text>'; });
+  series.forEach(s=>{ const pts=s.v.map((v,i)=>v==null?null:[X(i),Y(v),v]).filter(Boolean); if(pts.length<2) return;
+    g+='<polyline points="'+pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+'" fill="none" stroke="'+s.c+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    g+=pts.map(p=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(opts&&opts.colorPuntos?5:3.5)+'" fill="'+(opts&&opts.colorPuntos?ppaColor(p[2]):s.c)+'" stroke="#0a1530" stroke-width="1.5"><title>'+Math.round(p[2])+'</title></circle>').join(''); });
+  const paso=Math.ceil(n/10);
+  g+=labels.map((l,i)=>i%paso===0||i===n-1?'<text x="'+X(i).toFixed(1)+'" y="'+(H-2)+'" fill="#7c8fae" font-size="9.5" text-anchor="middle">'+l+'</text>':'').join('');
+  const ley=series.length>1?'<div style="display:flex;gap:14px;font-size:11.5px;color:#b4c2d4;margin-top:4px">'+series.map(s=>'<span><span style="display:inline-block;width:12px;height:3px;background:'+s.c+';vertical-align:middle;margin-right:5px"></span>'+s.n+'</span>').join('')+'</div>':'';
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block" role="img" aria-label="Evolución por partido">'+g+'</svg>'+ley;
+}
+function ppaRadar(a,b){
+  // a: valores de este partido, b: promedio (6 ejes, 0-100)
+  const S=260,c=S/2,R=92, N=PPA_EJES.length, ang=i=>-Math.PI/2+i*2*Math.PI/N;
+  const pt=(i,v)=>[c+Math.cos(ang(i))*R*(v||0)/100, c+Math.sin(ang(i))*R*(v||0)/100];
+  let g='';
+  [25,50,75,100].forEach(r=>{ g+='<polygon points="'+PPA_EJES.map((_,i)=>pt(i,r).map(n=>n.toFixed(1)).join(',')).join(' ')+'" fill="none" stroke="#1a3a6e" stroke-width="1"/>'; });
+  PPA_EJES.forEach((e,i)=>{ const [x,y]=pt(i,100); g+='<line x1="'+c+'" y1="'+c+'" x2="'+x.toFixed(1)+'" y2="'+y.toFixed(1)+'" stroke="#1a3a6e"/>';
+    const [lx,ly]=pt(i,122); g+='<text x="'+lx.toFixed(1)+'" y="'+(ly+3).toFixed(1)+'" fill="#b4c2d4" font-size="10" text-anchor="'+(Math.abs(lx-c)<10?'middle':lx>c?'start':'end')+'">'+e.n+'</text>'; });
+  const poly=(v,col,fill,dash)=>'<polygon points="'+v.map((x,i)=>pt(i,x).map(n=>n.toFixed(1)).join(',')).join(' ')+'" fill="'+fill+'" stroke="'+col+'" stroke-width="2"'+(dash?' stroke-dasharray="5 4"':'')+'/>';
+  if(b) g+=poly(b,'#94a3b8','none',true);
+  if(a) g+=poly(a,'#00c2ff','rgba(0,194,255,0.22)');
+  return '<svg viewBox="-60 -10 '+(S+120)+' '+(S+20)+'" style="width:100%;max-width:380px;height:auto;display:block;margin:0 auto" role="img" aria-label="Huella mental: este partido contra el promedio">'+g+'</svg>'+
+    '<div style="display:flex;gap:14px;justify-content:center;font-size:11.5px;color:#b4c2d4"><span><span style="display:inline-block;width:12px;height:3px;background:#00c2ff;vertical-align:middle;margin-right:5px"></span>Este partido</span><span><span style="display:inline-block;width:12px;height:0;border-top:2px dashed #94a3b8;vertical-align:middle;margin-right:5px"></span>Promedio</span></div>';
+}
+function ppaRender(){
+  const box=document.getElementById('trk-partidos'); if(!box||TRK.tab!=='partidos') return;
+  const rows=PPA.rows;
+  if(!rows.length){ box.innerHTML='<div class="tw" style="padding:1.25rem"><div class="es">Todavía no hay Post Partido cargados en este plantel. Cuando los jugadores completen el Post Partido, acá vas a ver cómo vivió el equipo cada partido.</div></div>'; return; }
+  // Agrupar por partido, ordenados por fecha
+  const porP={}; rows.forEach(x=>{ (porP[x.partido_codigo]=porP[x.partido_codigo]||[]).push(x); });
+  const fecha=c=>String((PPA.partidos[c]||{}).fecha||''); 
+  const partidos=Object.keys(porP).filter(c=>porP[c].length>=PPA_MIN_RESP).sort((a,b)=>fecha(a).localeCompare(fecha(b)));
+  const etiqueta=(c,i)=>{ const p=PPA.partidos[c]||{}; return p.rival?String(p.rival).split(' ')[0].slice(0,9):'F'+(i+1); };
+  const serie=partidos.map(c=>({c,n:porP[c].length,m:ppaProm(porP[c].map(ppMental)),e:ppaProm(porP[c].map(x=>ppaQ(x,PPA_EMO))),g:ppaProm(porP[c].map(x=>ppaQ(x,PPA_COG)))}));
+  const labels=partidos.map(etiqueta);
+  const k=Math.min(3,Math.floor(serie.length/2));
+  const actual=serie.length?ppaProm(serie.slice(-Math.max(1,Math.min(3,serie.length))).map(s=>s.m)):null;
+  const delta=serie.length>=PPA_MIN_PART*2-1&&k>=1?Math.round(ppaProm(serie.slice(-k).map(s=>s.m))-ppaProm(serie.slice(0,k).map(s=>s.m))):null;
+  let h='';
+  // ── NIVEL 1 · RESUMEN (dirigente)
+  h+='<div class="dsh-card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap"><div class="dsh-card-t">📊 Resumen de la temporada</div><div style="font-size:11px;color:#7c8fae">'+serie.length+' partidos con Post Partido · cómo lo vivieron los jugadores</div></div>'+
+    '<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-top:8px">'+
+      '<div style="min-width:150px"><div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:0.08em">ESTADO MENTAL ACTUAL</div><div style="font-size:42px;font-weight:900;line-height:1.05;color:'+ppaColor(actual)+'">'+(actual==null?'—':Math.round(actual))+'</div><div style="font-size:11px;color:#7c8fae">promedio de los últimos partidos</div></div>'+
+      '<div style="min-width:150px"><div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:0.08em">DESDE EL INICIO</div><div style="font-size:42px;font-weight:900;line-height:1.05;color:'+(delta==null?'#94a3b8':delta>0?'#22c55e':delta<0?'#ef4444':'#e8eff8')+'">'+(delta==null?'—':(delta>0?'▲ +':delta<0?'▼ ':'')+delta)+'</div><div style="font-size:11px;color:#7c8fae">'+(delta==null?'hacen falta al menos '+(PPA_MIN_PART*2-1)+' partidos':'puntos: primeros vs. últimos partidos')+'</div></div>'+
+      '<div style="flex:1 1 320px;min-width:0">'+(serie.length>=2?ppaLinea([{n:'Estado mental',c:'#00c2ff',v:serie.map(s=>s.m)}],labels,{colorPuntos:true}):'<div style="font-size:12px;color:#7c8fae">La línea aparece con 2 partidos o más.</div>')+'</div>'+
+    '</div><div class="dsh-card-p">Cada punto es un partido: 🟢 80+ · 🔵 65–79 · 🟠 50–64 · 🔴 menos de 50. Se cuentan partidos con al menos '+PPA_MIN_RESP+' respuestas.</div></div>';
+  // ── NIVEL 2 · ÚLTIMO PARTIDO (DT)
+  const ult=serie[serie.length-1];
+  if(ult){
+    const R=porP[ult.c], P=PPA.partidos[ult.c]||{};
+    const bandas=[['😄','Muy bien',v=>v>=80,'#22c55e'],['🙂','Bien',v=>v>=65&&v<80,'#00c2ff'],['😐','Regular',v=>v>=50&&v<65,'#f59e0b'],['😕','Mal',v=>v>=35&&v<50,'#f97316'],['😞','Muy mal',v=>v<35,'#ef4444']];
+    const ms=R.map(ppMental);
+    const termo=bandas.map(b=>{ const n=ms.filter(b[2]).length, pc=Math.round(n/ms.length*100);
+      return '<div style="display:flex;align-items:center;gap:8px;margin:5px 0"><span style="font-size:18px;width:24px">'+b[0]+'</span><span style="width:62px;font-size:12px;color:#b4c2d4">'+b[1]+'</span><div style="flex:1;height:12px;background:#0a1024;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+pc+'%;background:'+b[3]+'"></div></div><b style="width:52px;text-align:right;font-size:12.5px;color:'+b[3]+'">'+pc+'% <span style="color:#7c8fae;font-weight:500">('+n+')</span></b></div>'; }).join('');
+    const eS=ppaProm(serie.map(s=>s.e)), gS=ppaProm(serie.map(s=>s.g));
+    const dE=ult.e!=null&&eS!=null?Math.round(ult.e-eS):null, dG=ult.g!=null&&gS!=null?Math.round(ult.g-gS):null;
+    const cifra=(t,v,d)=>'<div style="flex:1;min-width:120px;background:#0a1024;border:1px solid #1a3a6e;border-radius:10px;padding:9px 11px"><div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:0.07em">'+t+'</div><div style="font-size:26px;font-weight:900;color:'+ppaColor(v)+'">'+(v==null?'—':Math.round(v))+'</div><div style="font-size:11px;color:'+(d==null?'#7c8fae':d>=0?'#22c55e':'#ef4444')+'">'+(d==null?'':(d>=0?'+':'')+d+' vs. su promedio')+'</div></div>';
+    let accion='El equipo estuvo parejo en lo emocional y en lo cognitivo.';
+    if(ult.e!=null&&ult.g!=null){ if(ult.e<=ult.g-5) accion='<b>Lo que costó fue lo emocional</b> (reacción al error, eje ante la adversidad). Trabajar rutinas de reseteo y la charla previa.'; else if(ult.g<=ult.e-5) accion='<b>Lo que costó fue lo cognitivo</b> (foco, decisión bajo presión). Sumar tareas de toma de decisión con presión en la semana.'; }
+    const hablar=R.map(x=>{ const ej=PPA_EJES.map(e=>({n:e.n,v:ppaQ(x,e.q)})).filter(z=>z.v!=null).sort((a,b)=>a.v-b.v)[0]; return {x,m:ppMental(x),ej}; }).sort((a,b)=>a.m-b.m).slice(0,3).filter(z=>z.m<65);
+    const pats=(typeof patronesSituacion==='function')?patronesSituacion(rows,2).filter(p=>p.d<0).slice(0,2):[];
+    const resu=(P.goles_favor!=null&&P.goles_contra!=null)?' · '+P.goles_favor+'-'+P.goles_contra:'';
+    h+='<div class="dsh-card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap"><div class="dsh-card-t">⚽ Último partido'+(P.rival?' · vs '+P.rival:'')+resu+'</div><div style="font-size:11px;color:#7c8fae">'+(P.fecha?mptFecha(P.fecha)+' · ':'')+R.length+' respuestas</div></div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:8px">'+
+        '<div><div style="font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:0.06em;margin-bottom:4px">CÓMO SALIÓ EL GRUPO</div>'+termo+'</div>'+
+        '<div style="display:flex;flex-direction:column;gap:10px"><div style="display:flex;gap:8px">'+cifra('EMOCIONAL',ult.e,dE)+cifra('COGNITIVO',ult.g,dG)+'</div>'+
+          '<div style="background:#00c2ff12;border:1px solid #00c2ff44;border-radius:10px;padding:9px 11px;font-size:12.5px;color:#e8eff8;line-height:1.5">🎯 '+accion+'</div></div>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:12px">'+
+        '<div><div style="font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:0.06em;margin-bottom:2px">A QUIÉN HABLAR</div>'+(hablar.length?hablar.map(z=>'<div class="dec-item"><span style="width:9px;height:9px;border-radius:50%;background:'+ppaColor(z.m)+';margin-top:6px;flex-shrink:0"></span><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+z.x.jugador_nombre+' <span style="font-size:11px;color:'+ppaColor(z.m)+'">· '+Math.round(z.m)+'</span></div><div style="font-size:12px;color:#b4c2d4">Lo más bajo: '+(z.ej?z.ej.n.toLowerCase()+' ('+Math.round(z.ej.v)+')':'—')+'</div></div></div>').join(''):'<div style="font-size:12.5px;color:#7c8fae;padding:6px 0">Nadie salió por debajo de 65. 👏</div>')+'</div>'+
+        '<div><div style="font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:0.06em;margin-bottom:6px">QUÉ NOS BAJA (PATRÓN OBSERVADO EN LA TEMPORADA)</div>'+(pats.length?pats.map(p=>'<div style="font-size:12.5px;color:#e8eff8;line-height:1.5;margin-bottom:6px">• '+patronTexto(p,'el')+'</div>').join(''):'<div style="font-size:12.5px;color:#7c8fae">Todavía no hay un patrón claro. Aparece cuando los jugadores marcan las situaciones del partido (gol en contra, error, árbitro…).</div>')+'</div>'+
+      '</div></div>';
+  }
+  // ── NIVEL 3 · ANÁLISIS (psicólogo)
+  const abierto=PPA.abierto;
+  h+='<div class="dsh-card"><button onclick="PPA.abierto=!PPA.abierto;ppaRender()" style="all:unset;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%"><span class="dsh-card-t">🔬 Análisis completo · emocional, cognitivo y por jugador</span><span style="font-size:12px;color:#00c2ff;font-weight:700">'+(abierto?'Ocultar ▴':'Ver análisis completo ▾')+'</span></button>';
+  if(abierto){
+    // jugadores disponibles
+    const porJ={}; rows.forEach(x=>{ const k=idcNom(x.jugador_nombre); (porJ[k]=porJ[k]||{n:x.jugador_nombre,r:[]}).r.push(x); });
+    const jugs=Object.values(porJ).sort((a,b)=>a.n.localeCompare(b.n,'es'));
+    const jk=PPA.jug&&porJ[PPA.jug]?PPA.jug:'';
+    const fuente=jk?porJ[jk].r:rows;
+    const porPf={}; fuente.forEach(x=>{ (porPf[x.partido_codigo]=porPf[x.partido_codigo]||[]).push(x); });
+    const ps=Object.keys(porPf).filter(c=>jk||porPf[c].length>=PPA_MIN_RESP).sort((a,b)=>fecha(a).localeCompare(fecha(b)));
+    const sE=ps.map(c=>ppaProm(porPf[c].map(x=>ppaQ(x,PPA_EMO)))), sG=ps.map(c=>ppaProm(porPf[c].map(x=>ppaQ(x,PPA_COG))));
+    const ejes=c=>PPA_EJES.map(e=>ppaProm(porPf[c].map(x=>ppaQ(x,e.q))));
+    const radarU=ps.length?ejes(ps[ps.length-1]):null, radarP=ps.length?PPA_EJES.map((e,i)=>ppaProm(ps.map(c=>ejes(c)[i]))):null;
+    h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px"><label for="ppa-jug" style="font-size:12px;color:#94a3b8">Ver:</label><select id="ppa-jug" onchange="PPA.jug=this.value;ppaRender()" style="padding:7px 10px;background:#0d1b3e;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px;font-size:13px"><option value="">Todo el equipo</option>'+jugs.map(j=>'<option value="'+idcNom(j.n)+'"'+(idcNom(j.n)===jk?' selected':'')+'>'+j.n+' ('+j.r.length+')</option>').join('')+'</select></div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px">'+
+      '<div><div style="font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:0.06em;margin-bottom:4px">EMOCIONAL VS. COGNITIVO, PARTIDO A PARTIDO</div>'+(ps.length>=2?ppaLinea([{n:'Emocional',c:'#f59e0b',v:sE},{n:'Cognitivo',c:'#00c2ff',v:sG}],ps.map(etiqueta)):'<div style="font-size:12px;color:#7c8fae;padding:10px 0">Hacen falta 2 partidos o más.</div>')+
+        '<div style="font-size:11px;color:#7c8fae;margin-top:6px">Emocional: reacción al error, eje, aceptación, lenguaje corporal, energía y disfrute. Cognitivo: foco, decisión bajo presión, convencimiento, confianza táctica y control de zona.</div></div>'+
+      '<div><div style="font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:0.06em;margin-bottom:4px">HUELLA MENTAL · ÚLTIMO PARTIDO VS. PROMEDIO</div>'+(radarU?ppaRadar(radarU,ps.length>1?radarP:null):'')+'</div>'+
+    '</div>';
+    // Tabla por jugador + mirada del DT
+    const dtPor={}; PPA.dt.forEach(d=>{ const v=[]; for(let i=1;i<=12;i++){ const a=d['q'+i]; if(a!=null&&a!=='') v.push(Number(a)); } if(v.length) (dtPor[idcNom(d.jugador_nombre)+'|'+d.partido_codigo]=v.reduce((a,b)=>a+b,0)/v.length*10); });
+    const filas=jugs.map(j=>{ const k2=idcNom(j.n); const e=ppaProm(j.r.map(x=>ppaQ(x,PPA_EMO))), g=ppaProm(j.r.map(x=>ppaQ(x,PPA_COG)));
+      const difs=j.r.map(x=>{ const d=dtPor[k2+'|'+x.partido_codigo]; return d==null?null:ppMental(x)-d; }).filter(v=>v!=null);
+      const dif=difs.length?Math.round(ppaProm(difs)):null;
+      const ultR=j.r.slice().sort((a,b)=>fecha(a.partido_codigo).localeCompare(fecha(b.partido_codigo))).pop();
+      return {n:j.n,k:k2,p:j.r.length,e,g,u:ppMental(ultR),dif,nd:difs.length}; }).sort((a,b)=>(a.u||0)-(b.u||0));
+    const lect=f=>f.dif==null?'<span style="color:#7c8fae">sin evaluación del DT</span>':f.dif>=15?'<span style="color:#f59e0b">se ve mejor que el DT (+'+f.dif+')</span>':f.dif<=-15?'<span style="color:#a78bfa">se castiga más que el DT ('+f.dif+')</span>':'<span style="color:#22c55e">coincide con el DT ('+(f.dif>0?'+':'')+f.dif+')</span>';
+    h+='<div style="font-size:11px;font-weight:800;color:#94a3b8;letter-spacing:0.06em;margin:14px 0 4px">POR JUGADOR · CÓMO SE VIO ÉL Y CÓMO LO VIO EL DT</div><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:620px"><thead><tr style="color:#7c8fae;font-size:10.5px;text-align:center"><th style="text-align:left;padding:6px 4px">JUGADOR</th><th>PARTIDOS</th><th>EMOCIONAL</th><th>COGNITIVO</th><th>ÚLTIMO</th><th style="text-align:left">JUGADOR VS. DT</th></tr></thead><tbody>'+
+      filas.map(f=>'<tr onclick="PPA.jug=\''+f.k.replace(/'/g,"\\'")+'\';ppaRender()" style="cursor:pointer;border-top:1px solid #1a3a6e44;text-align:center"><td style="text-align:left;padding:7px 4px;color:#e8eff8;font-weight:700">'+f.n+'</td><td style="color:#b4c2d4">'+f.p+'</td><td style="font-weight:800;color:'+ppaColor(f.e)+'">'+(f.e==null?'—':Math.round(f.e))+'</td><td style="font-weight:800;color:'+ppaColor(f.g)+'">'+(f.g==null?'—':Math.round(f.g))+'</td><td style="font-weight:800;color:'+ppaColor(f.u)+'">'+(f.u==null?'—':Math.round(f.u))+'</td><td style="text-align:left;font-size:12px">'+lect(f)+'</td></tr>').join('')+
+      '</tbody></table></div><div style="font-size:10.5px;color:#4a5a78;margin-top:8px">Es autopercepción del jugador después del partido: se lee junto a la mirada del DT. Señales para conversar, no diagnósticos.</div>';
+  }
+  h+='</div>';
+  box.innerHTML=h;
+}
+
 function trkCat(d,dActual){
   if(dActual!=null&&dActual<65) return ['🔴','Interferencia relevante','#ef4444'];
   if(d>=5) return ['🟢','Evolución favorable','#22c55e'];
@@ -18538,6 +18697,7 @@ function renderTracking(){
         '<td style="padding:8px;text-align:center;white-space:nowrap;color:'+c[2]+';font-weight:700">'+c[0]+' '+c[1]+'</td></tr>';
     }).join('')+'</tbody></table></div>';
   h+='</div></div>';
+  const hProc=h; h='';
   // 2) Mapa del equipo por variable
   const vals=jugadores.map(j=>({r:j.ult,v:v==='__D'?(j.ult.disponibilidad||null):mptVal(j.ult,v)})).filter(x=>x.v!=null).sort((a,b)=>b.v-a.v);
   const prom=vals.length?Math.round(vals.reduce((a,b)=>a+b.v,0)/vals.length):null;
@@ -18549,7 +18709,7 @@ function renderTracking(){
         '<div style="width:70px;height:6px;background:#1a3a6e55;border-radius:3px;overflow:hidden"><div style="height:100%;width:'+x.v+'%;background:'+c+'"></div></div><b style="color:'+c+';font-size:13px;width:28px;text-align:right">'+x.v+'</b></div>'; }).join('')+'</div>'+
     '<div style="font-size:11px;color:#7c8fae;margin-top:8px">🟢 80 o más · 🟡 65 a 79 · 🔴 menos de 65 · Última evaluación de cada jugador. Tocá un jugador para ver su perfil.</div>';
   h+='</div></div>';
-  box.innerHTML=h;
+  box.innerHTML=TRK.tab==='mapa'?h:hProc;
 }
 
 // ═══════════════════════════════════════════════════════════════
