@@ -99,6 +99,58 @@ body.es-admin .solo-admin{display:inline!important}
   body.pdf-pj #pj-pdf{display:block!important}
   @page{size:A4;margin:0}
 }
+
+/* ── Predicciones guardadas + informe (visor y PDF claro, varias hojas) ── */
+#pred-pdf{display:none}
+#pred-modal{display:none;position:fixed;inset:0;z-index:4000;background:rgba(3,7,18,0.88);overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 12px 40px}
+.pred-modal-in{max-width:860px;margin:0 auto}
+.pred-form{background:#0d1b3e;border:1px solid #1a3a6e;border-radius:14px;padding:16px 16px 0}
+.pred-barra{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;position:sticky;top:-16px;z-index:2;background:#0d1b3e;padding:10px 12px;border-radius:12px;border:1px solid #1a3a6e}
+.pred-form .pred-barra{border:none;padding:0 0 8px;border-radius:0;top:-16px}
+.pred-lbl{display:block;font-size:11px;color:#94a3b8;margin:8px 0 3px}
+.pred-sec{font-size:11px;font-weight:800;color:#00c2ff;letter-spacing:0.1em;text-transform:uppercase;margin:16px 0 2px;padding-top:10px;border-top:1px solid #1a3a6e}
+.pred-dos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 10px}
+.pred-stats{display:grid;grid-template-columns:minmax(0,2fr) repeat(7,minmax(0,1fr));gap:0 6px}
+@media(max-width:640px){.pred-stats{grid-template-columns:repeat(4,minmax(0,1fr))}.pred-stats > div:first-child{grid-column:span 4}}
+.pred-fila{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;background:#0a1024;border:1px solid #1a3a6e;margin-bottom:6px}
+@media(max-width:560px){.pred-fila{flex-wrap:wrap}.pred-fila > div:last-child{width:100%;justify-content:flex-end}}
+.rp{font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;color:#1e293b;font-size:11.5px;line-height:1.5}
+.rp-hoja{background:#fff;border-radius:12px;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+@media(max-width:560px){.rp-hoja{padding:14px}}
+.rp-portada{background:linear-gradient(135deg,#0b1b3d,#070d1c);color:#fff;border-radius:10px;padding:16px 18px;margin-bottom:6px}
+.rp-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px;font-size:13px;font-weight:900;color:#0b1b3d;border-bottom:2px solid #00a6d9;padding-bottom:3px;margin:16px 0 7px;break-after:avoid;page-break-after:avoid}
+.rp-h small{font-size:10.5px;font-weight:600;color:#64748b}
+.rp-p{margin:0 0 6px}
+.rp-card{border:1px solid #cbd5e1;border-radius:8px;padding:8px 10px;background:#f8fafc;break-inside:avoid;page-break-inside:avoid}
+.rp-k{font-weight:800;color:#0b1b3d;margin-bottom:3px}
+.rp-verde{border-color:#86efac;background:#f0fdf4}.rp-rojo{border-color:#fca5a5;background:#fef2f2}.rp-azul{border-color:#7dd3fc;background:#f0f9ff}
+.rp-txt-rojo{color:#b91c1c}.rp-txt-verde{color:#15803d}
+.rp-g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rp-g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+@media(max-width:560px){.rp-g2{grid-template-columns:1fr}}
+.rp-ul{margin:0;padding-left:16px}.rp-ul li{margin-bottom:2px}
+.rp-t{width:100%;border-collapse:collapse;font-size:11px;break-inside:auto}
+.rp-t th{background:#0b1b3d;color:#fff;text-align:left;padding:5px 7px;font-size:10.5px}
+.rp-t td{border-bottom:1px solid #e2e8f0;padding:5px 7px;vertical-align:top;color:#1e293b!important;font-size:11px!important}
+.rp-t tr:hover td{background:transparent}
+.rp-t th{border-bottom:none!important;color:#fff!important;font-weight:800!important;padding:5px 7px!important}
+.rp-t tr{break-inside:avoid;page-break-inside:avoid}
+.rp-t tbody tr:nth-child(even) td{background:#f8fafc}
+.rp-mini{font-size:10px;color:#64748b;margin-top:2px}
+.rp-nv{display:inline-block;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.rp-nv-alto{background:#fee2e2;color:#b91c1c}.rp-nv-medio{background:#fef3c7;color:#b45309}.rp-nv-bajo{background:#dcfce7;color:#15803d}
+.rp-plan{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid #e2e8f0;break-inside:avoid;page-break-inside:avoid}
+.rp-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:#0b1b3d;color:#fff;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center}
+.rp-prob{border:1px solid #cbd5e1;border-radius:8px;padding:8px;text-align:center;break-inside:avoid}
+.rp-prob b{display:block;font-size:24px;color:#0b1b3d;line-height:1.1;margin-top:2px}
+.rp-pie{margin-top:16px;border-top:1px solid #cbd5e1;padding-top:7px;font-size:9.5px;color:#64748b;display:flex;flex-direction:column;gap:3px;break-inside:avoid}
+@page pred{size:A4;margin:12mm 11mm}
+@media print{
+  body.pdf-pred{background:#fff!important}
+  body.pdf-pred > *:not(#pred-pdf){display:none!important}
+  body.pdf-pred #pred-pdf{display:block!important;page:pred}
+  body.pdf-pred #pred-pdf *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 .pdf-hoja{width:210mm;min-height:296mm;box-sizing:border-box;padding:9mm 10mm 8mm;background:linear-gradient(160deg,#0b1b3d 0%,#070d1c 55%,#05080f 100%);color:#e8eff8;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;display:flex;flex-direction:column;gap:4mm}
 .pdf-hoja + .pdf-hoja{break-before:page;page-break-before:always}
 .pdf-cab{display:flex;align-items:center;gap:10px;border-bottom:1px solid #00c2ff55;padding-bottom:3mm}
@@ -1050,6 +1102,9 @@ tr:hover td{background:#0d1b3e40}
         <button onclick="generarInformePlantel()" class="btn-p" style="padding:8px 20px;font-size:13px">⚡ Generar informe</button>
         <button onclick="limpiarSeleccionPlantel()" class="bg" style="padding:8px 14px;font-size:12px">✕ Limpiar</button>
       </div>
+
+      <!-- Predicciones guardadas (siempre visibles) -->
+      <div id="pred-guardadas" style="margin-bottom:1.25rem"></div>
 
       <!-- Selección de titulares -->
       <div id="plantel-seleccion" style="display:none;background:#0d1b3e;border:1px solid #1a3a6e;border-radius:12px;padding:1rem;margin-bottom:1.25rem">
@@ -3463,7 +3518,7 @@ const PP_PREGS_ORDEN=['Recuperación tras error','Decisión bajo presión','Conc
 //   datos viejos después de editar algo.
 // • Alertas, errores y usuarios nunca se cachean (tienen que estar al día).
 const Q_CACHE=new Map(), Q_VUELO=new Map(), Q_TTL=90000;
-const Q_SIN_CACHE=/^(alertas|errores_app|usuarios|navegacion_log|checkin_diario)\b/;
+const Q_SIN_CACHE=/^(alertas|errores_app|usuarios|navegacion_log|checkin_diario|predicciones_ia)\b/;
 function qLimpiarCache(){ Q_CACHE.clear(); }
 // Guardados hechos con fetch directo (no por q): también vacían la caché
 (function(){ const f0=window.fetch; if(!f0||window.__qCacheFetch) return; window.__qCacheFetch=true;
@@ -5421,10 +5476,12 @@ async function loadPlantelScreen(){
   updSel('plantel-grupo',gsFilt.map(g=>({v:g.id,l:g.nombre})),'Seleccioná un grupo');
   document.getElementById('plantel-seleccion').style.display='none';
   document.getElementById('plantel-informe').style.display='none';
+  predListaCargar();
 }
 
 function cargarJugadoresPlantel(){
   const gid=document.getElementById('plantel-grupo').value;
+  predListaCargar();
   if(!gid){document.getElementById('plantel-seleccion').style.display='none';return;}
   // Tomar último resultado por jugador en este grupo
   const seen={};
@@ -14370,19 +14427,25 @@ function rivalVerPrediccion(i){
   const p=(window._RIVAL_PREDS||[])[i]; const box=document.getElementById('cancha-ia'); if(!p||!box) return;
   box.innerHTML='<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">Predicción guardada del '+rivalFmtFecha(p.creado_en)+' — XI de ese momento: '+
     ((p.xi||[]).map(j=>j.nombre.split(' ').slice(-1)[0]).join(', ')||'—')+'</div>'+
-    canchaIaHtml(p.prediccion||{},{nombre:p.rival||''},(p.xi||[]).length,p.formacion||'','');
+    canchaIaHtml(p.prediccion||{},{nombre:p.rival||''},(p.xi||[]).length,p.formacion||'','',p.id);
   if(box.scrollIntoView) try{ box.scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){}
 }
 async function rivalGuardarPrediccion(ai, rival, form, xiSlots){
-  if(!RIVAL_DB_OK) return;
+  if(!RIVAL_DB_OK) return null;
   try{
     const proy=(PRED_STATE&&PRED_STATE.proy)||{};
     const xi=xiSlots.map(s=>{ const j=s.j, pj=proy[(j.nombre||'').toLowerCase().trim()]||{}; return {nombre:j.nombre,linea:canchaLineaDe(s),disc:j.disc,d:j.D,dp:j.Dp,idc:pj.idc??null}; });
+    const gObj=(AG||[]).find(g=>g.codigo===rivalGrupoCodigo());
     const res=await q('predicciones_ia',{m:'POST',b:[{grupo_codigo:rivalGrupoCodigo(),rival:rival.nombre||null,rival_norm:rival.nombre?rivalNorm(rival.nombre):null,
-      formacion:form,xi,prediccion:ai,creado_por:(USUARIO_ACTUAL&&(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email))||''}],h:{'Prefer':'return=minimal'}});
-    if(rivalEsErrorTabla(res)) RIVAL_DB_OK=false;
-    else if(rival.nombre) rivalUltimaPrediccion(rival.nombre);
+      formacion:form,xi,prediccion:ai,creado_por:(USUARIO_ACTUAL&&(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email))||'',
+      tipo:'cancha',club:(gObj&&gObj.club)||null,titulo:((gObj&&gObj.nombre)||'Equipo')+' vs '+(rival.nombre||'rival'),
+      datos:{condicion:rival.condicion||'',grupo:(gObj&&gObj.nombre)||''}}]});
+    if(rivalEsErrorTabla(res)){ RIVAL_DB_OK=false; return null; }
+    if(rival.nombre) rivalUltimaPrediccion(rival.nombre);
+    predListaCargar();
+    if(Array.isArray(res)&&res[0]){ PRED_CACHE[res[0].id]=res[0]; return res[0].id; }
   }catch(e){ console.warn('No se guardó la predicción:',e); }
+  return null;
 }
 
 // Arma todo el contexto y le pide a la IA la predicción del partido
@@ -14445,19 +14508,19 @@ async function canchaPrediccionIA(){
   const prompt='Sos analista de rendimiento mental deportivo y trabajás con el Modelo de Disponibilidad Competitiva (MDC: Disponibilidad = Talento − Interferencia) de Eduardo Meljin. '+
 'Escribís para un cuerpo técnico, en español rioplatense (voseo), directo, concreto y sin tecnicismos innecesarios.\n\n'+
 'MARCO: Adaptabilidad (capas 1-3) construye el sistema y baja la Interferencia; Competitividad (capas 4-5) activa el talento y sube la T. Reset post-error = qué tan rápido el jugador vuelve a su nivel tras un error (clave después de un gol en contra). Usá estos tres índices para fundamentar las predicciones por línea y los escenarios.\n\n'+
-'Deporte: '+deporte+' · Formación: '+form+' · Jugadores en cancha: '+xi.length+'\n\n'+
+'Equipo / categoría: '+(((AG||[]).find(g=>g.codigo===rivalGrupoCodigo())||{}).nombre||'—')+' · Deporte: '+deporte+' · Formación: '+form+' · Jugadores en cancha: '+xi.length+'\n\n'+
 'EQUIPO QUE VA A JUGAR (D = disponibilidad 0-100; D proyectada ajusta la del test por tendencia de Post Partido, asistencia y recuperación):\n'+jugTxt+'\n\n'+
 'POR LÍNEA:\n'+lineasTxt+'\nEquipo: D proyectada '+(foto.equipo??'—')+' · perfiles DISC en cancha: '+Object.entries(discCount).map(e=>e[0]+'×'+e[1]).join(', ')+'\n\n'+
 'SUPLENTES DISPONIBLES: '+(bench||'ninguno')+'\n\n'+
 'DATOS DEL EQUIPO: ventana crítica (donde más goles recibe): '+ventana+'; últimos resultados: '+ult+'\n\n'+
 rivalTxt+'\n\n'+
-(rival.web&&rival.nombre?'Podés buscar en internet información pública y reciente sobre "'+rival.nombre+'" (resultados, posición, estilo). Si no encontrás nada confiable, decilo y no inventes.\n\n':'')+
+(rival.web&&rival.nombre?'Podés buscar en internet información pública y reciente sobre "'+rival.nombre+'" (resultados, posición, estilo). Usá SOLO datos de la misma categoría y competencia que este equipo: si lo que encontrás es del primer equipo profesional del club rival (u otra categoría) y este equipo juega otra liga o división, NO lo uses y aclaralo en "limites". Si no encontrás nada confiable, decilo y no inventes.\n\n':'')+
 'REGLAS: usá solo los datos de arriba (y lo que encuentres en la web si se pidió). No inventes datos del rival, lesiones ni estadísticas. Si falta información, decilo en "limites". '+
-'Las predicciones son de COMPORTAMIENTO MENTAL y de rendimiento esperado, no de resultado exacto. No des un marcador.\n\n'+
+'Las predicciones son de COMPORTAMIENTO MENTAL y de rendimiento esperado, no de resultado exacto. No des un marcador. Hablá de patrones y probabilidades ("puede", "es probable", "patrón observado"), no como certeza. No uses términos clínicos (ansiedad, depresión, burnout): usá "activación", "tensión", "señales de sobrecarga".\n\n'+
 'Respondé SOLO con este JSON, sin texto adicional ni markdown:\n'+
 '{\n'+
 '  "resumen": "2-3 oraciones: cómo llega el equipo mentalmente a este partido y qué lo define",\n'+
-'  "por_linea": [{"linea": "nombre", "prediccion": "cómo se va a comportar bajo presión en este partido", "riesgo": "el riesgo principal", "accion": "qué hacer, concreto"}],\n'+
+'  "por_linea": [{"linea": "nombre", "prediccion": "cómo puede responder bajo presión en este partido (patrón esperado)", "riesgo": "el riesgo principal", "accion": "qué hacer, concreto"}],\n'+
 '  "jugadores_clave": [{"nombre": "jugador", "por_que": "por qué es clave o a quién hay que cuidar, 1 oración"}],\n'+
 '  "escenarios": [{"momento": "ej: inicio, gol en contra, ventana crítica, cierre", "que_puede_pasar": "1 oración", "que_hacer": "1 oración"}],\n'+
 '  "rival": "2-3 oraciones sobre cómo el rival puede afectar mentalmente al equipo (o \'Sin datos del rival\')",\n'+
@@ -14476,7 +14539,7 @@ rivalTxt+'\n\n'+
     const resp=await fetch(PJ_IA_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await resp.json();
     if(data&&data.error) throw new Error(data.error.message||'error de IA');
-    const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').replace(/<\/?cite[^>]*>/gi,'');
     const m=text.replace(/```json|```/g,'').match(/\{[\s\S]*\}/);
     if(!m) throw new Error('respuesta sin JSON');
     return JSON.parse(m[0]);
@@ -14492,13 +14555,16 @@ rivalTxt+'\n\n'+
     box.innerHTML='<div style="background:#0d1b3e;border:1px solid #ef444455;border-radius:12px;padding:14px;color:#ef4444;font-size:12.5px">No se pudo generar la predicción. Revisá la conexión e intentá de nuevo.</div>';
     return;
   }
+  ai=predLimpiarCites(ai);
   CANCHA_SIM.ultimaIA={ai,rival:rival.nombre,fecha:new Date().toISOString()};
-  rivalGuardarPrediccion(ai, rival, form, xi);
   if(rival.nombre) rivalGuardarAhora(); // las notas usadas quedan guardadas junto con la predicción
-  box.innerHTML=canchaIaHtml(ai, rival, xi.length, form, avisoWeb);
+  const pid=await rivalGuardarPrediccion(ai, rival, form, xi);
+  CANCHA_SIM.ultimaIA.id=pid;
+  box.innerHTML=canchaIaHtml(ai, rival, xi.length, form, avisoWeb, pid);
 }
 
-function canchaIaHtml(ai, rival, n, form, avisoWeb){
+function canchaIaHtml(ai, rival, n, form, avisoWeb, pid){
+  ai=predLimpiarCites(ai||{});
   const esc=t=>String(t==null?'':t).replace(/</g,'&lt;');
   const sec=(t,c)=>`<div style="font-size:10px;font-weight:800;color:${c||'#a78bfa'};letter-spacing:0.08em;text-transform:uppercase;margin:14px 0 6px">${t}</div>`;
   let h=`<div style="background:#0d1b3e;border:1px solid #7c3aed55;border-radius:14px;padding:16px 18px">
@@ -14532,8 +14598,394 @@ function canchaIaHtml(ai, rival, n, form, avisoWeb){
   const fuentes=(ai.fuentes_web||[]).filter(u=>/^https?:\/\//.test(u));
   if(fuentes.length) h+=`<div style="font-size:10.5px;color:#94a3b8;margin-top:10px">Fuentes web: ${fuentes.map(u=>`<a href="${u.replace(/"/g,'')}" target="_blank" rel="noopener" style="color:#00c2ff">${esc(u.replace(/^https?:\/\//,'').slice(0,40))}</a>`).join(' · ')}</div>`;
   h+=`<div style="font-size:10.5px;color:#4a5a78;margin-top:12px;border-top:1px solid #1a3a6e;padding-top:8px">${ai.limites?esc(ai.limites)+' ':''}Predicción de comportamiento generada con IA a partir de los datos de SC360; es una guía para el cuerpo técnico, no una certeza.</div>
-    <div style="margin-top:10px"><button onclick="canchaPrediccionIA()" class="bg" style="padding:7px 14px;font-size:12px">↻ Regenerar</button></div></div>`;
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button onclick="canchaPrediccionIA()" class="bg" style="padding:7px 14px;font-size:12px">↻ Regenerar</button>
+    ${pid?`<button onclick="predPDF('${pid}')" class="bg" style="padding:7px 14px;font-size:12px;color:#00c2ff;border-color:#00c2ff66">📄 PDF de esta predicción</button><span style="font-size:11px;color:#22c55e;align-self:center">✓ Guardada en Predicciones guardadas</span>`:''}</div></div>`;
   return h;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PREDICCIONES GUARDADAS + INFORME COMPLETO DEL RIVAL
+// - Todas las predicciones quedan en la tabla predicciones_ia y se listan
+//   arriba de la pantalla Predicción (por división o del club).
+// - Cada una se puede abrir y bajar en PDF (hoja A4 clara, varias páginas).
+// - "Informe completo del rival": scouting + estadísticas + lectura MDC,
+//   pensado para equipos sin perfiles cargados en SC360 (ej. Primera).
+// ═══════════════════════════════════════════════════════════════
+let PRED_LISTA=[], PRED_VER_TODAS=false;
+const PRED_CACHE={};
+
+// Quita las marcas de cita que a veces devuelve la búsqueda web
+function predLimpiarCites(o){
+  if(typeof o==='string') return o.replace(/<\/?cite[^>]*>/gi,'').replace(/[ \t]{2,}/g,' ').trim();
+  if(Array.isArray(o)) return o.map(predLimpiarCites);
+  if(o&&typeof o==='object'){ const r={}; for(const k in o) r[k]=predLimpiarCites(o[k]); return r; }
+  return o;
+}
+function predEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function predUsuario(){ return (USUARIO_ACTUAL&&(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email))||''; }
+function predPuedeBorrar(p){
+  const u=USUARIO_ACTUAL||{};
+  return u.rol==='admin'||u.rol==='coordinador'||(p.creado_por&&(p.creado_por===u.nombre||p.creado_por===u.email));
+}
+function predNombreGrupo(cod){
+  if(cod&&String(cod).startsWith('CLUB-')) return 'Informe del club';
+  const g=(AG||[]).find(x=>x.codigo===cod); return g?g.nombre:'';
+}
+function predClubDe(gObj){
+  if(gObj&&gObj.club) return gObj.club;
+  const g=(AG||[]).find(x=>x.club); if(g) return g.club;
+  return USUARIO_ACTUAL&&USUARIO_ACTUAL.club_nombre?String(USUARIO_ACTUAL.club_nombre).split('—')[0].trim():'';
+}
+function predFecha(f,conHora){
+  try{ const d=new Date(f); return d.toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'})+(conHora?' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}):''); }catch(e){ return ''; }
+}
+
+// ── Lista de predicciones guardadas ──
+async function predListaCargar(){
+  const box=document.getElementById('pred-guardadas'); if(!box) return;
+  const gid=document.getElementById('plantel-grupo')?.value||'';
+  const g=(AG||[]).find(x=>x.id===gid);
+  const pq=v=>'"'+String(v).replace(/"/g,'')+'"';
+  const cols='id,grupo_codigo,club,tipo,rival,titulo,fecha_partido,formacion,creado_por,creado_en';
+  let filtro='';
+  if(g){
+    const partes=['grupo_codigo.eq.'+pq(g.codigo)];
+    if(g.club) partes.push('and(club.eq.'+pq(g.club)+',grupo_codigo.like.CLUB-*)');
+    filtro='&or='+encodeURIComponent('('+partes.join(',')+')');
+  } else if(!(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin')){
+    const cods=(AG||[]).map(x=>x.codigo).filter(Boolean);
+    const clubs=[...new Set((AG||[]).map(x=>x.club).filter(Boolean))];
+    const partes=[];
+    if(cods.length) partes.push('grupo_codigo.in.('+cods.map(pq).join(',')+')');
+    clubs.forEach(c=>partes.push('and(club.eq.'+pq(c)+',grupo_codigo.like.CLUB-*)'));
+    if(!partes.length){ PRED_LISTA=[]; predListaRender(); return; }
+    filtro='&or='+encodeURIComponent('('+partes.join(',')+')');
+  }
+  try{
+    const res=await q('predicciones_ia?select='+cols+filtro+'&order=creado_en.desc&limit=120',{sinCache:true});
+    if(!Array.isArray(res)){ box.innerHTML=''; return; }
+    // Si se regeneró varias veces seguidas, queda la última de cada tanda
+    const vistos=[];
+    PRED_LISTA=res.filter(p=>{
+      const clave=p.grupo_codigo+'|'+rivalNorm(p.rival||'')+'|'+(p.tipo||'cancha'), t=new Date(p.creado_en).getTime();
+      const dup=vistos.some(v=>v.clave===clave&&v.t-t<10*60*1000);
+      vistos.push({clave,t}); return !dup;
+    });
+  }catch(e){ PRED_LISTA=[]; }
+  predListaRender();
+}
+function predListaRender(){
+  const box=document.getElementById('pred-guardadas'); if(!box) return;
+  const lista=PRED_VER_TODAS?PRED_LISTA:PRED_LISTA.slice(0,6);
+  const filas=lista.map(p=>{
+    const completo=p.tipo==='completo';
+    const tit=p.titulo||('vs '+(p.rival||'rival sin nombre'));
+    const sub=[predNombreGrupo(p.grupo_codigo), completo?'Informe completo':(p.formacion||'Cancha + IA'), p.fecha_partido?'Partido: '+p.fecha_partido:'', predFecha(p.creado_en,true), p.creado_por].filter(Boolean).join(' · ');
+    return `<div class="pred-fila">
+      <div style="font-size:18px;flex-shrink:0">${completo?'📑':'🔮'}</div>
+      <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800;color:#e8eff8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${predEsc(tit)}</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px">${predEsc(sub)}</div></div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="bg" style="padding:6px 10px;font-size:11.5px" onclick="predVer('${p.id}')">Ver</button>
+        <button class="bg" style="padding:6px 10px;font-size:11.5px;color:#00c2ff;border-color:#00c2ff66" onclick="predPDF('${p.id}')">📄 PDF</button>
+      </div></div>`;
+  }).join('');
+  box.innerHTML=`<div style="background:#0d1b3e;border:1px solid #7c3aed55;border-radius:14px;padding:14px 16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:${PRED_LISTA.length?'10px':'4px'}">
+      <div><div style="font-size:11px;font-weight:800;color:#a78bfa;letter-spacing:0.08em">🗂 PREDICCIONES GUARDADAS</div>
+        <div style="font-size:11.5px;color:#94a3b8;margin-top:2px">Cada predicción queda guardada para todo el cuerpo técnico y se puede bajar en PDF.</div></div>
+      <button class="btn-p" style="padding:8px 14px;font-size:12.5px" onclick="predCompletoForm()">＋ Informe completo del rival</button>
+    </div>
+    ${PRED_LISTA.length?filas:'<div style="font-size:12px;color:#94a3b8">Todavía no hay predicciones guardadas'+((document.getElementById('plantel-grupo')?.value)?' para esta división':'')+'.</div>'}
+    ${PRED_LISTA.length>6?`<div style="margin-top:8px"><a href="#" onclick="PRED_VER_TODAS=!PRED_VER_TODAS;predListaRender();return false" style="font-size:12px;color:#a78bfa">${PRED_VER_TODAS?'Ver menos':'Ver todas ('+PRED_LISTA.length+')'}</a></div>`:''}
+  </div>`;
+}
+
+async function predObtener(id){
+  if(PRED_CACHE[id]) return PRED_CACHE[id];
+  const r=await q('predicciones_ia?id=eq.'+encodeURIComponent(id)+'&limit=1',{sinCache:true});
+  const p=Array.isArray(r)?r[0]:null; if(p) PRED_CACHE[id]=p; return p;
+}
+
+// ── Modal (visor y formulario) ──
+function predModal(html){
+  let m=document.getElementById('pred-modal');
+  if(!m){ m=document.createElement('div'); m.id='pred-modal'; document.body.appendChild(m); }
+  m.innerHTML=html; m.style.display='block'; m.scrollTop=0;
+  document.body.style.overflow='hidden';
+}
+function predModalCerrar(){ const m=document.getElementById('pred-modal'); if(m){ m.style.display='none'; m.innerHTML=''; } document.body.style.overflow=''; }
+
+async function predVer(id){
+  predModal('<div class="pred-modal-in"><div style="color:#b4c2d4;text-align:center;padding:40px">Abriendo…</div></div>');
+  const p=await predObtener(id);
+  if(!p){ predModal('<div class="pred-modal-in"><div style="color:#ef4444;padding:20px">No se encontró la predicción.</div><button class="bg" onclick="predModalCerrar()">Cerrar</button></div>'); return; }
+  predModal(`<div class="pred-modal-in">
+    <div class="pred-barra">
+      <button class="btn-p" style="padding:8px 14px;font-size:12.5px" onclick="predPDF('${p.id}')">📄 Descargar PDF</button>
+      ${predPuedeBorrar(p)&&p.id!=='tmp'?`<button class="bg" style="padding:8px 12px;font-size:12px;color:#ef4444;border-color:#ef444466" onclick="predBorrar('${p.id}')">🗑 Eliminar</button>`:''}
+      <button class="bg" style="padding:8px 12px;font-size:12px;margin-left:auto" onclick="predModalCerrar()">✕ Cerrar</button>
+    </div>
+    <div class="rp rp-hoja">${predInformeHtml(p)}</div></div>`);
+}
+async function predBorrar(id){
+  if(!confirm('¿Eliminar esta predicción? No se puede deshacer.')) return;
+  try{ await q('predicciones_ia?id=eq.'+encodeURIComponent(id),{m:'DELETE',h:{'Prefer':'return=minimal'}}); }catch(e){}
+  delete PRED_CACHE[id]; predModalCerrar(); predListaCargar();
+}
+
+// ── PDF: hoja A4 clara, se imprime / guarda como PDF desde el navegador ──
+async function predPDF(id){
+  const p=await predObtener(id); if(!p){ alert('No se encontró la predicción.'); return; }
+  let box=document.getElementById('pred-pdf'); if(!box){ box=document.createElement('div'); box.id='pred-pdf'; document.body.appendChild(box); }
+  box.innerHTML='<div class="rp">'+predInformeHtml(p)+'</div>';
+  const titulo=document.title;
+  document.title=(p.titulo||('Prediccion vs '+(p.rival||'rival')))+' - SC360';
+  document.body.classList.add('pdf-pred');
+  const fin=()=>{ document.body.classList.remove('pdf-pred'); document.title=titulo; window.removeEventListener('afterprint',fin); };
+  window.addEventListener('afterprint',fin);
+  const imgs=[...box.querySelectorAll('img')].filter(i=>!i.complete);
+  Promise.all(imgs.map(i=>new Promise(res=>{ i.onload=i.onerror=res; }))).then(()=>setTimeout(()=>window.print(),150));
+}
+
+// ── Informe (mismo HTML para el visor y para el PDF) ──
+function predInformeHtml(p){
+  const ai=predLimpiarCites(p.prediccion||{}), d=p.datos||{};
+  const E=predEsc, completo=p.tipo==='completo';
+  const logo=(document.querySelector('.topbar img')||{}).src||'';
+  const propio=d.propio&&d.propio.nombre?d.propio.nombre:(predNombreGrupo(p.grupo_codigo)||p.club||'Nuestro equipo');
+  const rival=p.rival||'Rival';
+  const lista=(arr,cls)=>Array.isArray(arr)&&arr.length?'<ul class="rp-ul">'+arr.map(x=>'<li'+(cls?' class="'+cls+'"':'')+'>'+E(x)+'</li>').join('')+'</ul>':'';
+  let n=0; const H=(t,sub)=>'<div class="rp-h"><span>'+(++n)+'. '+E(t)+'</span>'+(sub?'<small> — '+E(sub)+'</small>':'')+'</div>';
+  const infoPartido=[d.torneo, d.condicion?(d.condicion==='Local'?'Local':d.condicion==='Visitante'?'Visitante':'Cancha neutral'):'', d.fecha||p.fecha_partido, d.estadio].filter(Boolean).join(' · ');
+
+  let h=`<div class="rp-portada">
+    <div style="display:flex;align-items:center;gap:10px">
+      ${logo?`<img src="${logo}" style="width:34px;height:34px;border-radius:8px">`:''}
+      <div style="flex:1"><div style="font-size:12px;font-weight:900;letter-spacing:0.08em">SPORT COACHING 360</div><div style="font-size:9.5px;color:#7fd8ff;letter-spacing:0.06em">MODELO MDC · D = T − I</div></div>
+      <div style="font-size:9.5px;color:#9fb0c8;text-align:right">${E(predFecha(p.creado_en))}${p.creado_por?'<br>'+E(p.creado_por):''}</div>
+    </div>
+    <div style="font-size:10px;font-weight:800;letter-spacing:0.16em;color:#00c2ff;margin-top:14px">${completo?'INFORME DE SCOUTING Y PREDICCIÓN':'PREDICCIÓN DEL PARTIDO'}</div>
+    <div style="font-size:24px;font-weight:900;line-height:1.15;margin-top:4px">${E(propio)} <span style="color:#00c2ff">vs</span> ${E(rival)}</div>
+    ${infoPartido?`<div style="font-size:11px;color:#c3cfe0;margin-top:4px">${E(infoPartido)}</div>`:''}
+    ${!completo&&p.formacion?`<div style="font-size:11px;color:#c3cfe0;margin-top:2px">${E(predNombreGrupo(p.grupo_codigo))}${predNombreGrupo(p.grupo_codigo)?' · ':''}${E(p.formacion)} · ${(p.xi||[]).length} jugadores</div>`:''}
+  </div>`;
+
+  if(completo){
+    // 1. Contexto + contraste estadístico (calculado con lo cargado, no por la IA)
+    h+=H('Contexto del partido');
+    if(ai.contexto) h+='<p class="rp-p">'+E(ai.contexto)+'</p>';
+    const A=d.propio||{}, B=d.rival||{};
+    const num=v=>v===''||v==null||isNaN(+v)?null:+v;
+    const porPJ=(x,pj)=>num(x)!=null&&num(pj)?(num(x)/num(pj)).toFixed(2):null;
+    const dif=o=>num(o.gf)!=null&&num(o.gc)!=null?(num(o.gf)-num(o.gc)):null;
+    const fmtDif=v=>v==null?'—':(v>0?'+':'')+v;
+    const filas=[
+      ['Posición',A.posicion,B.posicion],['Puntos',A.pts,B.pts],['Partidos jugados',A.pj,B.pj],
+      ['G – E – P',[A.g,A.e,A.p].every(x=>x!==''&&x!=null)?A.g+' – '+A.e+' – '+A.p:'',[B.g,B.e,B.p].every(x=>x!==''&&x!=null)?B.g+' – '+B.e+' – '+B.p:''],
+      ['Goles a favor',A.gf!=null&&A.gf!==''?A.gf+(porPJ(A.gf,A.pj)?' ('+porPJ(A.gf,A.pj)+'/p)':''):'',B.gf!=null&&B.gf!==''?B.gf+(porPJ(B.gf,B.pj)?' ('+porPJ(B.gf,B.pj)+'/p)':''):''],
+      ['Goles en contra',A.gc!=null&&A.gc!==''?A.gc+(porPJ(A.gc,A.pj)?' ('+porPJ(A.gc,A.pj)+'/p)':''):'',B.gc!=null&&B.gc!==''?B.gc+(porPJ(B.gc,B.pj)?' ('+porPJ(B.gc,B.pj)+'/p)':''):''],
+      ['Diferencia de gol',dif(A)==null?'':fmtDif(dif(A)),dif(B)==null?'':fmtDif(dif(B))],
+      ['Goleador',A.goleador,B.goleador],['Últimos resultados',A.forma,B.forma]
+    ].filter(f=>(f[1]!==''&&f[1]!=null)||(f[2]!==''&&f[2]!=null));
+    if(filas.length) h+=`<table class="rp-t"><thead><tr><th>Indicador</th><th>${E(propio)}</th><th>${E(rival)}</th></tr></thead><tbody>${filas.map(f=>`<tr><td>${E(f[0])}</td><td>${E(f[1]||'—')}</td><td>${E(f[2]||'—')}</td></tr>`).join('')}</tbody></table>`;
+
+    if(ai.estado_rival||ai.forma_rival){ h+=H('Estado actual de '+rival,'diagnóstico previo'); if(ai.estado_rival) h+='<p class="rp-p">'+E(ai.estado_rival)+'</p>'; if(ai.forma_rival) h+='<div class="rp-card"><b>Forma reciente:</b> '+E(ai.forma_rival)+'</div>'; }
+    const tac=ai.tactica_rival||{};
+    if(tac.estructura||(tac.caracteristicas||[]).length){
+      h+=H('Análisis táctico del rival','sistema y patrones de juego')+'<div class="rp-g2">'+
+        (tac.estructura?'<div class="rp-card"><div class="rp-k">Estructura habitual</div>'+E(tac.estructura)+'</div>':'')+
+        ((tac.caracteristicas||[]).length?'<div class="rp-card"><div class="rp-k">Características</div>'+lista(tac.caracteristicas)+'</div>':'')+'</div>';
+    }
+    if(Array.isArray(ai.jugadores_rival)&&ai.jugadores_rival.length){
+      h+=H('Jugadores clave de '+rival,'referentes a neutralizar')+`<table class="rp-t"><thead><tr><th>Jugador</th><th>Pos.</th><th>Dato</th><th>Por qué importa</th></tr></thead><tbody>${ai.jugadores_rival.map(j=>`<tr><td><b>${E(j.nombre)}</b></td><td>${E(j.pos||'')}</td><td>${E(j.dato||'')}</td><td>${E(j.por_que||'')}</td></tr>`).join('')}</tbody></table>`;
+    }
+    if((ai.fortalezas_rival||[]).length||(ai.debilidades_rival||[]).length){
+      h+=H('Fortalezas y debilidades de '+rival)+'<div class="rp-g2"><div class="rp-card rp-verde"><div class="rp-k">✔ Fortalezas (a respetar)</div>'+lista(ai.fortalezas_rival)+'</div><div class="rp-card rp-rojo"><div class="rp-k">✖ Debilidades (a aprovechar)</div>'+lista(ai.debilidades_rival)+'</div></div>';
+    }
+    if(Array.isArray(ai.escenarios)&&ai.escenarios.length){
+      h+=H('Escenarios del partido','lectura psico-competitiva MDC')+ai.escenarios.map((e,i)=>`<div class="rp-card" style="margin-bottom:6px">
+        <div class="rp-k">Escenario ${String.fromCharCode(65+i)}: ${E(e.titulo||e.momento||'')}</div>
+        ${e.que_puede_hacer_rival||e.que_puede_pasar?`<div><b>Qué puede hacer el rival:</b> ${E(e.que_puede_hacer_rival||e.que_puede_pasar)}</div>`:''}
+        ${e.riesgo?`<div class="rp-txt-rojo"><b>Riesgo:</b> ${E(e.riesgo)}</div>`:''}
+        ${e.oportunidad||e.que_hacer?`<div class="rp-txt-verde"><b>Oportunidad:</b> ${E(e.oportunidad||e.que_hacer)}</div>`:''}</div>`).join('');
+    }
+    if(Array.isArray(ai.ventanas)&&ai.ventanas.length){
+      const col=nv=>/alto/i.test(nv)?'rp-nv-alto':/medio/i.test(nv)?'rp-nv-medio':'rp-nv-bajo';
+      h+=H('Ventanas de riesgo emocional','momentos críticos y cómo contenerlos')+`<table class="rp-t"><thead><tr><th>Momento</th><th>Ventana</th><th>Nivel</th><th>Acción clave</th></tr></thead><tbody>${ai.ventanas.map(v=>`<tr><td><b>${E(v.minutos||'')}</b></td><td>${E(v.nombre||'')}${(v.senales||[]).length?'<div class="rp-mini">Señales: '+E(v.senales.join(' · '))+'</div>':''}</td><td><span class="rp-nv ${col(v.nivel||'')}">${E((v.nivel||'').toUpperCase())}</span></td><td>${E(v.accion||'')}</td></tr>`).join('')}</tbody></table>`;
+    }
+    if(Array.isArray(ai.plan)&&ai.plan.length){
+      h+=H('Plan estratégico para '+propio,'recomendaciones para el cuerpo técnico')+ai.plan.map((x,i)=>`<div class="rp-plan"><div class="rp-num">${i+1}</div><div><b>${E(x.titulo||'')}</b><div>${E(x.detalle||'')}</div></div></div>`).join('');
+    }
+    const pr=ai.probabilidades||{};
+    if(pr.propio!=null||pr.empate!=null||pr.rival!=null){
+      h+=H('Escenario más probable','estimación orientativa, no es una certeza')+`<div class="rp-g3">
+        <div class="rp-prob"><div>${E(propio)} gana</div><b>${E(pr.propio??'—')}%</b></div>
+        <div class="rp-prob"><div>Empate</div><b>${E(pr.empate??'—')}%</b></div>
+        <div class="rp-prob"><div>${E(rival)} gana</div><b>${E(pr.rival??'—')}%</b></div></div>
+        ${pr.fundamento?'<div class="rp-card" style="margin-top:6px"><div class="rp-k">Fundamento — Modelo MDC</div>'+E(pr.fundamento)+'</div>':''}`;
+    }
+    if(ai.variable_decisiva) h+='<div class="rp-card rp-azul" style="margin-top:6px"><b>Variable decisiva:</b> '+E(ai.variable_decisiva)+'</div>';
+    if((ai.fortalezas_propias||[]).length||(ai.debilidades_propias||[]).length){
+      h+=H('Fortalezas y zonas de riesgo de '+propio)+'<div class="rp-g2"><div class="rp-card rp-verde"><div class="rp-k">✔ Lo que nos favorece</div>'+lista(ai.fortalezas_propias)+'</div><div class="rp-card rp-rojo"><div class="rp-k">✖ Zonas de riesgo propias</div>'+lista(ai.debilidades_propias)+'</div></div>';
+    }
+  } else {
+    // Predicción hecha desde la cancha, con perfiles SC360
+    if(ai.resumen) h+=H('Cómo llega el equipo')+'<p class="rp-p">'+E(ai.resumen)+'</p>';
+    if(Array.isArray(p.xi)&&p.xi.length){
+      h+=H('Equipo')+`<table class="rp-t"><thead><tr><th>Jugador</th><th>Línea</th><th>Perfil</th><th>D proyectada</th><th>IDC</th></tr></thead><tbody>${p.xi.map(j=>`<tr><td>${E(j.nombre)}</td><td>${E(j.linea||'')}</td><td>${E(j.disc||'')}</td><td>${E(j.dp??'—')}</td><td>${E(j.idc??'—')}</td></tr>`).join('')}</tbody></table>`;
+    }
+    if(Array.isArray(ai.por_linea)&&ai.por_linea.length){
+      h+=H('Por línea')+'<div class="rp-g2">'+ai.por_linea.map(l=>`<div class="rp-card"><div class="rp-k">${E(l.linea)}</div>${E(l.prediccion||'')}
+        ${l.riesgo?`<div class="rp-txt-rojo" style="margin-top:3px"><b>Riesgo:</b> ${E(l.riesgo)}</div>`:''}${l.accion?`<div class="rp-txt-verde" style="margin-top:2px"><b>Acción:</b> ${E(l.accion)}</div>`:''}</div>`).join('')+'</div>';
+    }
+    if(Array.isArray(ai.escenarios)&&ai.escenarios.length){
+      h+=H('Escenarios del partido')+`<table class="rp-t"><thead><tr><th>Momento</th><th>Qué puede pasar</th><th>Qué hacer</th></tr></thead><tbody>${ai.escenarios.map(e=>`<tr><td><b>${E(e.momento)}</b></td><td>${E(e.que_puede_pasar)}</td><td>${E(e.que_hacer)}</td></tr>`).join('')}</tbody></table>`;
+    }
+    if(Array.isArray(ai.jugadores_clave)&&ai.jugadores_clave.length) h+=H('Jugadores clave')+ai.jugadores_clave.map(j=>`<div class="rp-card" style="margin-bottom:5px"><b>${E(j.nombre)}:</b> ${E(j.por_que)}</div>`).join('');
+    if(ai.rival) h+=H('El rival')+'<p class="rp-p">'+E(ai.rival)+'</p>';
+    if(ai.cambios_sugeridos) h+=H('Cambios')+'<p class="rp-p">'+E(ai.cambios_sugeridos)+'</p>';
+    if(Array.isArray(ai.plan_previa)&&ai.plan_previa.length) h+=H('Plan de previa')+ai.plan_previa.map((x,i)=>`<div class="rp-plan"><div class="rp-num">${i+1}</div><div>${E(x)}</div></div>`).join('');
+  }
+  const fuentes=(ai.fuentes_web||[]).filter(u=>/^https?:\/\//.test(u));
+  h+=`<div class="rp-pie">
+    ${ai.limites?'<div><b>Límites de este informe:</b> '+E(ai.limites)+'</div>':''}
+    ${fuentes.length?'<div>Fuentes web: '+fuentes.map(u=>E(u.replace(/^https?:\/\//,'').slice(0,60))).join(' · ')+'</div>':''}
+    <div>Informe generado con IA a partir de los datos de SC360${completo?' y de lo cargado por el cuerpo técnico':''}. Describe patrones y variables a monitorear: es una guía para el cuerpo técnico, no una certeza. No es un diagnóstico clínico.</div>
+    <div style="margin-top:3px">Sport Coaching 360 · app.sportcoachingpro.com · Medir → Entender → Decidir → Mejorar</div>
+  </div>`;
+  return h;
+}
+
+// ── Informe completo del rival (sin perfiles) ──
+function predCompletoForm(){
+  const gid=document.getElementById('plantel-grupo')?.value||'';
+  const gSel=(AG||[]).find(x=>x.id===gid);
+  const club=predClubDe(gSel);
+  let prev={}; try{ prev=JSON.parse(localStorage.getItem('sc360_pred_completo_borrador')||'{}')||{}; }catch(e){}
+  const v=(k,def)=>predEsc(prev[k]!=null?prev[k]:(def||''));
+  const inp='width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #1a3a6e;border-radius:8px;font-size:13px;background:#0a1024;color:#e8eff8';
+  const campo=(id,lbl,ph,def,tipo)=>`<div><label class="pred-lbl" for="pc-${id}">${lbl}</label><input id="pc-${id}" ${tipo?'type="'+tipo+'" inputmode="numeric"':''} placeholder="${ph||''}" value="${v(id,def)}" style="${inp}"></div>`;
+  const stats=(pre)=>`<div class="pred-stats">${campo(pre+'posicion','Posición','Ej: 5° Zona A')}${campo(pre+'pts','Puntos','','', 'number')}${campo(pre+'pj','PJ','','','number')}${campo(pre+'g','G','','','number')}${campo(pre+'e','E','','','number')}${campo(pre+'p','P','','','number')}${campo(pre+'gf','GF','','','number')}${campo(pre+'gc','GC','','','number')}</div>
+    <div class="pred-dos">${campo(pre+'goleador','Goleador','Ej: Bonfigli, 7 goles')}${campo(pre+'forma','Últimos 5 resultados','Ej: G E P P G')}</div>`;
+  const ta=(id,lbl,ph,rows)=>`<div><label class="pred-lbl" for="pc-${id}">${lbl}</label><textarea id="pc-${id}" rows="${rows||2}" placeholder="${ph||''}" style="${inp};resize:vertical">${v(id)}</textarea></div>`;
+  predModal(`<div class="pred-modal-in pred-form">
+    <div class="pred-barra"><div style="font-size:15px;font-weight:900;color:#e8eff8">📑 Informe completo del rival</div>
+      <button class="bg" style="padding:8px 12px;font-size:12px;margin-left:auto" onclick="predModalCerrar()">✕ Cerrar</button></div>
+    <div style="font-size:12.5px;color:#b4c2d4;line-height:1.5;margin-bottom:12px">Para partidos donde no tenés los perfiles de los jugadores cargados (por ejemplo, la Primera). La IA arma el scouting del rival, los escenarios, las ventanas de riesgo y el plan con el Modelo MDC, a partir de las estadísticas que cargues. Cuantos más datos, mejor el informe.</div>
+
+    <div class="pred-sec">Partido</div>
+    <div class="pred-dos">${campo('torneo','Torneo / fecha','Ej: Primera Nacional · Jornada 34')}${campo('fecha','Día y hora','Ej: Sábado 17/10 · 16 hs')}</div>
+    <div class="pred-dos">${campo('estadio','Estadio','Ej: Estadio de Chacarita')}
+      <div><label class="pred-lbl" for="pc-condicion">Condición</label><select id="pc-condicion" style="${inp}">${['Local','Visitante','Neutral'].map(o=>`<option ${prev.condicion===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
+    <div><label class="pred-lbl" for="pc-grupo">Vincular a una división de SC360 (opcional)</label>
+      <select id="pc-grupo" style="${inp}"><option value="">Sin vincular · equipo sin perfiles cargados</option>${(AG||[]).map(g=>`<option value="${g.id}" ${gSel&&gSel.id===g.id?'selected':''}>${predEsc(g.nombre)}</option>`).join('')}</select></div>
+
+    <div class="pred-sec">Nuestro equipo</div>
+    ${campo('propio_nombre','Nombre','Ej: Deportivo Maipú',club)}
+    ${stats('propio_')}
+    ${ta('propio_notas','Lo que sabés de tu equipo (opcional)','Ej: disponibilidad grupal 85%, sin semáforos rojos; baja de un central; venimos de ganar 5-0')}
+
+    <div class="pred-sec">Rival</div>
+    <div class="pred-dos">${campo('rival_nombre','Nombre del rival *','Ej: Chacarita Juniors')}
+      <div><label class="pred-lbl" for="pc-rival_estilo">Estilo de juego</label><select id="pc-rival_estilo" style="${inp}">${RIVAL_ESTILOS.map(o=>`<option ${prev.rival_estilo===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
+    ${stats('rival_')}
+    ${ta('rival_jugadores','Jugadores clave del rival','Ej: Meléndez (MF) 5 goles; Guanca (MF) 2 goles en 4 PJ, entra en el ST; arquero Bologna, 44 años',2)}
+    ${ta('rival_notas','Lo que sabés del rival','Ej: está en zona de descenso; sale jugando desde el fondo; presiona alto de local')}
+
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:12px;color:#b4c2d4;cursor:pointer">
+      <input type="checkbox" id="pc-web" ${prev.web===false?'':'checked'} style="accent-color:#7c3aed;margin-top:2px">
+      <span>Completar con información pública del rival en internet. <span style="color:#f59e0b">Solo sirve si el rival juega la misma competencia que figura en internet: para inferiores o ligas locales puede traer datos del primer equipo profesional, que no aplican.</span></span></label>
+
+    <div id="pc-estado" style="font-size:12px;margin-top:10px"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;position:sticky;bottom:0;background:#0d1b3e;padding:10px 0">
+      <button class="btn-p" id="pc-btn" style="padding:10px 18px;font-size:14px;font-weight:800;flex:1" onclick="predCompletoGenerar()">✦ Generar informe completo</button>
+    </div>
+  </div>`);
+}
+
+async function predCompletoGenerar(){
+  const val=id=>(document.getElementById('pc-'+id)?.value||'').trim();
+  const ids=['torneo','fecha','estadio','condicion','propio_nombre','propio_notas','rival_nombre','rival_estilo','rival_jugadores','rival_notas'];
+  const statK=['posicion','pts','pj','g','e','p','gf','gc','goleador','forma'];
+  const borr={}; ids.forEach(k=>borr[k]=val(k)); ['propio_','rival_'].forEach(pre=>statK.forEach(k=>borr[pre+k]=val(pre+k)));
+  borr.web=!!document.getElementById('pc-web')?.checked;
+  try{ localStorage.setItem('sc360_pred_completo_borrador',JSON.stringify(borr)); }catch(e){}
+  const estado=document.getElementById('pc-estado'), btn=document.getElementById('pc-btn');
+  if(!borr.rival_nombre){ estado.innerHTML='<span style="color:#ef4444">Poné el nombre del rival.</span>'; return; }
+  const gid=val('grupo'); const gObj=(AG||[]).find(x=>x.id===gid)||null;
+  const st=pre=>{ const o={}; statK.forEach(k=>o[k]=borr[pre+k]); return o; };
+  const datos={torneo:borr.torneo,fecha:borr.fecha,estadio:borr.estadio,condicion:borr.condicion,
+    propio:Object.assign({nombre:borr.propio_nombre||predClubDe(gObj)||'Nuestro equipo',notas:borr.propio_notas},st('propio_')),
+    rival:Object.assign({nombre:borr.rival_nombre,estilo:borr.rival_estilo,jugadores:borr.rival_jugadores,notas:borr.rival_notas},st('rival_')),
+    grupo:gObj?gObj.nombre:null};
+  const stTxt=(o)=>['posición '+(o.posicion||'—'),'puntos '+(o.pts||'—'),'PJ '+(o.pj||'—'),'G-E-P '+[o.g,o.e,o.p].map(x=>x||'—').join('-'),'GF '+(o.gf||'—'),'GC '+(o.gc||'—'),'goleador: '+(o.goleador||'—'),'últimos resultados: '+(o.forma||'—')].join(' · ');
+  const P=datos.propio, R=datos.rival;
+  const prompt='Sos analista de rendimiento mental deportivo y trabajás con el Modelo de Disponibilidad Competitiva (MDC: Disponibilidad = Talento − Interferencia) de Eduardo Meljin. '+
+'Escribís un INFORME DE SCOUTING Y PREDICCIÓN para un cuerpo técnico, en español rioplatense (voseo), directo y concreto.\n\n'+
+'PARTIDO: '+P.nombre+' vs '+R.nombre+' · '+[datos.torneo,datos.fecha,datos.estadio].filter(Boolean).join(' · ')+' · '+P.nombre+' juega de '+(datos.condicion||'—').toLowerCase()+'.\n\n'+
+'NUESTRO EQUIPO ('+P.nombre+'): '+stTxt(P)+(P.notas?'\nNotas del cuerpo técnico: '+P.notas:'')+'\n\n'+
+'RIVAL ('+R.nombre+'): '+stTxt(R)+'\nEstilo según el cuerpo técnico: '+(R.estilo||'—')+(R.jugadores?'\nJugadores clave: '+R.jugadores:'')+(R.notas?'\nNotas: '+R.notas:'')+'\n\n'+
+(borr.web?'Podés buscar en internet información pública y reciente de '+R.nombre+(datos.torneo?' en '+datos.torneo:'')+' (tabla, resultados, goleadores, sistema). Usá SOLO datos de esa misma competencia y categoría; si lo que encontrás es de otra categoría o del primer equipo profesional y el partido es de otra liga, no lo uses y aclaralo en "limites". No inventes.\n\n':'No busques en internet: usá solo los datos de arriba.\n\n')+
+'MARCO MDC: la interferencia de un equipo se lee en su contexto (presión por el resultado, racha, localía, urgencia en la tabla); la disponibilidad es lo que el equipo puede mostrar hoy. Aplicalo a los dos equipos.\n\n'+
+'REGLAS DE LENGUAJE: hablá de patrones y probabilidades ("puede", "es probable", "patrón observado", "variable a monitorear"), nunca como certeza ("va a pasar"). No uses términos clínicos (ansiedad, depresión, burnout, trastorno): usá "activación", "tensión", "nerviosismo", "señales de sobrecarga". No inventes estadísticas, lesiones ni nombres que no estén en los datos o en una fuente web confiable; si falta información, decilo en "limites" y dejá la sección más corta.\n\n'+
+'Respondé SOLO con este JSON, sin texto adicional ni markdown:\n'+
+'{\n'+
+'  "contexto": "2-3 oraciones: qué se juega cada equipo en este partido",\n'+
+'  "estado_rival": "párrafo: cómo llega el rival",\n'+
+'  "forma_rival": "1-2 oraciones sobre su forma reciente",\n'+
+'  "tactica_rival": {"estructura": "formación y cómo sale, mediocampo y ataque", "caracteristicas": ["3-4 rasgos"]},\n'+
+'  "jugadores_rival": [{"nombre": "", "pos": "", "dato": "partidos/goles si se conocen", "por_que": "por qué importa y cómo neutralizarlo"}],\n'+
+'  "fortalezas_rival": ["3-5"], "debilidades_rival": ["3-5"],\n'+
+'  "escenarios": [{"titulo": "ej: Inicio del partido (1-30 min) / Si el rival abre el marcador / Si nosotros abrimos el marcador / Partido trabado al minuto 60", "que_puede_hacer_rival": "", "riesgo": "riesgo para nuestro equipo", "oportunidad": ""}],\n'+
+'  "ventanas": [{"minutos": "ej: 0-15", "nombre": "nombre corto", "nivel": "ALTO|MEDIO|BAJO", "senales": ["2-3 señales de alerta"], "accion": "acción clave concreta"}],\n'+
+'  "plan": [{"titulo": "", "detalle": "2-3 oraciones"}],\n'+
+'  "probabilidades": {"propio": 0, "empate": 0, "rival": 0, "fundamento": "2-3 oraciones con el MDC"},\n'+
+'  "variable_decisiva": "1 oración",\n'+
+'  "fortalezas_propias": ["3-5"], "debilidades_propias": ["3-5"],\n'+
+'  "limites": "1-2 oraciones: qué datos faltan y cuánto confiar en el informe",\n'+
+'  "fuentes_web": ["URLs usadas; vacío si no buscaste"]\n'+
+'}\n'+
+'Exactamente 4 escenarios, entre 4 y 6 ventanas, entre 4 y 6 puntos de plan, hasta 6 jugadores del rival. Las probabilidades suman 100.';
+
+  btn.disabled=true; btn.textContent='✦ Armando el informe'+(borr.web?' y buscando datos del rival…':'…');
+  estado.innerHTML='<span style="color:#b4c2d4">Puede tardar hasta un minuto.</span>';
+  async function llamar(conWeb){
+    const body={model:'claude-haiku-4-5-20251001',max_tokens:8000,messages:[{role:'user',content:prompt}]};
+    if(conWeb) body.tools=[{type:'web_search_20250305',name:'web_search',max_uses:5}];
+    const resp=await fetch(PJ_IA_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await resp.json();
+    if(data&&data.error) throw new Error(data.error.message||'error de IA');
+    const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').replace(/<\/?cite[^>]*>/gi,'');
+    const m=text.replace(/```json|```/g,'').match(/\{[\s\S]*\}/);
+    if(!m) throw new Error('respuesta sin JSON');
+    return JSON.parse(m[0]);
+  }
+  let ai=null;
+  try{
+    if(borr.web){ try{ ai=await llamar(true); }catch(e){ console.warn('Sin búsqueda web:',e); ai=await llamar(false); ai.limites=((ai.limites||'')+' La búsqueda en internet no estuvo disponible: el informe usa solo los datos cargados.').trim(); } }
+    else ai=await llamar(false);
+  }catch(e){
+    console.error('Informe completo:',e);
+    btn.disabled=false; btn.textContent='✦ Generar informe completo';
+    estado.innerHTML='<span style="color:#ef4444">No se pudo generar el informe. Revisá la conexión e intentá de nuevo.</span>'; return;
+  }
+  ai=predLimpiarCites(ai);
+  const club=predClubDe(gObj);
+  const fila={grupo_codigo:gObj?gObj.codigo:('CLUB-'+(normClub(club)||'sin-club')),club:club||null,tipo:'completo',
+    rival:R.nombre,rival_norm:rivalNorm(R.nombre),titulo:P.nombre+' vs '+R.nombre,fecha_partido:datos.fecha||null,
+    formacion:null,xi:[],prediccion:ai,datos,creado_por:predUsuario()};
+  let id=null;
+  try{
+    const res=await q('predicciones_ia',{m:'POST',b:[fila]});
+    if(Array.isArray(res)&&res[0]){ id=res[0].id; PRED_CACHE[id]=res[0]; }
+    else console.warn('No se guardó el informe:',res);
+  }catch(e){ console.warn('No se guardó el informe:',e); }
+  predListaCargar();
+  if(id) predVer(id);
+  else { // si no se pudo guardar, igual se muestra
+    const tmp=Object.assign({id:'tmp',creado_en:new Date().toISOString()},fila); PRED_CACHE.tmp=tmp; predVer('tmp');
+  }
 }
 
 // Compatibilidad: código viejo que llamaba a este render
@@ -18016,7 +18468,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='15/10/2026 · 1';
+const SC360_VERSION='17/10/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
