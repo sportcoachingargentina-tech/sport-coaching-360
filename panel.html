@@ -3607,7 +3607,40 @@ function registrarNavegacion(pantalla){
   }).catch(function(){});
 }
 
+// ── Botón "atrás" del celular (app instalada) ──────────────────────
+// Cada pantalla queda en el historial: atrás cierra primero lo que esté
+// abierto (ventana, menú) y si no, vuelve a la pantalla anterior.
+let NAV_DESDE_ATRAS=false;
+function navCerrarAbierto(){
+  const pm=document.getElementById('pred-modal');
+  if(pm&&pm.style.display&&pm.style.display!=='none'&&pm.innerHTML){ try{ predModalCerrar(); }catch(e){ pm.style.display='none'; } return true; }
+  for(const id of ['mo-mpt','mo-fichas']){ const m=document.getElementById(id); if(m){ m.remove(); return true; } }
+  const abiertos=document.querySelectorAll('.mo.open');
+  if(abiertos.length){ abiertos[abiertos.length-1].classList.remove('open'); return true; }
+  const sb=document.querySelector('.sidebar');
+  if(sb&&sb.classList.contains('mobile-open')){ sb.classList.remove('mobile-open'); return true; }
+  return false;
+}
+window.addEventListener('popstate',function(e){
+  const actual=document.querySelector('.screen.active');
+  const actualId=actual?actual.id.replace('screen-',''):'dashboard';
+  if(navCerrarAbierto()){ try{ history.pushState({sc:actualId},''); }catch(_){} return; }
+  const dest=(e.state&&e.state.sc)||null;
+  if(!dest) return;
+  if(!document.getElementById('screen-'+dest)) return;
+  NAV_DESDE_ATRAS=true;
+  try{ go(dest); }finally{ NAV_DESDE_ATRAS=false; }
+});
+function navHistorial(name){
+  if(NAV_DESDE_ATRAS) return;
+  try{
+    const st=history.state;
+    if(!st||!st.sc) history.replaceState({sc:name},'');
+    else if(st.sc!==name) history.pushState({sc:name},'');
+  }catch(e){}
+}
 function go(name){
+  navHistorial(name);
   registrarNavegacion(name);
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -18469,7 +18502,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='24/10/2026 · 2';
+const SC360_VERSION='24/10/2026 · 3';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
