@@ -4995,9 +4995,9 @@ function renderGrupal(f){
   const CAPAS_MDC=[
     {nombre:'AUTOCONOCIMIENTO',key:['autoconocimiento','confianza'],color:'#8b5cf6',desc:'Quién es el equipo cuando todo presiona'},
     {nombre:'TALENTO DIFERENCIAL',key:['potencial','liderazgo'],color:'#0ea5e9',desc:'Lo singular que diferencia al plantel'},
-    {nombre:'REGULACIÓN Y LECTURA',key:['regulacion','metacognicion','decision'],color:'#06b6d4',desc:'Emoción, metacognición y decisión bajo presión'},
+    {nombre:'REGULACIÓN Y LECTURA',key:['regulacion','metacognicion','decision','atencion'],color:'#06b6d4',desc:'Emoción, atención, metacognición y decisión bajo presión'},
     {nombre:'ENERGÍA Y ASPIRACIÓN',key:['motivacion','consistencia'],color:'#f59e0b',desc:'Combustible interno que sostiene el querer'},
-    {nombre:'DESTREZA Y OPORTUNIDAD',key:['atencion','competitividad','desempeno'],color:'#22c55e',desc:'Ejecución del talento cuando el momento lo pide'},
+    {nombre:'DESTREZA Y OPORTUNIDAD',key:['competitividad','desempeno'],color:'#22c55e',desc:'Ejecución del talento cuando el momento lo pide'},
   ];
   const capasW=document.getElementById('ig-capas-w');
   const capasBox=document.getElementById('ig-capas');
@@ -5050,6 +5050,7 @@ function renderGrupal(f){
         '</div>'
       ):'';
     }
+    try{ igPatrones(f); }catch(e){ console.warn('Patrones del plantel:',e); }
     if(capasW)capasW.style.display='block';
   }
 
@@ -17405,9 +17406,9 @@ async function loadPerfilJugador() {
 const CAPAS_DEF_PJ = [
   { key:'autoconocimiento', nombre:'Autoconocimiento', color:'#8b5cf6', dims:['autoconocimiento','confianza'], ejercicios:['apuesta_confianza'] },
   { key:'talento', nombre:'Talento Diferencial', color:'#0ea5e9', dims:['potencial','liderazgo'], ejercicios:['memoria_trabajo'] },
-  { key:'regulacion', nombre:'Regulación y Lectura', color:'#06b6d4', dims:['regulacion','metacognicion','decision'], ejercicios:['go_nogo','stroop'] },
+  { key:'regulacion', nombre:'Regulación y Lectura', color:'#06b6d4', dims:['regulacion','metacognicion','decision','atencion'], ejercicios:['go_nogo','stroop'] },
   { key:'energia', nombre:'Energía y Aspiración', color:'#f59e0b', dims:['motivacion','consistencia'], ejercicios:['resistencia'] },
-  { key:'destreza', nombre:'Destreza y Oportunidad', color:'#22c55e', dims:['atencion','competitividad','desempeno'], ejercicios:['reaccion_simple'] },
+  { key:'destreza', nombre:'Destreza y Oportunidad', color:'#22c55e', dims:['competitividad','desempeno'], ejercicios:['reaccion_simple'] },
 ];
 
 async function renderCuadrantePJ(r){
@@ -18468,7 +18469,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='17/10/2026 · 1';
+const SC360_VERSION='24/10/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -18766,14 +18767,15 @@ async function cargarMPT(r){
   MPT_ST={r,ints:[],tests:[],pp:[]};
   try{
     const filtro=r.jugador_uid?('jugador_uid=eq.'+r.jugador_uid):('jugador_nombre=ilike.'+encodeURIComponent((r.jugador_nombre||'').trim()));
-    const [ints,tests,pp]=await Promise.all([
+    const [ints,tests,pp,dtPJ]=await Promise.all([
       q('intervenciones?'+filtro+'&order=fecha_inicio.desc&limit=50'),
       q('resultados?'+filtro+'&select=id,fecha,disponibilidad,dims&order=fecha.asc&limit=50'),
-      q('postpartido_jugador?'+filtro+'&order=fecha.asc&limit=200')
+      q('postpartido_jugador?'+filtro+'&order=fecha.asc&limit=200'),
+      q('postpartido_dt?'+filtro+'&order=fecha.asc&limit=200')
     ]);
     if(PJ_ACTUAL!==r) return;
     MPT_ST.tablaOk=Array.isArray(ints);
-    MPT_ST.ints=Array.isArray(ints)?ints:[]; MPT_ST.tests=Array.isArray(tests)?tests:[]; MPT_ST.pp=Array.isArray(pp)?pp:[];
+    MPT_ST.ints=Array.isArray(ints)?ints:[]; MPT_ST.tests=Array.isArray(tests)?tests:[]; MPT_ST.pp=Array.isArray(pp)?pp:[]; MPT_ST.dt=Array.isArray(dtPJ)?dtPJ:[];
     try{ const el=document.getElementById('pj-lectura-pp'); if(el){ const n=MPT_ST.pp.length, u=n?MPT_ST.pp[n-1].fecha:null;
       const d=u?Math.floor((Date.now()-new Date(String(u).slice(0,10)+'T12:00:00').getTime())/86400000):null;
       el.innerHTML='⚽ Post Partido: <b>'+n+'</b>'+(n?' · el último hace '+d+' día'+(d===1?'':'s'):' · sin cargar')+(n&&n<3?' · <span style="color:#f59e0b">pocos datos</span>':''); } }catch(e){}
@@ -19538,10 +19540,167 @@ function renderTableroPJ(){
       tile('En partidos',mentalPP==null?(st?'—':cargando):mentalPP,mentalPP==null?'sin Post Partido':'estado mental · últimos '+ult3.length,mentalPP==null?'#94a3b8':colD(mentalPP))+
     '</div>'+
     (accion?'<div style="margin:10px 0;background:linear-gradient(90deg,#00c2ff1f,#00c2ff08);border:1px solid #00c2ff55;border-left:4px solid #00c2ff;border-radius:10px;padding:9px 12px;font-size:13px;color:#e8eff8;line-height:1.45"><b style="color:#00c2ff">🎯 Foco de trabajo:</b> '+accion+'</div>':'<div style="height:10px"></div>')+
+    (function(){ try{ return patronesHtmlPJ(r,st); }catch(e){ console.warn('Patrones:',e); return ''; } })()+
     '<div class="pj-tab-cards">'+
       '<div class="dsh-card"><div class="dsh-card-t">⚠️ Capas MDC</div>'+barras+(baja?'<div class="dsh-card-p">Su principal interferencia está en <b style="color:#f59e0b">'+baja.c.nombre+'</b>.</div>':'')+'</div>'+
       '<div class="dsh-card"><div class="dsh-card-t">📈 Estado mental por partido</div>'+linea+'<div class="dsh-card-p">Post Partido del jugador. La línea punteada marca 80 (nivel óptimo).</div></div>'+
     '</div></div>';
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// PATRONES MENTALES (Fase 2) — lectura con nombre y acción para el DT
+// Un jugador puede tener más de uno: se muestra el principal y los demás.
+// Solo cuerpo técnico: no se muestran en la vista del jugador ni en el PDF.
+// No modifica la Disponibilidad ni el test: se calcula aparte.
+// ═══════════════════════════════════════════════════════════════
+const CONFIG_PATRONES={
+  motor_min_dif:1.67,        // Motivación − Regulación emocional (escala 1–5)
+  brecha_min_dif:1.67,       // Potencial − Desempeño (escala 1–5)
+  equilibrado_reg_min:4,     // Regulación emocional mínima para "Equilibrado"
+  jvd_puntos:10,             // diferencia jugador vs DT en el Post Partido (escala 0–100)
+  jvd_ultimos:3,             // se miran los últimos N partidos con evaluación del DT
+  jvd_min_veces:2            // en cuántos de esos N tiene que darse la diferencia
+};
+// Textos redactados por Eduardo Meljin (24/10/2026)
+const TEXTOS_PATRONES={
+  miedo:{nombre:'Compite con miedo',color:'#a78bfa',
+    desc:'Juega para no fallar más que para conseguir algo. Carga más interferencia que el resto (en el estudio SC360, los jugadores en modo prevención muestran en promedio 5,8 puntos menos de disponibilidad).',
+    accion:'Poner objetivos de acción ("presionar al recibir") en vez de objetivos de evitación ("no perderla"). Que el error tenga permiso.'},
+  motor:{nombre:'Motor sin volante',color:'#fb923c',
+    desc:'Tiene ganas de sobra, pero todavía no sabe qué hacer cuando la emoción sube.',
+    accion:'Rutina de reseteo después del error (respiración, palabra clave, próxima acción) y valorar la recuperación, no solo la jugada.'},
+  sobre:{nombre:'Se sobrevalora',color:'#fbbf24',
+    desc:'Se ve mejor de lo que lo ve su entorno. No es soberbia: le falta lectura de sí mismo.',
+    accion:'Devolución cruzada después del partido: primero él dice cómo se vio, después el DT, y se comparan con hechos concretos.'},
+  sub:{nombre:'Se subestima',color:'#38bdf8',
+    desc:'Rinde más de lo que cree. Su confianza va por detrás de su nivel.',
+    accion:'Mostrarle evidencia concreta de lo que hizo bien (video, datos). La confianza se construye con experiencias, no con elogios.'},
+  brecha:{nombre:'Brecha potencial–desempeño',color:'#f472b6',
+    desc:'Cree mucho en lo que puede llegar a ser, pero no lo ve todavía en lo que hace.',
+    accion:'Metas de proceso cortas y medibles que conecten el potencial con la próxima práctica, no con el futuro lejano.'},
+  equilibrado:{nombre:'Equilibrado',color:'#22c55e',
+    desc:'Las ganas y la regulación van en el mismo nivel. Está disponible para competir.',
+    accion:'Sostener, no sobrecargar. Darle responsabilidad y desafíos nuevos para que siga creciendo.'}
+};
+const ORDEN_PATRONES=['miedo','motor','sobre','sub','brecha','equilibrado'];
+
+// Post Partido del jugador y evaluación del DT, en la misma escala 0–100
+function patPctJugador(x){
+  if(x.mental_score_pct!=null&&x.mental_score_pct!=='') return Number(x.mental_score_pct);
+  const v=[]; for(let i=1;i<=15;i++){ const a=x['q'+i]; if(a!=null&&a!=='') v.push(Number(a)); }
+  return v.length?(v.reduce((s,y)=>s+y,0)/v.length-1)/9*100:null;
+}
+function patPctDT(x){
+  const v=[]; for(let i=1;i<=12;i++){ const a=x['q'+i]; if(a!=null&&a!=='') v.push(Number(a)); }
+  return v.length?(v.reduce((s,y)=>s+y,0)/v.length-1)/9*100:null;
+}
+// Compara jugador vs DT en los últimos partidos que tienen las dos miradas
+function patronJvsDT(pp,dt){
+  const C=CONFIG_PATRONES, porPartido={};
+  (dt||[]).forEach(d=>{ if(d.partido_codigo) porPartido[d.partido_codigo]=d; });
+  const pares=(pp||[]).filter(p=>p.partido_codigo&&porPartido[p.partido_codigo])
+    .map(p=>({cod:p.partido_codigo,f:String(p.fecha||'')+'|'+p.partido_codigo,j:patPctJugador(p),d:patPctDT(porPartido[p.partido_codigo])}))
+    .filter(x=>x.j!=null&&x.d!=null);
+  const vistos={}, unicos=pares.filter(x=>vistos[x.cod]?false:(vistos[x.cod]=1));
+  const ult=unicos.sort((a,b)=>a.f<b.f?1:-1).slice(0,C.jvd_ultimos);
+  const arriba=ult.filter(x=>x.j-x.d>C.jvd_puntos).length, abajo=ult.filter(x=>x.d-x.j>C.jvd_puntos).length;
+  let estado=null;
+  if(ult.length>=C.jvd_min_veces){ if(arriba>=C.jvd_min_veces) estado='sobre'; else if(abajo>=C.jvd_min_veces) estado='sub'; }
+  return {estado,n:ult.length};
+}
+// r = última evaluación del jugador; pp y dt = sus Post Partido (pueden venir vacíos)
+function patronesJugador(r,pp,dt){
+  const C=CONFIG_PATRONES, d=(r&&r.dims)||{}, out=[];
+  const num=k=>d[k]!=null&&d[k]>0?Number(d[k]):null;
+  const mo=num('motivacion'), re=num('regulacion'), po=num('potencial'), de=num('desempeno');
+  if(mo==null&&re==null&&po==null&&de==null&&!r?.modo_motivacional) return {lista:[],jvd:{estado:null,n:0},sinDatos:true};
+  if(r.modo_motivacional==='prevencion') out.push('miedo');
+  if(mo!=null&&re!=null&&mo-re>=C.motor_min_dif-0.001) out.push('motor');
+  const jvd=patronJvsDT(pp,dt); if(jvd.estado) out.push(jvd.estado);
+  if(po!=null&&de!=null&&po-de>=C.brecha_min_dif-0.001) out.push('brecha');
+  if(!out.length&&re!=null&&re>=C.equilibrado_reg_min) out.push('equilibrado');
+  return {lista:out.sort((a,b)=>ORDEN_PATRONES.indexOf(a)-ORDEN_PATRONES.indexOf(b)),jvd};
+}
+function rolDeJugador(r){
+  const disc=(r.primary_disc||'').charAt(0);
+  const rDef=(typeof ROLES_PUESTO!=='undefined')?ROLES_PUESTO[r.jugador_pos||'']:null;
+  return rDef?rDef.rol:({S:'CALMA',D:'INTENSIDAD',C:'EQUILIBRIO',I:'DECISIÓN'})[disc]||null;
+}
+function patEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// Bloque del Perfil de Jugador
+function patronesHtmlPJ(r,st){
+  if(!st) return '<div class="pj-patron" style="margin:10px 0;font-size:12px;color:#7c8fae">🧩 Calculando el patrón mental…</div>';
+  const P=patronesJugador(r,st.pp||[],st.dt||[]);
+  if(P.sinDatos) return '';
+  const rol=rolDeJugador(r), ri=rol&&typeof ROL_INFO_PJ!=='undefined'?ROL_INFO_PJ[rol]:null;
+  const princ=P.lista[0]?TEXTOS_PATRONES[P.lista[0]]:null, otros=P.lista.slice(1).map(k=>TEXTOS_PATRONES[k]);
+  const col=princ?princ.color:'#4a5a78';
+  let h='<div class="pj-patron" style="margin:10px 0;background:#0d1b3e;border:1px solid '+col+'66;border-radius:12px;padding:12px 14px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+      '<div style="font-size:10.5px;font-weight:800;letter-spacing:0.1em;color:#94a3b8">🧩 PATRÓN MENTAL</div>'+
+      '<div style="font-size:10px;font-weight:800;color:#94a3b8;border:1px solid #1a3a6e;border-radius:20px;padding:2px 8px">SOLO CUERPO TÉCNICO</div></div>'+
+    '<div style="font-size:13.5px;color:#e8eff8;line-height:1.5">'+
+      (rol?'Rol: <b style="color:'+(ri?ri.color:'#00c2ff')+'">'+patEsc(rol)+'</b> <span style="color:#4a5a78">·</span> ':'')+
+      (princ?'Patrón: <b style="color:'+col+'">'+patEsc(princ.nombre)+'</b>':'<span style="color:#94a3b8">Sin un patrón marcado por ahora.</span>')+'</div>';
+  if(princ){
+    h+='<div style="font-size:13px;color:#c0d0e8;line-height:1.5;margin-top:5px">'+patEsc(princ.desc)+'</div>'+
+      '<div style="font-size:13px;color:#22c55e;line-height:1.5;margin-top:5px"><b>→ Acción DT:</b> '+patEsc(princ.accion)+'</div>';
+  }
+  if(otros.length){
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:9px"><span style="font-size:11px;color:#94a3b8">También:</span>'+
+      otros.map(o=>'<span title="'+patEsc(o.desc+' Acción DT: '+o.accion)+'" style="font-size:11.5px;font-weight:700;color:'+o.color+';background:'+o.color+'18;border:1px solid '+o.color+'55;border-radius:20px;padding:3px 9px;cursor:help">'+patEsc(o.nombre)+'</span>').join('')+'</div>';
+  }
+  if(P.jvd.n<CONFIG_PATRONES.jvd_ultimos)
+    h+='<div style="font-size:11px;color:#7c8fae;margin-top:8px">Jugador vs DT: se necesitan '+CONFIG_PATRONES.jvd_ultimos+' partidos con evaluación del DT (tiene '+P.jvd.n+').</div>';
+  return h+'</div>';
+}
+
+// Resumen del Informe Grupal: cuántos jugadores hay en cada patrón
+let IG_PAT_TOKEN=0;
+async function igPatrones(f){
+  const alerta=document.getElementById('ig-capa-alerta'); if(!alerta) return;
+  let box=document.getElementById('ig-patrones');
+  if(!box){ box=document.createElement('div'); box.id='ig-patrones'; box.style.margin='0 14px 14px'; alerta.parentNode.insertBefore(box,alerta.nextSibling); }
+  if(!f||!f.length){ box.innerHTML=''; return; }
+  const tok=++IG_PAT_TOKEN;
+  box.innerHTML='<div style="font-size:12px;color:#7c8fae">🧩 Calculando patrones del plantel…</div>';
+  const cods=[...new Set(f.map(r=>r.grupo_codigo).filter(Boolean))];
+  let pp=[], dt=[];
+  if(cods.length){
+    const fc='grupo_codigo=in.('+cods.map(c=>encodeURIComponent(c)).join(',')+')';
+    try{
+      const res=await Promise.all([
+        q('postpartido_jugador?'+fc+'&select=jugador_nombre,jugador_uid,partido_codigo,fecha,mental_score_pct,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12,q13,q14,q15&limit=5000'),
+        q('postpartido_dt?'+fc+'&select=jugador_nombre,jugador_uid,partido_codigo,fecha,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12&limit=5000')]);
+      pp=Array.isArray(res[0])?res[0]:[]; dt=Array.isArray(res[1])?res[1]:[];
+    }catch(e){}
+  }
+  if(tok!==IG_PAT_TOKEN) return;
+  const clave=x=>x.jugador_uid?'u:'+x.jugador_uid:'n:'+(x.jugador_nombre||'').toLowerCase().trim();
+  const agrupar=arr=>{ const m={}; arr.forEach(x=>{ (m[clave(x)]=m[clave(x)]||[]).push(x); if(x.jugador_uid){ const kn='n:'+(x.jugador_nombre||'').toLowerCase().trim(); (m[kn]=m[kn]||[]).push(x); } }); return m; };
+  const PP=agrupar(pp), DT=agrupar(dt);
+  const cuenta={}, nombres={}; let sinPatron=0;
+  ORDEN_PATRONES.forEach(k=>{ cuenta[k]=0; nombres[k]=[]; });
+  f.forEach(r=>{
+    const k=r.jugador_uid?'u:'+r.jugador_uid:'n:'+(r.jugador_nombre||'').toLowerCase().trim();
+    const P=patronesJugador(r,PP[k]||[],DT[k]||[]);
+    if(P.sinDatos) return;
+    if(!P.lista.length){ sinPatron++; return; }
+    P.lista.forEach(p=>{ cuenta[p]++; nombres[p].push(r.jugador_nombre||''); });
+  });
+  const items=ORDEN_PATRONES.filter(k=>cuenta[k]>0);
+  if(!items.length&&!sinPatron){ box.innerHTML=''; return; }
+  box.innerHTML='<div style="background:#0a1024;border:1px solid #1a3a6e;border-radius:10px;padding:12px 14px">'+
+    '<div style="font-size:11px;font-weight:800;letter-spacing:0.08em;color:#94a3b8;margin-bottom:8px">🧩 PATRONES MENTALES DEL PLANTEL</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px">'+
+    items.map(k=>{ const t=TEXTOS_PATRONES[k];
+      return '<div title="'+patEsc(nombres[k].join(', '))+'" style="background:'+t.color+'12;border:1px solid '+t.color+'55;border-radius:10px;padding:8px 10px;cursor:help">'+
+        '<div style="font-size:22px;font-weight:900;color:'+t.color+';line-height:1">'+cuenta[k]+'</div>'+
+        '<div style="font-size:12px;font-weight:800;color:#e8eff8;margin-top:3px">'+patEsc(t.nombre)+'</div></div>'; }).join('')+
+    (sinPatron?'<div style="background:#ffffff08;border:1px solid #1a3a6e;border-radius:10px;padding:8px 10px"><div style="font-size:22px;font-weight:900;color:#94a3b8;line-height:1">'+sinPatron+'</div><div style="font-size:12px;font-weight:800;color:#e8eff8;margin-top:3px">Sin patrón marcado</div></div>':'')+
+    '</div><div style="font-size:11px;color:#7c8fae;margin-top:8px">Un jugador puede tener más de un patrón. Pasá el mouse por cada número para ver los nombres; el detalle y la acción sugerida están en el perfil de cada jugador.</div></div>';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -20829,7 +20988,7 @@ function imprimirPerfilPDF(){
   const tab=document.getElementById('pj-tablero');
   const parte=sel=>{ const el=tab&&tab.querySelector(sel); return el?el.outerHTML:''; };
   const tiles=parte('.dsh-tiles'), cards=parte('.pj-tab-cards');
-  const foco=(()=>{ const t=tab&&tab.querySelector('.dsh-tiles'); const f=t&&t.nextElementSibling; return f&&f.textContent.trim()?f.outerHTML:''; })();
+  const foco=(()=>{ const t=tab&&tab.querySelector('.dsh-tiles'); const f=t&&t.nextElementSibling; return f&&!f.classList.contains('pj-patron')&&f.textContent.trim()?f.outerHTML:''; })();
   const carta=(document.getElementById('pj-card-visual')||{}).style&&document.getElementById('pj-card-visual').style.display!=='none'?document.getElementById('pj-card-img').src:'';
   const logo=(document.querySelector('.topbar img')||{}).src||'';
   const esc=document.getElementById('pj-escudo'); const escudo=esc&&esc.style.display!=='none'&&esc.src?esc.src:'';
