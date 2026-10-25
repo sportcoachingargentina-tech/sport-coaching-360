@@ -2820,6 +2820,8 @@ tr:hover td{background:#0d1b3e40}
       <button id="pj-btn-estilo" onclick="compartirEstiloPensamiento()" class="bg" style="padding:10px 8px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🧠 Pedir Estilo de Pensamiento</button>
       <button onclick="imprimirPerfilPDF()" style="padding:10px 8px;background:#1a3a6e;color:#e8eff8;border:none;border-radius:8px;font-size:13px;cursor:pointer;white-space:nowrap">📄 PDF del perfil</button>
     </div>
+    <!-- Patrón mental (solo cuerpo técnico): debajo de los botones, ocupa el espacio libre de la columna -->
+    <div id="pj-patron-slot" class="pj-print-hide" style="width:370px;max-width:100%;margin:0 auto"></div>
     </div>
     <!-- fin pj-left-col -->
 
@@ -18502,7 +18504,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='24/10/2026 · 3';
+const SC360_VERSION='24/10/2026 · 4';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -19573,11 +19575,12 @@ function renderTableroPJ(){
       tile('En partidos',mentalPP==null?(st?'—':cargando):mentalPP,mentalPP==null?'sin Post Partido':'estado mental · últimos '+ult3.length,mentalPP==null?'#94a3b8':colD(mentalPP))+
     '</div>'+
     (accion?'<div style="margin:10px 0;background:linear-gradient(90deg,#00c2ff1f,#00c2ff08);border:1px solid #00c2ff55;border-left:4px solid #00c2ff;border-radius:10px;padding:9px 12px;font-size:13px;color:#e8eff8;line-height:1.45"><b style="color:#00c2ff">🎯 Foco de trabajo:</b> '+accion+'</div>':'<div style="height:10px"></div>')+
-    (function(){ try{ return patronesHtmlPJ(r,st); }catch(e){ console.warn('Patrones:',e); return ''; } })()+
     '<div class="pj-tab-cards">'+
-      '<div class="dsh-card"><div class="dsh-card-t">⚠️ Capas MDC</div>'+barras+(baja?'<div class="dsh-card-p">Su principal interferencia está en <b style="color:#f59e0b">'+baja.c.nombre+'</b>.</div>':'')+'</div>'+
+      '<div class="dsh-card"><div class="dsh-card-t">⚠️ Capas MDC</div><div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;max-height:300px">'+barras+'</div>'+(baja?'<div class="dsh-card-p">Su principal interferencia está en <b style="color:#f59e0b">'+baja.c.nombre+'</b>.</div>':'')+'</div>'+
       '<div class="dsh-card"><div class="dsh-card-t">📈 Estado mental por partido</div>'+linea+'<div class="dsh-card-p">Post Partido del jugador. La línea punteada marca 80 (nivel óptimo).</div></div>'+
     '</div></div>';
+  const slot=document.getElementById('pj-patron-slot');
+  if(slot){ try{ slot.innerHTML=patronesHtmlPJ(r,st)||''; }catch(e){ console.warn('Patrones:',e); slot.innerHTML=''; } }
 }
 
 
