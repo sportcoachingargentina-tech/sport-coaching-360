@@ -138,8 +138,17 @@ async function q(path,o){
   }); }catch(e){ return null; } // sin señal: no se traba, devuelve null
   if(!r.ok)return null;
   const t=await r.text();
-  try{ return t?JSON.parse(t):null; }catch(e){ return null; }
+  if(!t) return true; // guardado sin respuesta (return=minimal)
+  try{ return JSON.parse(t); }catch(e){ return null; }
 }
+// Funciones seguras de la base: el link pide solo lo que necesita
+async function rpc(fn,b){
+  try{ const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+    if(!r.ok){ console.error('rpc '+fn+':',await r.text()); return null; }
+    const t=await r.text(); return t?JSON.parse(t):null;
+  }catch(e){ console.warn('Sin conexión:',e); return null; }
+}
+
 
 // Previas — mismo territorio que el Índice de Hooper (sueño, energía, alimentación)
 const PREGUNTAS_FISIO=[
@@ -180,9 +189,9 @@ async function init(){
   const params=new URLSearchParams(window.location.search);
   const cod=params.get('sesion');
   if(!cod){showScreen('s-error');document.getElementById('error-txt').textContent='Link inválido — falta el código de sesión.';return;}
-  const res=await q('sesiones_entreno?codigo=eq.'+cod+'&limit=1');
-  if(!res||!res.length){showScreen('s-error');document.getElementById('error-txt').textContent='Sesión no encontrada.';return;}
-  sesionData=res[0];
+  const sd=await rpc('sc_sesion_publica',{p_codigo:cod});
+  if(!sd||!sd.codigo){showScreen('s-error');document.getElementById('error-txt').textContent='Sesión no encontrada.';return;}
+  sesionData=sd;
   document.getElementById('sesion-info').style.display='block';
   document.getElementById('pi-grupo').textContent=sesionData.grupo_nombre||sesionData.grupo_codigo;
   document.getElementById('pi-fecha').textContent=sesionData.fecha?new Date(sesionData.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'}):'';
@@ -306,7 +315,7 @@ async function enviar(){
     texto_libre:tl||null
   };
 
-  const res=await q('entreno_jugador',{m:'POST',b:data});
+  const res=await q('entreno_jugador',{m:'POST',b:data,h:{'Prefer':'return=minimal'}});
   if(res){ showScreen('s-thanks'); }
   else if(window.SC360_guardarPendiente&&SC360_guardarPendiente('entreno_jugador',data)){
     alert('No había conexión, pero tu check-in quedó guardado en este celular y se va a enviar solo cuando vuelva la señal.');
