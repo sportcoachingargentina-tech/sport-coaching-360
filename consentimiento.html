@@ -61,6 +61,14 @@ async function q(path,opts){
   }catch(e){ console.error('Error de red:',e); return {__error:true, mensaje:String(e)}; }
 }
 
+async function rpcPub(fn, body){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+    const t=await r.text(); if(!r.ok){ console.error('rpc '+fn+':',t); return null; }
+    return t?JSON.parse(t):null;
+  }catch(e){ console.error('Error de red:',e); return null; }
+}
+
 let VINCULO='';
 function elegirVinculo(v){
   VINCULO=v;
@@ -82,8 +90,8 @@ async function init(){
     app.innerHTML='<div class="err">Este link no es válido.<br>Pedile al club que te lo reenvíe.</div>';
     return;
   }
-  let data=await q('resultados?token_perfil=eq.'+token+'&limit=1&select=id,jugador_nombre,jugador_club');
-  if(!data||!data.length) data=await q('resultados?id=eq.'+token+'&limit=1&select=id,jugador_nombre,jugador_club');
+  const perfil=await rpcPub('sc_perfil_publico',{p_token:token});
+  const data=perfil&&perfil.id?[perfil]:[];
   if(!data||!data.length){
     app.innerHTML='<div class="err">No encontramos el perfil asociado a este link.<br>Pedile al club que te lo reenvíe.</div>';
     return;
