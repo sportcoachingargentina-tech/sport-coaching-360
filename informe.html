@@ -634,14 +634,19 @@ var supaId = params.get('id');
 
 if(supaId) {
   // Load from Supabase by ID
-  fetch('https://gltqhcnusblfovhxljcs.supabase.co/rest/v1/resultados?id=eq.'+supaId+'&select=*', {
+  // Función segura: trae solo los datos del informe (no el test completo)
+  fetch('https://gltqhcnusblfovhxljcs.supabase.co/rest/v1/rpc/sc_informe_publico', {
+    method: 'POST',
     headers: {
       'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI',
-      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI'
-    }
+      'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ p_id: supaId })
   }).then(function(r){ return r.json(); })
-  .then(function(data){
-    if(!data||!data.length){ showError(); return; }
+  .then(function(d){
+    var data = d && d.id ? [d] : [];
+    if(!data.length){ showError(); return; }
     var r = data[0];
     // Map Supabase fields to informe format
     var informe = {
