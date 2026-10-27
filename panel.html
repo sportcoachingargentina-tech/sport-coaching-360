@@ -712,6 +712,14 @@ tr:hover td{background:#0d1b3e40}
           <div id="dash-onboarding-pasos"></div>
         </div>
 
+        <!-- DETALLE DEL PLANTEL: todo lo que antes estaba suelto en el Inicio.
+             No se borra nada: queda plegado para que lo primero sea la conclusión. -->
+        <button id="dash-detalle-btn" onclick="dashToggleDetalle()" style="width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 16px;margin:0 0 12px;background:#0d1b3e;border:1px solid #1a3a6e;border-radius:12px;color:#e8eff8;font-size:13.5px;font-weight:800;cursor:pointer;text-align:left">
+          <span>📊 Ver detalle del plantel <span style="font-size:11.5px;font-weight:500;color:#7c8fae">· semáforo, líneas, capas, IDC, evaluaciones, alertas</span></span><span id="dash-detalle-chev">▾</span>
+        </button>
+        <div id="dash-detalle" style="display:none">
+        <div id="dash-graficos"></div>
+
         <!-- Acción recomendada — traduce los números en una sola conclusión
              accionable, para que el DT no tenga que interpretar 8 módulos
              de datos por su cuenta antes de saber qué hacer. -->
@@ -819,7 +827,7 @@ tr:hover td{background:#0d1b3e40}
 
           <!-- Semáforo MDC -->
           <div class="tw">
-            <div class="th">🚦 ESTADO DEL PLANTEL</div>
+            <div class="th">🚦 SEMÁFORO DEL TEST MDC</div>
             <div style="display:flex;gap:8px;padding:0.5rem" id="dash-semaforo">
               <div style="flex:1;text-align:center;background:#ef444415;border:1px solid #ef444430;border-radius:10px;padding:12px">
                 <div style="font-size:28px;font-weight:900;color:#ef4444" id="d-rojo">—</div>
@@ -884,6 +892,8 @@ tr:hover td{background:#0d1b3e40}
           <div class="th">🪜 FUNNEL DE ACTIVACIÓN</div>
           <div id="dash-funnel" style="padding:1rem"><div class="es">Cargando...</div></div>
         </div>
+
+        </div><!-- fin dash-detalle -->
 
       </div><!-- fin dash-club-view -->
     </div><!-- fin screen-dashboard -->
@@ -18504,7 +18514,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='24/10/2026 · 4';
+const SC360_VERSION='27/10/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -18792,7 +18802,7 @@ async function fichasUnir(i,cual){
 // las mismas dimensiones del MDC) y cruza lo que mejora en el test con lo
 // que pasa en los partidos (Observación SC360). No es diagnóstico clínico.
 // ═══════════════════════════════════════════════════════════════
-const MPT_TIPOS=['Entrenamiento mental','Coaching individual','Psicología deportiva','Programa del club','Intervención externa'];
+const MPT_TIPOS=['Entrenamiento mental','Coaching individual','Psicología deportiva','Programa del club','Acción del cuerpo técnico','Intervención externa'];
 let MPT_ST={r:null,ints:[],tests:[],pp:[]};
 function mptVal(r,k){ const v=r&&r.dims?r.dims[k]:null; return v>0?Math.round(v/5*100):null; }
 function mptFecha(f){ return f?new Date(String(f).slice(0,10)+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}):'—'; }
@@ -19216,6 +19226,14 @@ const ACCION_CAPA={
 function lineaDePos(p){ const n=(p||'').toLowerCase();
   if(/arquer|portero/.test(n)) return 'Arqueros'; if(/lateral|central|defens|zaguer|libero/.test(n)) return 'Defensa';
   if(/volante|medio|pivote|interior|conten|enganche/.test(n)) return 'Mediocampo'; if(/extremo|delanter|punta|wing/.test(n)) return 'Ataque'; return null; }
+// Detalle del plantel plegable (se recuerda por navegador)
+function dashToggleDetalle(forzar){
+  const d=document.getElementById('dash-detalle'), ch=document.getElementById('dash-detalle-chev'); if(!d) return;
+  const abrir=forzar!=null?forzar:d.style.display==='none';
+  d.style.display=abrir?'block':'none'; if(ch) ch.textContent=abrir?'▴':'▾';
+  if(forzar==null){ try{ localStorage.setItem('sc360_dash_detalle',abrir?'1':'0'); }catch(e){} }
+}
+try{ document.addEventListener('DOMContentLoaded',function(){ let v=null; try{ v=localStorage.getItem('sc360_dash_detalle'); }catch(e){} if(v==='1') dashToggleDetalle(true); }); }catch(e){}
 // Hero del club: anillo del IDC y escudo
 function dashRingIDC(v,col){ const c=document.getElementById('dash-idc-ring'); if(!c) return;
   const n=Math.max(0,Math.min(100,parseFloat(v)||0)); const L=2*Math.PI*42;
@@ -19366,7 +19384,8 @@ function decClasificar(C){
       if(dEval!=null&&dEval>=5){ nivel='verde'; motivos.push('mejoró su disponibilidad +'+dEval+' desde la evaluación anterior'); }
       if(D>=85&&(x.idc==null||x.idc>=80)&&!motivos.length){ nivel='verde'; motivos.push('alta disponibilidad ('+D+'): puede asumir más responsabilidad'); }
     }
-    if(nivel) out[nivel].push({nom:r.jugador_nombre,pos:r.jugador_pos,txt:motivos.join(' · '),go,orden:nivel==='verde'?-(t?t.d:0)-(dEval||0):(x.idc!=null?x.idc:D)});
+    if(nivel){ const extra=decEvidencia(r,x,t,sk,C,nivel);
+      out[nivel].push(Object.assign({nom:r.jugador_nombre,pos:r.jugador_pos,txt:motivos.join(' · '),go,rid:r.id,orden:nivel==='verde'?-(t?t.d:0)-(dEval||0):(x.idc!=null?x.idc:D)},extra)); }
   });
   out.rojo.sort((a,b)=>a.orden-b.orden); out.naranja.sort((a,b)=>a.orden-b.orden); out.verde.sort((a,b)=>a.orden-b.orden);
   // Señales del equipo
@@ -19376,11 +19395,66 @@ function decClasificar(C){
   if(C.ventana) out.naranja.unshift({equipo:true,nom:'Próximo partido',txt:'Patrón observado: más goles en contra en los '+C.ventana.tramo+' ('+C.ventana.n+' de '+C.ventana.tot+'). Variable a monitorear: preparar una consigna para ese momento.',go:"go('plantel')"});
   return out;
 }
+// ── Evidencia, confianza y acción sugerida de cada señal (P0 · Centro de decisiones)
+// Solo describe de qué datos sale la señal: no cambia la clasificación ni los umbrales.
+const ACCION_CAPA_JUG={
+  autoconocimiento:'Charla breve con él sobre sus fortalezas y su rol en el equipo.',
+  talento:'Darle tareas donde pueda mostrar lo que hace mejor.',
+  regulacion:'Rutina de reseteo después del error: respiración, palabra clave y próxima acción.',
+  energia:'Fijar con él objetivos cortos y alcanzables para esta semana.',
+  destreza:'Situaciones de juego con presión real, para ejecutar bajo carga.'};
+function decCapaBaja(r){ const d=r.dims||{}; let peor=null;
+  CAPAS_DEF_PJ.forEach(c=>{ const v=c.dims.map(k=>d[k]).filter(x=>x>0); if(!v.length) return; const m=v.reduce((a,b)=>a+b,0)/v.length; if(!peor||m<peor.m) peor={c,m}; });
+  return peor?peor.c:null; }
+function decFechaCorta(f){ return f?new Date(String(f).slice(0,10)+'T12:00:00').toLocaleDateString('es-AR',{day:'numeric',month:'short'}):''; }
+function decEvidencia(r,x,t,sk,C,nivel){
+  const fuentes=[], hoy=new Date(); let viejo=false;
+  if(r.fecha){ const dias=Math.round((hoy-new Date(String(r.fecha).slice(0,10)+'T12:00:00'))/864e5); viejo=dias>120;
+    fuentes.push('Test MDC del '+decFechaCorta(r.fecha)+(viejo?' (hace '+Math.round(dias/30)+' meses)':'')); }
+  const pp=((C.D&&C.D.pp)||{})[idcNom(r.jugador_nombre)]||[];
+  if(pp.length){ const fs=pp.map(p=>String((C.D.fechas||{})[p.partido_codigo]||'')).filter(Boolean).sort();
+    fuentes.push('Post Partido · '+pp.length+' partido'+(pp.length>1?'s':'')+(fs.length?' (último '+decFechaCorta(fs[fs.length-1])+')':'')); }
+  if(sk&&sk.nivel) fuentes.push('Check-in de hoy');
+  // Confianza: cuántas fuentes distintas respaldan la señal y qué tan recientes son
+  const n=fuentes.length-(viejo?1:0);
+  const conf=n>=3?'alta':n===2?'media':'baja';
+  const capa=decCapaBaja(r);
+  let accion;
+  if(sk&&sk.nivel==='rojo') accion='Hablar con él hoy, antes de entrenar, y ajustar la carga si hace falta.';
+  else if(t&&t.d<=-8) accion='Charla breve sobre sus últimos partidos: qué situaciones lo afectaron y qué necesita.';
+  else if(nivel==='verde') accion='Reforzar lo que viene haciendo y darle una responsabilidad nueva.';
+  else accion=capa?ACCION_CAPA_JUG[capa.key]:'Conversación individual para entender qué lo está frenando.';
+  return {ev:fuentes.join(' · '),conf,accion,capa:capa?capa.nombre:null};
+}
+function decConfChip(c){ if(!c) return ''; const m={alta:['#22c55e','Confianza alta'],media:['#f59e0b','Confianza media'],baja:['#94a3b8','Confianza baja']}[c];
+  return '<span title="Según cuántas fuentes distintas y recientes respaldan la señal" style="font-size:10px;font-weight:800;color:'+m[0]+';border:1px solid '+m[0]+'55;border-radius:12px;padding:1px 7px;white-space:nowrap">'+m[1]+'</span>'; }
+function decEsc(t){ return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+// Registrar acción desde una señal: abre el perfil y el formulario de intervención ya existente
+let DEC_ACC=[]; function decRegAcc(it){ return DEC_ACC.push({id:it.rid,accion:it.accion})-1; }
+function decRegistrarAccionN(i){ const a=DEC_ACC[i]; if(a) decRegistrarAccion(a.id,a.accion); }
+async function decRegistrarAccion(id,accion){
+  try{
+    await irAPerfilJugador(id);
+    let n=0; while(n<40&&!(MPT_ST&&MPT_ST.r&&String(MPT_ST.r.id)===String(id)&&MPT_ST.tablaOk!==undefined)){ await new Promise(r=>setTimeout(r,150)); n++; }
+    if(!(MPT_ST&&MPT_ST.r)){ alert('No se pudo abrir el perfil del jugador.'); return; }
+    mptNueva();
+    const o=document.getElementById('mpt-obj'); if(o&&accion) o.value=accion;
+    const tp=document.getElementById('mpt-tipo'); if(tp) tp.value='Acción del cuerpo técnico';
+    const pr=document.getElementById('mpt-prof'); if(pr&&!pr.value&&USUARIO_ACTUAL) pr.value=USUARIO_ACTUAL.nombre||'';
+    const act=(MPT_ST.ints||[]).find(i=>i.estado==='activa');
+    if(act&&o){ const w=document.createElement('div'); w.style.cssText='font-size:11.5px;color:#fbbf24;background:#f59e0b12;border:1px solid #f59e0b44;border-radius:8px;padding:8px';
+      w.textContent='Este jugador ya tiene un proceso activo ('+act.tipo+'). Si guardás, ese proceso se cierra y empieza este.'; o.parentNode.parentNode.insertBefore(w,o.parentNode); }
+  }catch(e){ console.warn('Registrar acción:',e); }
+}
 function decFila(it,col){
   return '<div class="dec-item"><span style="width:9px;height:9px;border-radius:50%;background:'+col+';margin-top:6px;flex-shrink:0;box-shadow:0 0 6px '+col+'"></span>'+
     '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:800;color:#fff">'+(it.equipo?'':'')+it.nom+(it.pos?' <span style="font-size:10.5px;font-weight:600;color:#7c8fae">· '+it.pos+'</span>':'')+'</div>'+
-    '<div style="font-size:12px;color:#b4c2d4;line-height:1.45;margin-top:1px">'+it.txt+'</div></div>'+
-    '<button onclick="'+it.go+'" style="white-space:nowrap;font-size:11px;padding:4px 9px;background:transparent;color:#00c2ff;border:1px solid #00c2ff55;border-radius:7px;cursor:pointer;flex-shrink:0">Ver →</button></div>';
+    '<div style="font-size:12px;color:#b4c2d4;line-height:1.45;margin-top:1px">'+it.txt+'</div>'+
+    (it.ev?'<div style="font-size:10.5px;color:#7c8fae;line-height:1.4;margin-top:3px">📎 '+it.ev+' '+decConfChip(it.conf)+'</div>':'')+'</div>'+
+    '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">'+
+    '<button onclick="'+it.go+'" style="white-space:nowrap;font-size:11px;padding:4px 9px;background:transparent;color:#00c2ff;border:1px solid #00c2ff55;border-radius:7px;cursor:pointer">Ver →</button>'+
+    (it.rid&&it.accion?'<button onclick="decRegistrarAccionN('+decRegAcc(it)+')" title="Registrar qué se va a hacer, quién y desde cuándo" style="white-space:nowrap;font-size:11px;padding:4px 9px;background:transparent;color:#c4b5fd;border:1px solid #7c3aed66;border-radius:7px;cursor:pointer">＋ Acción</button>':'')+
+    '</div></div>';
 }
 function renderDecisiones(){
   const box=document.getElementById('dec-contenido'); if(!box) return;
@@ -19388,9 +19462,9 @@ function renderDecisiones(){
   const k=decClasificar(DEC_CACHE);
   const G=[['rojo','🔴','En riesgo','Actuar esta semana','#ef4444',k.rojo],['naranja','🟠','Para observar','Seguir de cerca','#f59e0b',k.naranja],['verde','🟢','Oportunidades','Aprovechar y reforzar','#22c55e',k.verde]];
   box.innerHTML='<div class="dec-res">'+G.map(g=>'<div class="dsh-tile" style="border-color:'+g[4]+'66;cursor:pointer" onclick="document.getElementById(\'dec-col-'+g[0]+'\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">'+
-      '<div class="dsh-tile-t">'+g[1]+' '+g[2]+'</div><div class="dsh-tile-v" style="color:'+g[4]+'">'+g[5].length+'</div><div class="dsh-tile-s">'+g[3]+'</div></div>').join('')+'</div>'+
+      '<div class="dsh-tile-t">'+g[1]+' '+g[2]+'</div><div class="dsh-tile-v" style="color:'+g[4]+'">'+g[5].filter(i=>!i.equipo).length+'</div><div class="dsh-tile-s">'+g[3]+'</div></div>').join('')+'</div>'+
     '<div class="dec-cols">'+G.map(g=>{ const id='dec-mas-'+g[0], L=g[5];
-      return '<div class="dsh-card" id="dec-col-'+g[0]+'" style="border-top:3px solid '+g[4]+'"><div class="dsh-card-t" style="color:'+g[4]+'">'+g[1]+' '+g[2]+' · '+L.length+'</div>'+
+      return '<div class="dsh-card" id="dec-col-'+g[0]+'" style="border-top:3px solid '+g[4]+'"><div class="dsh-card-t" style="color:'+g[4]+'">'+g[1]+' '+g[2]+' · '+L.filter(i=>!i.equipo).length+' jugador'+(L.filter(i=>!i.equipo).length===1?'':'es')+'</div>'+
         (L.length? L.slice(0,8).map(it=>decFila(it,g[4])).join('')+(L.length>8?'<div id="'+id+'" style="display:none">'+L.slice(8).map(it=>decFila(it,g[4])).join('')+'</div><button onclick="this.previousElementSibling.style.display=\'block\';this.remove()" style="margin-top:6px;font-size:11.5px;background:none;border:none;color:#00c2ff;cursor:pointer">Ver '+(L.length-8)+' más ▾</button>':'')
           : '<div style="font-size:12px;color:#7c8fae;padding:10px 0">'+(g[0]==='rojo'?'Nadie en riesgo hoy. 👏':g[0]==='naranja'?'Nada para observar por ahora.':'Aparecen cuando un jugador mejora o sostiene un nivel alto.')+'</div>')+'</div>'; }).join('')+'</div>'+
     '<div style="font-size:10.5px;color:#4a5a78;margin-top:10px">Basado en los datos cargados (test, IDC, Post Partido y alertas). Son señales para decidir qué mirar primero, no certezas ni diagnósticos.</div>';
@@ -19477,49 +19551,75 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
     let ck={}; try{ const cr=await q('checkin_diario?grupo_codigo=in.('+cods.map(encodeURIComponent).join(',')+')&fecha=eq.'+ckHoy()+'&order=creado_en.asc&limit=2000');
       if(Array.isArray(cr)) cr.forEach(x=>{ ck[idcNom(x.jugador_nombre)]=x; }); }catch(e){}
     DEC_CACHE={jugs,res,D,cods,rL,ventana,riesgo,accion,ck,ts:Date.now()};
-    const K=decClasificar(DEC_CACHE), nDec=K.rojo.length+K.naranja.length;
+    const K=decClasificar(DEC_CACHE);
+    const jugR=K.rojo.filter(i=>!i.equipo), jugN=K.naranja.filter(i=>!i.equipo), nDec=jugR.length+jugN.length;
     const recs=res.map(x=>x&&x.mod&&x.mod.recuperacion?x.mod.recuperacion.val:null).filter(v=>v!=null), recP=recs.length?Math.round(prom(recs)):null;
     const mirarTop=K.rojo.filter(i=>!i.equipo).map(i=>[i,'#ef4444']).concat(K.naranja.map(i=>[i,'#f59e0b'])).slice(0,3);
     const recomienda=mirarTop.length?'<div class="dsh-card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div class="dsh-card-t">🔎 SC360 recomienda mirar</div><button onclick="go(\'decisiones\')" style="white-space:nowrap;font-size:11.5px;font-weight:800;color:#0a0f1e;background:#00c2ff;border:none;border-radius:7px;padding:5px 11px;cursor:pointer">🎯 '+nDec+' decisiones hoy →</button></div>'+
       mirarTop.map((p,i)=>'<div class="dec-item"><span style="min-width:22px;height:22px;border-radius:50%;background:'+p[1]+'22;border:1px solid '+p[1]+';color:'+p[1]+';font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">'+(i+1)+'</span><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:800;color:#fff">'+p[0].nom+'</div><div style="font-size:12px;color:#b4c2d4">'+p[0].txt+'</div></div><button onclick="'+p[0].go+'" style="white-space:nowrap;font-size:11px;padding:4px 9px;background:transparent;color:#00c2ff;border:1px solid #00c2ff55;border-radius:7px;cursor:pointer">Ver →</button></div>').join('')+'</div>':'';
     try{ if(document.getElementById('screen-decisiones').classList.contains('active')) renderDecisiones(); }catch(e){}
+    // Calidad y fecha de los datos (para saber cuánto confiar en lo que sigue)
+    const fT=jugs.map(r=>String(r.fecha||'').slice(0,10)).filter(Boolean).sort().pop()||null;
+    const fP=Object.values(D.fechas||{}).map(f=>String(f).slice(0,10)).filter(Boolean).sort().pop()||null;
+    const nCk=Object.keys(ck).length;
+    const chipD=(t,ok)=>'<span style="font-size:11px;color:'+(ok?'#b4c2d4':'#fbbf24')+';background:#0a1024;border:1px solid '+(ok?'#1a3a6e':'#f59e0b55')+';border-radius:14px;padding:3px 9px;white-space:nowrap">'+t+'</span>';
+    const diasDesde=f=>f?Math.round((Date.now()-new Date(f+'T12:00:00'))/864e5):null;
+    const datosHtml='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px"><span style="font-size:10.5px;font-weight:800;color:#7c8fae;letter-spacing:0.08em">DATOS</span>'+
+      chipD('Último test: '+(fT?decFechaCorta(fT):'sin datos'),fT&&diasDesde(fT)<=120)+
+      chipD('Último Post Partido: '+(fP?decFechaCorta(fP):'sin datos'),fP&&diasDesde(fP)<=21)+
+      chipD('Check-in hoy: '+nCk+'/'+jugs.length,nCk>0)+'</div>';
     box30.innerHTML='<div style="margin-bottom:12px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:2px 2px 8px"><div style="font-size:17px;font-weight:900;color:#fff">¿Cómo está mi equipo?</div><div style="font-size:10px;color:#7c8fae;letter-spacing:0.08em">INTELIGENCIA COMPETITIVA · '+jugs.length+' JUGADORES</div></div>'+
       '<div class="dsh-tiles seis">'+
         tile('Disponibilidad',Dp,'<b style="color:'+est[1]+'">'+est[0].toUpperCase()+'</b> · promedio',est[1],"go('resultados')")+
         tile('Jugadores evaluados',jugs.length,'con test inicial','#00c2ff',"go('resultados')")+
-        tile('En riesgo',K.rojo.length,'actuar esta semana',K.rojo.length?'#ef4444':'#22c55e',"go('decisiones')")+
+        tile('En riesgo hoy',jugR.length,'actuar esta semana',jugR.length?'#ef4444':'#22c55e',"go('decisiones')")+
         tile('Evolución',evolTxt,evol==null?'faltan Post Partido':'estado mental, últimos partidos',evol==null?'#94a3b8':evol>0?'#22c55e':evol<0?'#ef4444':'#e8eff8',"go('evolucion')")+
         tile('Recuperación',recP==null?'—':recP,recP==null?'se completa con el Post Partido':'sueño y energía declarados',recP==null?'#94a3b8':colD(recP),"go('recuperacion')")+
-        tile('Decisiones hoy',nDec,nDec?'<b style="color:#ef4444">'+K.rojo.length+' en riesgo</b> · '+K.naranja.length+' a observar':'todo en orden',nDec?'#ef4444':'#22c55e',"go('decisiones')")+
+        tile('Decisiones hoy',nDec,nDec?'<b style="color:#ef4444">'+jugR.length+' en riesgo</b> · '+jugN.length+' a observar':'todo en orden',nDec?'#ef4444':'#22c55e',"go('decisiones')")+
       '</div>'+
-      '<div style="margin:10px 0;background:linear-gradient(90deg,#00c2ff1f,#00c2ff08);border:1px solid #00c2ff55;border-left:4px solid #00c2ff;border-radius:10px;padding:10px 13px;font-size:13.5px;color:#e8eff8;line-height:1.45"><b style="color:#00c2ff">🎯 Acción recomendada:</b> '+accion+'</div>'+recomienda+
-      '<div class="dsh-cards">'+
-        card('🚦','Semáforo del plantel',semBody,'Cuántos jugadores están disponibles hoy para competir.')+
+      datosHtml+'</div>';
+    const graf=document.getElementById('dash-graficos');
+    if(graf) graf.innerHTML='<div class="dsh-cards" style="margin-bottom:1rem">'+
+        card('🚦','Semáforo por disponibilidad',semBody,'Según la disponibilidad del último test. "En riesgo hoy" suma además el IDC, los partidos y el check-in.')+
         card('🧩','Disponibilidad por línea',linBody,lineasCon.length>1?'La línea marcada es la más baja del equipo.':'')+
         card('📈','Estado mental por partido',evoBody,'Promedio del Post Partido. La línea punteada marca 80 (nivel óptimo).')+
         card('⚠️','Principal riesgo · capas MDC',capBody,riesgo?'El riesgo principal es <b style="color:#f59e0b">'+riesgo.c.nombre+'</b>: de ahí viene la mayor interferencia.':'')+
         card('🔮','¿Cuándo nos convierten?',predBody,ventana?'Patrón observado: más goles en contra en los <b style="color:#f59e0b">'+ventana.tramo+'</b> ('+ventana.n+' de '+ventana.tot+'). Variable a monitorear.':'')+
-      '</div></div>';
-    // ── Centro de decisiones: 3 a 5 prioridades
-    const items=[];
-    const lineas=Object.entries(porLinea).filter(([l,a])=>a.length>=2).map(([l,a])=>({l,v:Math.round(prom(a))})).sort((a,b)=>a.v-b.v);
-    if(lineas.length&&lineas[0].v<Dp) items.push({c:'#ef4444',t:'RIESGO',txt:'<b>'+lineas[0].l+'</b> es la línea con menor disponibilidad ('+lineas[0].v+', el plantel está en '+Dp+').'+(riesgo?' El punto más bajo del equipo es <b>'+riesgo.c.nombre+'</b>.':''),go:"go('grupal')"});
-    else if(riesgo) items.push({c:'#ef4444',t:'RIESGO',txt:'El punto más bajo del plantel es <b>'+riesgo.c.nombre+'</b> ('+Math.round(riesgo.v)+').',go:"go('grupal')"});
-    const peor=jugs.map((r,i)=>({r,x:res[i]})).filter(p=>p.x&&p.x.idc!=null).sort((a,b)=>a.x.idc-b.x.idc)[0];
-    if(peor&&peor.x.idc<75) items.push({c:'#f97316',t:'JUGADOR',txt:'<b>'+peor.r.jugador_nombre+'</b> tiene el IDC más bajo del plantel ('+peor.x.idc+')'+(peor.x.masBaja?'; lo que más lo baja: '+peor.x.masBaja.nombre.toLowerCase()+'.':'.'),go:"irAPerfilJugador('"+peor.r.id+"')"});
-    // Evolución individual: mayor suba de disponibilidad entre sus dos últimas evaluaciones
-    const hist={}; (rL||[]).forEach(r=>{ const k=r.jugador_uid||activosNorm(r.jugador_nombre); (hist[k]=hist[k]||[]).push(r); });
-    const sub=Object.values(hist).filter(a=>a.length>=2).map(a=>{ a.sort((x,y)=>String(x.fecha).localeCompare(String(y.fecha))); const u=a[a.length-1], p=a[a.length-2]; return {r:u,d:(u.disponibilidad||0)-(p.disponibilidad||0)}; }).sort((a,b)=>b.d-a.d)[0];
-    if(sub&&sub.d>=5) items.push({c:'#22c55e',t:'EVOLUCIÓN',txt:'<b>'+sub.r.jugador_nombre+'</b> mejoró su disponibilidad <b>+'+sub.d+'</b> desde su evaluación anterior.',go:"irAPerfilJugador('"+sub.r.id+"')"});
-    items.push({c:'#00c2ff',t:'ACCIÓN',txt:accion,go:"go('grupal')"});
-    if(ventana) items.push({c:'#a78bfa',t:'PREDICCIÓN',txt:'Los datos muestran una señal de riesgo en los <b>'+ventana.tramo+'</b> ('+ventana.n+' de '+ventana.tot+' goles en contra). Conviene preparar una consigna para ese momento.',go:"go('plantel')"});
-    boxC.innerHTML='<div class="tw" style="margin:0 0 12px"><div class="th" style="display:flex;justify-content:space-between;align-items:center"><span>🎯 CENTRO DE DECISIONES · QUÉ TIENE QUE SABER EL CUERPO TÉCNICO HOY</span></div><div style="padding:0.6rem 0.85rem">'+
-      items.slice(0,5).map((it,i)=>'<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;'+(i?'border-top:1px solid #1a3a6e44':'')+'">'+
-        '<span style="min-width:24px;height:24px;border-radius:50%;background:'+it.c+'22;border:1px solid '+it.c+';color:'+it.c+';font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center">'+(i+1)+'</span>'+
-        '<div style="flex:1;min-width:0"><div style="font-size:10.5px;font-weight:800;color:'+it.c+';letter-spacing:0.08em">'+it.t+'</div><div style="font-size:13px;color:#e8eff8;line-height:1.45">'+it.txt+'</div></div>'+
-        '<button onclick="'+it.go+'" style="white-space:nowrap;font-size:11.5px;padding:5px 10px;background:transparent;color:#00c2ff;border:1px solid #00c2ff55;border-radius:7px;cursor:pointer">Ver análisis →</button></div>').join('')+
-      '<div style="font-size:10.5px;color:#4a5a78;margin-top:4px">Basado en los datos cargados del plantel. Las señales no son certezas: sirven para decidir qué mirar primero.</div></div></div>';
+      '</div>';
+    // ── Prioridades de hoy: 3 a 5 situaciones, cada una con evidencia y acción sugerida
+    const pri=jugR.slice(0,3).map(i=>Object.assign({},i,{tipo:'JUGADOR · EN RIESGO',col:'#ef4444'}));
+    if(pri.length<3) jugN.slice(0,3-pri.length).forEach(i=>pri.push(Object.assign({},i,{tipo:'JUGADOR · PARA OBSERVAR',col:'#f59e0b'})));
+    const lineasE=Object.entries(porLinea).filter(([l,a])=>a.length>=2).map(([l,a])=>({l,v:Math.round(prom(a))})).sort((a,b)=>a.v-b.v);
+    if(riesgo) pri.push({equipo:true,tipo:'EQUIPO',col:'#00c2ff',nom:'Punto más bajo del plantel: '+riesgo.c.nombre+' ('+Math.round(riesgo.v)+')',
+      txt:lineasE.length&&lineasE[0].v<Dp?'La línea con menor disponibilidad es '+lineasE[0].l+' ('+lineasE[0].v+'; el plantel está en '+Dp+').':'Es la capa del modelo con más interferencia en el grupo.',
+      ev:'Test MDC de '+jugs.length+' jugador'+(jugs.length>1?'es':'')+(fT?' (último '+decFechaCorta(fT)+')':''),conf:jugs.length>=10?'alta':jugs.length>=5?'media':'baja',accion,go:"go('grupal')"});
+    const btnS='white-space:nowrap;font-size:11.5px;padding:6px 11px;border-radius:7px;cursor:pointer;background:transparent';
+    const priHtml=pri.length?pri.map((it,i)=>'<div style="display:flex;gap:11px;align-items:flex-start;padding:11px 0;'+(i?'border-top:1px solid #1a3a6e55':'')+'">'+
+        '<span style="min-width:26px;height:26px;border-radius:50%;background:'+it.col+'22;border:1px solid '+it.col+';color:'+it.col+';font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center">'+(i+1)+'</span>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="font-size:10.5px;font-weight:800;color:'+it.col+';letter-spacing:0.08em">'+it.tipo+'</span>'+decConfChip(it.conf)+'</div>'+
+          '<div style="font-size:14.5px;font-weight:800;color:#fff;margin-top:2px">'+it.nom+(it.pos?' <span style="font-size:11px;font-weight:600;color:#7c8fae">· '+it.pos+'</span>':'')+'</div>'+
+          '<div style="font-size:12.5px;color:#c0d0e8;line-height:1.45;margin-top:2px"><b style="color:#94a3b8;font-weight:700">Se observa:</b> '+it.txt+'</div>'+
+          (it.ev?'<div style="font-size:11px;color:#7c8fae;line-height:1.4;margin-top:2px">📎 '+it.ev+'</div>':'')+
+          (it.accion?'<div style="font-size:12.5px;color:#4ade80;line-height:1.45;margin-top:4px"><b>→ Acción sugerida:</b> '+it.accion+'</div>':'')+
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+
+            '<button onclick="'+it.go+'" style="'+btnS+';color:#00c2ff;border:1px solid #00c2ff55">'+(it.equipo?'Ver informe grupal →':'Ver perfil →')+'</button>'+
+            (it.rid?'<button onclick="decRegistrarAccionN('+decRegAcc(it)+')" style="'+btnS+';color:#c4b5fd;border:1px solid #7c3aed66">＋ Registrar acción</button>':'')+
+            (it.equipo?'<button onclick="go(\'planificacion\')" style="'+btnS+';color:#c4b5fd;border:1px solid #7c3aed66">📅 Llevarlo al plan de trabajo</button>':'')+
+          '</div></div></div>').join('')
+      : '<div style="font-size:13px;color:#7c8fae;padding:10px 0">Nada urgente hoy: nadie en riesgo ni para observar con los datos cargados. 👏</div>';
+    const nAl=(TODAS_ALERTAS||[]).filter(a=>a.estado==='activa').length;
+    const proxHtml='<div class="dsh-card" style="margin:0 0 12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div class="dsh-card-t">⚽ Próximo partido</div>'+
+        '<button onclick="go(\'plantel\')" style="'+btnS+';color:#0a0f1e;background:#00c2ff;border:none;font-weight:800">Preparar el próximo partido →</button></div>'+
+        (ventana?'<div style="font-size:13px;color:#e8eff8;line-height:1.5;margin-top:6px"><b style="color:#a78bfa">Patrón observado:</b> más goles en contra en los <b style="color:#f59e0b">'+ventana.tramo+'</b> ('+ventana.n+' de '+ventana.tot+' goles en contra). <span style="color:#f59e0b">Variable a monitorear:</span> preparar una consigna para ese momento.</div>'+
+          '<div style="font-size:11px;color:#7c8fae;margin-top:3px">📎 Goles en contra cargados con su minuto en los últimos partidos '+decConfChip(ventana.tot>=15?'alta':ventana.tot>=8?'media':'baja')+'</div>'
+        :'<div style="font-size:12.5px;color:#7c8fae;margin-top:6px">Sin datos suficientes: cargá los goles con su minuto en cada partido para ver en qué momento conviene estar más atentos.</div>')+'</div>';
+    boxC.innerHTML='<div class="tw" style="margin:0 0 12px"><div class="th" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span>🎯 PRIORIDADES DE HOY · QUÉ CONVIENE HACER Y POR QUÉ</span>'+
+        '<button onclick="go(\'decisiones\')" style="white-space:nowrap;font-size:11.5px;font-weight:800;color:#0a0f1e;background:#00c2ff;border:none;border-radius:7px;padding:5px 11px;cursor:pointer">Ver las '+nDec+' decisiones →</button></div>'+
+      '<div style="padding:0.3rem 0.95rem 0.7rem">'+priHtml+
+        (nAl?'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;padding:9px 11px;border-radius:9px;background:#ef444412;border:1px solid #ef444444"><span style="font-size:12.5px;color:#fca5a5">🔔 <b>'+nAl+' alerta'+(nAl>1?'s':'')+' activa'+(nAl>1?'s':'')+'</b> para revisar (Post Partido, MDC o ausencias)</span><button onclick="go(\'alertas\')" style="'+btnS+';color:#fca5a5;border:1px solid #ef444466">Ver alertas →</button></div>':'')+
+        '<div style="font-size:10.5px;color:#4a5a78;margin-top:8px">Basado en los datos cargados. Son señales para decidir qué mirar primero, no certezas ni diagnósticos. La decisión final es del cuerpo técnico.</div></div></div>'+proxHtml;
   }catch(e){ console.warn('Centro de decisiones:',e); }
 }
 
