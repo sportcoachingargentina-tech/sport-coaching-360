@@ -156,7 +156,15 @@ async function q(path,o){
   }catch(e){ console.warn('Sin conexión:',e); return null; }
   if(!r.ok){ try{ console.error('Error al guardar:',await r.text()); }catch(e){} return null; }
   const t=await r.text();
-  try{ return t?JSON.parse(t):null; }catch(e){ return null; }
+  if(!t) return true; // guardado sin respuesta (return=minimal)
+  try{ return JSON.parse(t); }catch(e){ return null; }
+}
+// Funciones seguras de la base: el link pide solo lo que necesita
+async function rpc(fn,b){
+  try{ const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+    if(!r.ok){ console.error('rpc '+fn+':',await r.text()); return null; }
+    const t=await r.text(); return t?JSON.parse(t):null;
+  }catch(e){ console.warn('Sin conexión:',e); return null; }
 }
 
 const PREGUNTAS_FISIO=[
@@ -205,9 +213,9 @@ async function init(){
   const params=new URLSearchParams(window.location.search);
   const cod=params.get('partido');
   if(!cod){showScreen('s-error');document.getElementById('error-txt').textContent='Link inválido — falta el código de partido.';return;}
-  const res=await q('partidos?codigo=eq.'+cod+'&limit=1');
-  if(!res||!res.length){showScreen('s-error');document.getElementById('error-txt').textContent='Partido no encontrado.';return;}
-  partidoData=res[0];
+  const pd=await rpc('sc_partido_publico',{p_codigo:cod});
+  if(!pd||!pd.codigo){showScreen('s-error');document.getElementById('error-txt').textContent='Partido no encontrado.';return;}
+  partidoData=pd;
   const rival=partidoData.rival||'—';
   const fecha=partidoData.fecha?new Date(partidoData.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'}):'—';
   document.getElementById('pi-rival').textContent='vs '+rival;
@@ -429,10 +437,10 @@ async function enviar(){
     como_respondi:(document.getElementById('como-respondi')?document.getElementById('como-respondi').value.trim():comoRespondi.trim())||null
   };
 
-  let res=await q('postpartido_jugador',{m:'POST',b:data});
+  let res=await q('postpartido_jugador',{m:'POST',b:data,h:{'Prefer':'return=minimal'}});
   if(!res&&navigator.onLine!==false){
     const d2=Object.assign({},data); delete d2.situaciones; delete d2.como_respondi;
-    res=await q('postpartido_jugador',{m:'POST',b:d2});
+    res=await q('postpartido_jugador',{m:'POST',b:d2,h:{'Prefer':'return=minimal'}});
     if(res) data=d2;
   }
   if(res){
@@ -456,7 +464,7 @@ async function reintentarPendientePP(){
   let pend=null; try{ pend=JSON.parse(localStorage.getItem(PP_PEND_KEY)||'null'); }catch(e){}
   if(!pend||enviando) return;
   enviando=true;
-  const res=await q('postpartido_jugador',{m:'POST',b:pend});
+  const res=await q('postpartido_jugador',{m:'POST',b:pend,h:{'Prefer':'return=minimal'}});
   enviando=false;
   if(res){
     try{ localStorage.removeItem(PP_PEND_KEY); }catch(e){}
@@ -471,12 +479,11 @@ async function generarAlertas(data){
   const mentalActual=([data.q1,data.q2,data.q3,data.q4,data.q5,data.q6,data.q7,data.q8,data.q9,data.q10,data.q11,data.q12,data.q13,data.q14,data.q15].filter(v=>v!=null).reduce((a,b)=>a+b,0)/15);
 
   // Buscar último post partido del mismo jugador para comparar
-  const historial=await q('postpartido_jugador?jugador_nombre=ilike.*'+encodeURIComponent(data.jugador_nombre)+'*&order=partido_codigo.desc&limit=5');
-  if(historial&&historial.length>1){
-    const anterior=historial[1];
-    const mentalAnterior=[anterior.q1,anterior.q2,anterior.q3,anterior.q4,anterior.q5,anterior.q6,anterior.q7,anterior.q8,anterior.q9,anterior.q10,anterior.q11,anterior.q12,anterior.q13,anterior.q14,anterior.q15].filter(v=>v!=null);
-    if(mentalAnterior.length){
-      const avgAnterior=mentalAnterior.reduce((a,b)=>a+b,0)/mentalAnterior.length;
+  // Promedio de su Post Partido anterior, calculado en la base (la página no lee la tabla)
+  const prev=await rpc('sc_pp_mental_previo',{p_partido:data.partido_codigo,p_nombre:data.jugador_nombre});
+  if(prev!=null&&!isNaN(Number(prev))){
+    {
+      const avgAnterior=Number(prev);
       const caida=((avgAnterior-mentalActual)/avgAnterior)*100;
       if(caida>=20){
         await q('alertas',{m:'POST',b:{
