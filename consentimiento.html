@@ -77,6 +77,7 @@ async function init(){
   const app=document.getElementById('app');
   const params=new URLSearchParams(window.location.search);
   const token=params.get('token');
+  TOKEN=token||'';
   if(!token){
     app.innerHTML='<div class="err">Este link no es válido.<br>Pedile al club que te lo reenvíe.</div>';
     return;
@@ -123,37 +124,31 @@ async function init(){
       <span>Autorizo el uso de Sport Coaching 360 para ${r.jugador_nombre||'este deportista'}, incluyendo la carga de la información descripta arriba.</span>
     </label>
 
-    <button class="cta" id="btn-enviar" disabled onclick="enviar('${r.jugador_nombre?r.jugador_nombre.replace(/'/g,"\\'"):''}','${(r.jugador_club||'').replace(/'/g,"\\'")}')">Confirmar autorización</button>
+    <button class="cta" id="btn-enviar" disabled onclick="enviar()">Confirmar autorización</button>
   `;
 }
 
-async function enviar(jugadorNombre, clubNombre){
+// Se guarda con una función de la base: la página ya no puede leer ni modificar
+// la tabla de consentimientos (datos del tutor), solo registrar este.
+let TOKEN='';
+async function enviar(){
   const btn=document.getElementById('btn-enviar');
   btn.disabled=true; btn.textContent='Enviando...';
-
-  const body={
-    jugador_nombre: jugadorNombre,
-    club_nombre: clubNombre||null,
-    autorizado: true,
-    tutor_nombre: document.getElementById('f-nombre').value.trim(),
-    vinculo_tutor: VINCULO,
-    medio: 'formulario_digital',
-    fecha_consentimiento: new Date().toISOString().slice(0,10),
-    user_agent: navigator.userAgent,
-    actualizado_en: new Date().toISOString(),
-  };
-
-  const res=await q('consentimientos?on_conflict=jugador_nombre',{
-    m:'POST', b:body, h:{'Prefer':'resolution=merge-duplicates,return=minimal'}
-  });
-
+  let ok=false;
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/rpc/sc_registrar_consentimiento',{
+      method:'POST',
+      headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+      body:JSON.stringify({p_token:TOKEN,p_tutor_nombre:document.getElementById('f-nombre').value.trim(),p_vinculo:VINCULO,p_user_agent:navigator.userAgent})
+    });
+    ok = r.ok && (await r.json())===true;
+  }catch(e){ console.error('Error de red:',e); }
   const app=document.getElementById('app');
-  if(res===null){
+  if(ok){
     app.innerHTML='<div class="ok"><div class="ic">✅</div><h1 style="text-align:center">¡Listo!</h1><div class="sub" style="text-align:center">Tu autorización quedó registrada. Gracias.</div></div>';
   } else {
     btn.disabled=false; btn.textContent='Confirmar autorización';
     alert('Hubo un problema al guardar. Probá de nuevo en un momento.');
-    console.error('Error guardando consentimiento:',res);
   }
 }
 
