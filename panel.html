@@ -18521,7 +18521,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='27/10/2026 · 3';
+const SC360_VERSION='27/10/2026 · 4';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -20535,7 +20535,7 @@ function renderFormConsentimiento(cont, dato, r){
           ${medios.map(function(m){return '<option value="'+m[0]+'"'+(dato.medio===m[0]?' selected':'')+'>'+m[1]+'</option>';}).join('')}
         </select></div>
       <div><label style="font-size:11px;color:#b4c2d4">Fecha</label>
-        <input id="cons-f-fecha" type="date" value="${dato.fecha_consentimiento||''}" style="width:100%;padding:7px 9px;border-radius:8px;background:#0d1b3e;color:#e8eff8;border:1px solid #2a4a7e;font-size:12.5px"></div>
+        <input id="cons-f-fecha" type="date" min="2020-01-01" max="${new Date().toISOString().slice(0,10)}" value="${(dato.fecha_consentimiento&&String(dato.fecha_consentimiento)>='2020')?dato.fecha_consentimiento:new Date().toISOString().slice(0,10)}" style="width:100%;padding:7px 9px;border-radius:8px;background:#0d1b3e;color:#e8eff8;border:1px solid #2a4a7e;font-size:12.5px"></div>
     </div>
     <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer">
       <input id="cons-f-autorizado" type="checkbox" ${dato.autorizado?'checked':''} style="width:16px;height:16px">
@@ -20552,6 +20552,12 @@ function enviarLinkConsentimiento(jugadorNombre, link){
 }
 
 async function guardarConsentimientoPerfilJugador(jugadorNombre){
+  // Fecha: si quedó un año mal tipeado (ej. 0006) o en el futuro, se avisa en vez de guardarla
+  const fEl=document.getElementById('cons-f-fecha'); const fVal=fEl&&fEl.value;
+  if(fVal&&(fVal<'2020-01-01'||fVal>new Date().toISOString().slice(0,10))){
+    alert('Revisá la fecha: '+fVal.split('-').reverse().join('/')+' no parece válida. Tiene que ser una fecha entre 2020 y hoy.');
+    if(fEl) fEl.focus(); return;
+  }
   const body={
     jugador_nombre:jugadorNombre,
     club_nombre:(USUARIO_ACTUAL&&USUARIO_ACTUAL.club_nombre)||null,
