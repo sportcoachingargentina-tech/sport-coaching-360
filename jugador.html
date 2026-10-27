@@ -115,10 +115,28 @@ async function q(path, opts) {
       body: (opts && opts.b) ? JSON.stringify(opts.b) : undefined,
     });
     const t = await r.text();
+    window.__ultimoOk = r.ok;
     if (!r.ok) { console.error('Error en request:', t); return null; }
+    return t ? JSON.parse(t) : null;
+  } catch(e) { window.__ultimoOk = false; console.error('Error de red:', e); return null; }
+}
+
+// Funciones seguras de la base: el perfil pide solo lo suyo, por su token
+async function rpc(fn, body) {
+  try {
+    const r = await fetch(SB_URL + '/rest/v1/rpc/' + fn, { method: 'POST',
+      headers: { 'apikey': SK, 'Authorization': 'Bearer ' + SK, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}) });
+    const t = await r.text();
+    if (!r.ok) { console.error('Error en rpc ' + fn + ':', t); return null; }
     return t ? JSON.parse(t) : null;
   } catch(e) { console.error('Error de red:', e); return null; }
 }
+function nuevoId(){
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){ const r=Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); });
+}
+let JUG_TOKEN = '';
 
 const DISC_INFO = {
   D: { name: 'Dominante', color: '#ef4444', desc: 'Orientado a resultados, decisivo y directo. Rinde mejor con autonomía y desafíos concretos.' },
@@ -175,6 +193,7 @@ const EJERCICIO_COGNITIVO_DIM={
 async function init() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
+  JUG_TOKEN = token || '';
   const habId = params.get('hab');
   const entrenar = params.get('entrenar');
   const grupo = params.get('grupo');
@@ -196,10 +215,8 @@ async function init() {
   // y si no aparece nada, probamos por id (caso del jugador que todavía
   // no tiene token_perfil generado, donde el link usa su id como respaldo)
   const selectCampos = 'id,foto_url,jugador_nombre,jugador_pos,jugador_club,jugador_cat,jugador_edad,disponibilidad,semaforo_color,semaforo_label,primary_disc,dims,sorted,modo_motivacional,grupo_codigo,fecha';
-  let data = await q('resultados?token_perfil=eq.' + token + '&limit=1&select=' + selectCampos);
-  if (!data || !data.length) {
-    data = await q('resultados?id=eq.' + token + '&limit=1&select=' + selectCampos);
-  }
+  const perfil = await rpc('sc_perfil_publico', { p_token: token });
+  const data = perfil && perfil.id ? [perfil] : [];
 
   if (!data || !data.length) {
     app.innerHTML = '<div class="error">No encontramos tu perfil. Pedile al coordinador que lo comparta nuevamente.</div>';
@@ -214,7 +231,7 @@ async function init() {
   // distinto por cada ejercicio.
   if (entrenar) {
     const ORDEN_TIPOS = ['reaccion_simple','go_nogo','stroop','memoria_trabajo','apuesta_confianza','resistencia'];
-    const pendientes = await q('entrenamiento_habilitado?jugador_id=eq.'+r.id+'&estado=eq.pendiente&order=creado_en.asc') || [];
+    const pendientes = await rpc('sc_entrenos_pendientes', { p_token: token }) || [];
     pendientes.sort(function(a,b){ return ORDEN_TIPOS.indexOf(a.tipo) - ORDEN_TIPOS.indexOf(b.tipo); });
     iniciarColaEntrenamiento(pendientes, r);
     return;
@@ -222,7 +239,7 @@ async function init() {
 
   // Link viejo (compatibilidad): un solo ejercicio puntual por id de habilitación
   if (habId) {
-    const hab = await q('entrenamiento_habilitado?id=eq.'+habId+'&limit=1');
+    const hab = /^[0-9a-f-]{36}$/i.test(habId) ? await rpc('sc_entrenos_pendientes', { p_token: token, p_hab_id: habId }) : null;
     if (!hab || !hab.length) {
       app.innerHTML = '<div class="error">Este enlace no es válido o ya fue eliminado. Pedile al coordinador que te mande uno nuevo.</div>';
       return;
@@ -232,7 +249,7 @@ async function init() {
   }
 
   // Cargar objetivos activos
-  const objetivos = await q('objetivos_jugador?jugador_nombre=eq.' + encodeURIComponent(r.jugador_nombre) + '&estado=eq.activo&limit=5') || [];
+  const objetivos = await rpc('sc_objetivos_publico', { p_token: token }) || [];
 
   renderPerfil(r, objetivos);
 }
@@ -474,8 +491,8 @@ function renderPerfil(r, objetivos) {
 // no se muestra nada (no hay ícono genérico feo de por medio).
 async function cargarEscudoClub(r){
   if(!r.grupo_codigo) return;
-  const rows = await q('grupos?codigo=eq.'+encodeURIComponent(r.grupo_codigo)+'&select=logo_url&limit=1');
-  const logo = Array.isArray(rows) && rows[0] ? rows[0].logo_url : null;
+  const g = await rpc('sc_grupo_publico', { p_codigo: r.grupo_codigo });
+  const logo = g && g.logo_url ? g.logo_url : null;
   if(!logo) return;
   const img = document.getElementById('club-escudo');
   if(!img) return;
@@ -490,7 +507,7 @@ async function cargarEscudoClub(r){
 async function cargarEstadoCognitivo(r){
   const cont = document.getElementById('cog-estado-contenido');
   if(!cont) return;
-  const pendientes = await q('entrenamiento_habilitado?jugador_id=eq.'+r.id+'&estado=eq.pendiente&order=creado_en.asc') || [];
+  const pendientes = await rpc('sc_entrenos_pendientes', { p_token: JUG_TOKEN || r.id }) || [];
   if(!pendientes.length){
     cont.innerHTML = '<div style="font-size:12px;color:#8fa3bf">No tenés ejercicios asignados por tu club en este momento. 👇 Pero podés medir tu Activación Mental cuando quieras, ahí abajo.</div>';
     return;
@@ -511,11 +528,8 @@ async function cargarResumenSemana(r){
   const nombreEsc = encodeURIComponent((r.jugador_nombre||'').trim());
   const hace7 = new Date(Date.now() - 7*24*60*60*1000);
 
-  const [ppRowsRaw, partidosRaw, cogRowsRaw] = await Promise.all([
-    q('postpartido_jugador?jugador_nombre=ilike.' + nombreEsc + '&order=partido_codigo.desc&limit=8'),
-    q('partidos?order=fecha.desc&limit=200'),
-    q('ejercicios_cognitivos?or=(jugador_id.eq.' + r.id + ',jugador_nombre.ilike.' + nombreEsc + ')&order=creado_en.desc&limit=30'),
-  ]);
+  const act = await rpc('sc_actividad_jugador', { p_token: JUG_TOKEN || r.id }) || {};
+  const ppRowsRaw = act.pp || [], partidosRaw = act.partidos || [], cogRowsRaw = (act.cog || []).slice(0, 30);
   const ppRows = ppRowsRaw || [];
   const partidosMap = {};
   (partidosRaw || []).forEach(p => { partidosMap[p.codigo] = p; });
@@ -777,27 +791,15 @@ async function initGrupoEntrenamiento(grupoCod){
   const app = document.getElementById('app');
   document.querySelector('.header-sub').textContent = 'Entrenamiento cognitivo';
 
-  const campos = 'id,jugador_nombre,jugador_pos,jugador_club,jugador_cat,jugador_edad,disponibilidad,semaforo_color,semaforo_label,primary_disc,dims,sorted,modo_motivacional,grupo_codigo,fecha';
-  const rows = await q('resultados?grupo_codigo=eq.'+encodeURIComponent(grupoCod)+'&order=fecha.desc&select='+campos);
-  if(!rows || !rows.length){
+  // Función segura: trae solo los jugadores con ejercicios pendientes (sin el test de los demás)
+  const lista = await rpc('sc_plantel_entreno', { p_codigo: grupoCod });
+  if(lista === null){
     app.innerHTML = '<div class="error">No encontramos jugadores en este grupo. Verificá el link con tu técnico.</div>';
     return;
   }
-
-  // Último resultado por jugador
-  const vistos = {};
-  const jugadores = [];
-  rows.forEach(function(r){
-    const k = (r.jugador_nombre||'').toLowerCase().trim();
-    if(!k || vistos[k]) return;
-    vistos[k] = 1;
-    jugadores.push(r);
-  });
-
-  const ids = jugadores.map(function(j){ return j.id; });
-  const habs = await q('entrenamiento_habilitado?estado=eq.pendiente&jugador_id=in.('+ids.join(',')+')&order=creado_en.asc') || [];
+  const jugadores = lista;
   const porJugador = {};
-  habs.forEach(function(h){ (porJugador[h.jugador_id] = porJugador[h.jugador_id] || []).push(h); });
+  lista.forEach(function(j){ porJugador[j.id] = j.pendientes || []; });
 
   GRUPO_ENT = { jugadores: jugadores, porJugador: porJugador };
   renderSelectorJugadorGrupo();
@@ -1008,9 +1010,11 @@ async function cogMostrarResultado(opts){
     '</div>'
   );
 
+  const idEj = nuevoId();
   const resultado = await q('ejercicios_cognitivos', {
     m:'POST',
     b:[{
+      id: idEj,
       jugador_id: ENT.jugadorId,
       jugador_nombre: ENT.jugadorNombre,
       club_nombre: ENT.clubNombre,
@@ -1022,21 +1026,18 @@ async function cogMostrarResultado(opts){
       detalle: opts.detalle || null,
       origen: 'jugador',
     }],
-    h: { Prefer: 'return=representation' }
+    h: { Prefer: 'return=minimal' }
   });
 
-  const resultadoId = (Array.isArray(resultado) && resultado.length) ? resultado[0].id : null;
+  // Con return=minimal, q() devuelve null si salió bien y null si falló: se distingue por la respuesta
+  const resultadoId = (resultado === null && window.__ultimoOk) ? idEj : null;
   // Si no se pudo guardar (sin señal), queda en el celular y se reenvía solo
   if(!resultadoId && window.SC360_guardarPendiente){
     SC360_guardarPendiente('ejercicios_cognitivos',[{jugador_id:ENT.jugadorId,jugador_nombre:ENT.jugadorNombre,club_nombre:ENT.clubNombre,tipo:COG.tipo,tiempos_ms:opts.tiempos_ms||[],promedio_ms:opts.promedio_ms!=null?opts.promedio_ms:null,mejor_ms:opts.mejor_ms!=null?opts.mejor_ms:null,peor_ms:opts.peor_ms!=null?opts.peor_ms:null,detalle:opts.detalle||null,origen:'jugador'}]);
   }
 
   if(ENT.habId){
-    await q('entrenamiento_habilitado?id=eq.'+ENT.habId, {
-      m:'PATCH',
-      b:{ estado:'completado', resultado_id: resultadoId, completado_en: new Date().toISOString() },
-      h:{ Prefer:'return=minimal' }
-    });
+    await rpc('sc_entreno_completar', { p_hab_id: ENT.habId, p_resultado_id: resultadoId });
   }
 
   // Avanzar al siguiente ejercicio pendiente de la cola, si hay más.
@@ -1607,7 +1608,7 @@ async function avisarClubAyuda(){
   const r=window.JUG_R||{}; const b=document.getElementById('btn-avisar-club'), est=document.getElementById('ayuda-estado');
   if(b){ b.disabled=true; b.textContent='Enviando…'; }
   let grupoNombre=null;
-  try{ if(r.grupo_codigo){ const g=await q('grupos?codigo=eq.'+encodeURIComponent(r.grupo_codigo)+'&select=nombre&limit=1'); grupoNombre=g&&g[0]?g[0].nombre:null; } }catch(e){}
+  try{ if(r.grupo_codigo){ const g=await rpc('sc_grupo_publico',{p_codigo:r.grupo_codigo}); grupoNombre=g?g.nombre:null; } }catch(e){}
   const mot=AYUDA_MOTIVOS.find(x=>x.k===AYUDA_MOTIVO);
   const urgente=AYUDA_MOTIVO==='urgente';
   const detalle=(urgente?'⚠ URGENTE · ':'')+(mot&&!urgente?'Motivo: '+mot.t+' · ':'')+'Pidió que alguien del club se comunique con él/ella.';
