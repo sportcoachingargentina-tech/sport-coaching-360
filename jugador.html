@@ -735,7 +735,8 @@ async function pedirAyuda(ev, servicio, jugadorNombre, jugadorClub){
       jugador_nombre: jugadorNombre,
       origen: 'jugador',
       estado: 'nuevo'
-    }
+    },
+    h: { Prefer: 'return=minimal' }
   }).catch(function(){});
 
   const ok = document.getElementById('ayuda-ok');
