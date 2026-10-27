@@ -251,6 +251,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button id="btn-guardar-simple" onclick="enviar()" style="width:100%;padding:10px;border-radius:10px;font-size:13px;cursor:pointer;border:1px solid #1a3a6e;background:transparent;color:#8fa3bf;margin-top:8px">Guardar sin datos técnicos</button>
     </div>
   </div>
+
+  <!-- GRACIAS -->
+  <div class="screen" id="s-thanks">
     <div class="thanks">
       <div class="check">✅</div>
       <h2>Evaluación guardada</h2>
@@ -281,8 +284,17 @@ async function qb(path,o){
   }); }catch(e){ return null; } // sin señal: no se traba, devuelve null
   if(!r.ok)return null;
   const t=await r.text();
-  try{ return t?JSON.parse(t):null; }catch(e){ return null; }
+  if(!t) return true; // guardado sin respuesta (return=minimal)
+  try{ return JSON.parse(t); }catch(e){ return null; }
 }
+// Funciones seguras de la base: el link pide solo lo que necesita
+async function rpc(fn,b){
+  try{ const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+    if(!r.ok){ console.error('rpc '+fn+':',await r.text()); return null; }
+    const t=await r.text(); return t?JSON.parse(t):null;
+  }catch(e){ console.warn('Sin conexión:',e); return null; }
+}
+
 
 const PREGUNTAS=[
   {n:'Respuesta al error',t:'¿Se recuperó rápido tras cometer un error?'},
@@ -311,9 +323,9 @@ async function init(){
   const params=new URLSearchParams(window.location.search);
   const cod=params.get('partido');
   if(!cod){showScreen('s-error');document.getElementById('error-txt').textContent='Link inválido — falta el código de partido.';return;}
-  const res=await qb('partidos?codigo=eq.'+cod+'&limit=1');
-  if(!res||!res.length){showScreen('s-error');document.getElementById('error-txt').textContent='Partido no encontrado.';return;}
-  partidoData=res[0];
+  const pd=await rpc('sc_partido_publico',{p_codigo:cod});
+  if(!pd||!pd.codigo){showScreen('s-error');document.getElementById('error-txt').textContent='Partido no encontrado.';return;}
+  partidoData=pd;
   const rival=partidoData.rival||'—';
 
   // Si ya había un resultado cargado antes (desde el panel o una carga
@@ -341,10 +353,8 @@ async function init(){
 
   // Cargar jugadores: primero los que completaron el post partido, luego el resto del grupo
   const gcod=partidoData.grupo_codigo;
-  const [completaron, delGrupo] = await Promise.all([
-    qb('postpartido_jugador?partido_codigo=eq.'+cod+'&select=jugador_nombre,jugador_pos&order=jugador_nombre.asc'),
-    gcod ? qb('resultados?grupo_codigo=eq.'+gcod+'&select=jugador_nombre,jugador_pos&order=jugador_nombre.asc') : Promise.resolve([])
-  ]);
+  const jp = await rpc('sc_jugadores_partido',{p_codigo:cod}) || {};
+  const completaron = jp.completaron || [], delGrupo = gcod ? (jp.grupo || []) : [];
   const completaronList = completaron||[];
   const grupoList = delGrupo||[];
   // Pendientes = los del grupo que NO completaron el post partido
@@ -493,7 +503,7 @@ async function enviarConTecnico(){
     tec_nota:notaTecnica||null,
     tec_obs:document.getElementById('tec-obs').value.trim()||null
   };
-  const res=await qb('postpartido_dt',{m:'POST',b:data});
+  const res=await qb('postpartido_dt',{m:'POST',b:data,h:{'Prefer':'return=minimal'}});
   if(res){
     // Guardar objetivos (evaluar activos + crear nuevos)
     await guardarObjetivos(jugadorSeleccionado);
@@ -527,7 +537,7 @@ async function enviar(){
     q6:answers[5],q7:answers[6],q8:answers[7],q9:answers[8],q10:answers[9],
     q11:answers[10],q12:answers[11]
   };
-  const res=await qb('postpartido_dt',{m:'POST',b:data});
+  const res=await qb('postpartido_dt',{m:'POST',b:data,h:{'Prefer':'return=minimal'}});
   if(res){
     document.getElementById('thanks-msg').textContent='Evaluación de '+jugadorSeleccionado+' registrada correctamente.';
     showScreen('s-thanks');
@@ -629,11 +639,7 @@ async function guardarDatosPartido() {
     goles_contra: contra,
     goles_detalle: JSON.stringify({ favor: golesData.favor, contra: golesData.contra })
   };
-  await qb('partidos?codigo=eq.' + partidoData.codigo, {
-    m: 'PATCH',
-    b: update,
-    h: { 'Prefer': 'return=minimal' }
-  });
+  await rpc('sc_partido_guardar_goles', { p_codigo: partidoData.codigo, p_favor: update.goles_favor, p_contra: update.goles_contra, p_detalle: update.goles_detalle });
   datosPartidoGuardados = true;
   // Mostrar badge de resultado en la pantalla de selección
   const badge = document.getElementById('resultado-badge');
@@ -649,7 +655,7 @@ async function guardarDatosPartido() {
 // ══════════════════════════════════════
 
 async function cargarObjetivosActivos(nombreJugador) {
-  const data = await qb('objetivos_jugador?jugador_nombre=eq.' + encodeURIComponent(nombreJugador) + '&estado=eq.activo&order=fecha_creacion.desc&limit=5');
+  const data = await rpc('sc_objetivos_dt', { p_partido: partidoData.codigo, p_nombre: nombreJugador });
   objetivosActivos = data || [];
   const el = document.getElementById('obj-activos');
   if(!el) return;
@@ -692,15 +698,7 @@ async function guardarObjetivos(nombreJugador) {
       const ultimosN = evals.slice(-obj.partidos_meta);
       const consolidado = ultimosN.length >= obj.partidos_meta &&
         ultimosN.every(function(e){ return e.pct >= 75; });
-      await qb('objetivos_jugador?id=eq.' + obj.id, {
-        m: 'PATCH',
-        b: {
-          evaluaciones: evals,
-          estado: consolidado ? 'consolidado' : 'activo',
-          fecha_cierre: consolidado ? new Date().toISOString() : null
-        },
-        h: { 'Prefer': 'return=minimal' }
-      });
+      await rpc('sc_objetivo_evaluar', { p_partido: partidoData.codigo, p_id: obj.id, p_evaluaciones: evals, p_consolidado: consolidado });
     }
   }
 
@@ -710,30 +708,10 @@ async function guardarObjetivos(nombreJugador) {
   const objetivosActualCount = objetivosActivos.length;
 
   if(o1 && objetivosActualCount < 2) {
-    await qb('objetivos_jugador', {
-      m: 'POST',
-      b: {
-        jugador_nombre: nombreJugador,
-        grupo_codigo: partidoData.grupo_codigo,
-        partido_codigo: partidoData.codigo,
-        objetivo: o1,
-        partidos_meta: parseInt(document.getElementById('obj-1-partidos')?.value)||3,
-        creado_por: 'DT'
-      }
-    });
+    await rpc('sc_objetivo_crear', { p_partido: partidoData.codigo, p_nombre: nombreJugador, p_objetivo: o1, p_meta: parseInt(document.getElementById('obj-1-partidos')?.value)||3 });
   }
   if(o2 && (objetivosActualCount + (o1?1:0)) < 2) {
-    await qb('objetivos_jugador', {
-      m: 'POST',
-      b: {
-        jugador_nombre: nombreJugador,
-        grupo_codigo: partidoData.grupo_codigo,
-        partido_codigo: partidoData.codigo,
-        objetivo: o2,
-        partidos_meta: parseInt(document.getElementById('obj-2-partidos')?.value)||3,
-        creado_por: 'DT'
-      }
-    });
+    await rpc('sc_objetivo_crear', { p_partido: partidoData.codigo, p_nombre: nombreJugador, p_objetivo: o2, p_meta: parseInt(document.getElementById('obj-2-partidos')?.value)||3 });
   }
 }
 
