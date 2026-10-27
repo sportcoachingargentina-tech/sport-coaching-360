@@ -424,9 +424,8 @@ function startTest(){
   playerInfo={nombre:nombre+' '+document.getElementById('f-apellido').value.trim(),edad:fnac.edad,fnac:fnac.iso,pos:document.getElementById('f-pos').value,deporte:document.getElementById('f-deporte').value,club:document.getElementById('f-club').value,cat:document.getElementById('f-cat').value};
   // Buscar si tiene evaluación previa habilitada para segunda evaluación
   if(tokenActivo&&playerInfo.nombre){
-    var nombreEnc=encodeURIComponent(playerInfo.nombre);
-    sbFetch('resultados?grupo_id=eq.'+tokenActivo.id+'&jugador_nombre=ilike.'+nombreEnc+'&nueva_eval_habilitada=eq.true&order=evaluacion_num.desc&limit=1',{method:'GET'}).then(function(prev){
-      if(prev&&prev.length){resultadoPrevio=prev[0];console.log('Segunda evaluación habilitada para',playerInfo.nombre,'eval#',(prev[0].evaluacion_num||1)+1);}
+    sbRpc('sc_reeval_previa',{p_grupo_id:tokenActivo.id,p_nombre:playerInfo.nombre}).then(function(prev){
+      if(prev&&!prev.__error&&prev.id){resultadoPrevio=prev;console.log('Segunda evaluación habilitada para',playerInfo.nombre,'eval#',(prev.evaluacion_num||1)+1);}
     }).catch(function(){});
   }
   current=0;answers=new Array(TOTAL).fill(null);
@@ -710,21 +709,18 @@ function guardarYmostrar(dims,disc,scores,disp,sem,primary,discInfo,sorted,modoM
     // Si hay evaluación previa, incrementar número y desactivar la habilitación anterior
     if(resultadoPrevio){
       resultado.evaluacion_num=(resultadoPrevio.evaluacion_num||1)+1;
-      // Marcar la evaluación anterior como no habilitada
-      sbFetch('resultados?id=eq.'+resultadoPrevio.id,{method:'PATCH',body:{nueva_eval_habilitada:false}}).catch(function(){});
     } else {
       resultado.evaluacion_num=1;
     }
-    // Si la columna fecha_nacimiento todavía no existe en la base, se
-    // reintenta sin ella: el resultado del test nunca se pierde.
-    function guardarResultado(res){
-      return sbFetch('resultados',{method:'POST',body:res}).then(function(data){
-        if(data&&!Array.isArray(data)){
-          var err=JSON.stringify(data);
-          var col=['fecha_nacimiento','momentos_vida'].find(function(c){ return res[c]!==undefined&&err.indexOf(c)>=0; });
-          if(col){ delete res[col]; return guardarResultado(res); }
-        }
-        return data;
+    // Se guarda con una función segura: inserta solo las columnas que existen
+    // y cierra la reevaluación anterior en el mismo paso. Si no hay señal, se
+    // reintenta 3 veces antes de rendirse.
+    function guardarResultado(res, intento){
+      intento=intento||1;
+      return sbRpc('sc_guardar_test',{p:res,p_prev_id:resultadoPrevio?resultadoPrevio.id:null}).then(function(d){
+        if(d&&!d.__error&&d.id) return [d];
+        if(d&&d.__error&&intento<3) return new Promise(function(ok){ setTimeout(ok,2000*intento); }).then(function(){ return guardarResultado(res,intento+1); });
+        return d;
       });
     }
     guardarResultado(resultado).then(function(data){
@@ -834,13 +830,24 @@ async function sbFetch(path, opts){
   return text?JSON.parse(text):null;
 }
 
+// Funciones seguras de la base: la página pide solo lo que necesita (no lee tablas)
+async function sbRpc(fn, body){
+  try{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+fn,{method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify(body||{})});
+    const t=await r.text();
+    if(!r.ok){ console.warn('rpc '+fn+' '+r.status+':',t.substring(0,200)); return {__error:true,status:r.status}; }
+    return t?JSON.parse(t):null;
+  }catch(e){ console.warn('rpc '+fn+' sin red:',e); return {__error:true,red:true}; }
+}
+
 function detectarGrupo(){
   var params=new URLSearchParams(window.location.search);
   var grupo=params.get('grupo');
   if(!grupo) return;
-  sbFetch('grupos?codigo=eq.'+grupo+'&select=*').then(function(data){
-    if(!data||!data.length) return;
-    var g=data[0];
+  sbRpc('sc_grupo_publico',{p_codigo:grupo}).then(function(g){
+    if(!g||g.__error||!g.codigo) return;
     if(!g.habilitado){
       document.getElementById('s-cover').innerHTML='<div style="text-align:center;padding:4rem 2rem"><div style="font-size:48px;margin-bottom:1rem">⛔</div><h2 style="color:#f59e0b;margin-bottom:8px">Link deshabilitado</h2><p style="color:#8fa3bf">Este link fue deshabilitado por el coach. Contactalo para más información.</p></div>';
       return;
