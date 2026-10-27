@@ -133,6 +133,14 @@ const ESTILO_INFO={
   EX:{name:'Experimental',color:'#D4A830',tip:'Aprendés mejor viendo el panorama general y probando variantes propias. No te encierres en un único método.'},
 };
 
+async function rpcPub(fn, body){
+  try{
+    const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+    const t=await r.text(); if(!r.ok){ console.error('rpc '+fn+':',t); return null; }
+    return t?JSON.parse(t):null;
+  }catch(e){ console.error('Error de red:',e); return null; }
+}
+var TOKEN_EP='';
 var resultadoId=null;
 var current=0;
 var answers=new Array(ESTILO_QS.length).fill(null);
@@ -144,9 +152,9 @@ async function init(){
   const token=params.get('token');
   if(!token){ showScreen('s-error'); document.getElementById('error-txt').textContent='Link inválido — falta el token.'; return; }
 
-  const selectCampos='id,jugador_nombre,jugador_club';
-  let data=await q('resultados?token_perfil=eq.'+token+'&limit=1&select='+selectCampos);
-  if(!data||!data.length) data=await q('resultados?id=eq.'+token+'&limit=1&select='+selectCampos);
+  TOKEN_EP=token;
+  const perfil=await rpcPub('sc_perfil_publico',{p_token:token});
+  const data=perfil&&perfil.id?[perfil]:[];
   if(!data||!data.length){ showScreen('s-error'); document.getElementById('error-txt').textContent='No encontramos tu perfil. Pedile al coordinador que te reenvíe el link.'; return; }
 
   const r=data[0];
@@ -198,10 +206,7 @@ async function enviar(){
   const entries=Object.entries(c).sort(function(a,b){return b[1]-a[1];});
   const dominante=entries[0][0];
 
-  const res=await q('resultados?id=eq.'+resultadoId,{m:'PATCH',b:{estilo_pensamiento:c,estilo_dominante:dominante}});
-  if(res===null){
-    // q() devuelve null tanto en error como en PATCH exitoso con return=minimal — probamos igual mostrar el resultado
-  }
+  await rpcPub('sc_guardar_estilo',{p_token:TOKEN_EP,p_estilo:c,p_dominante:dominante});
 
   const info=ESTILO_INFO[dominante];
   document.getElementById('result-badge').style.background=info.color+'18';
