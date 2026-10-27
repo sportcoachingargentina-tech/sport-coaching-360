@@ -18521,7 +18521,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='27/10/2026 · 2';
+const SC360_VERSION='27/10/2026 · 3';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -19467,12 +19467,20 @@ function decEvidencia(r,x,t,sk,C,nivel){
   const n=fuentes.length-(viejo?1:0);
   const conf=n>=3?'alta':n===2?'media':'baja';
   const capa=decCapaBaja(r);
-  let accion;
+  // Patrón mental del jugador (si tiene uno marcado, su "Acción DT" es la sugerencia más precisa)
+  let pat=null;
+  try{ const nom=idcNom(r.jugador_nombre); const P=patronesJugador(r,((C.D&&C.D.pp)||{})[nom]||[],((C.D&&C.D.dt)||{})[nom]||[]);
+    const k=(P.lista||[]).find(k=>k!=='equilibrado'); if(k&&TEXTOS_PATRONES[k]) pat=TEXTOS_PATRONES[k]; }catch(e){}
+  let accion, base;
+  if(t&&t.d<=-8) base='Charla breve sobre sus últimos partidos: qué situaciones lo afectaron y qué necesita.';
+  else if(nivel==='verde') base='Reforzar lo que viene haciendo y darle una responsabilidad nueva.';
+  else if(pat) base=pat.accion;
+  else base=capa?ACCION_CAPA_JUG[capa.key]:'Conversación individual para entender qué lo está frenando.';
   if(sk&&sk.nivel==='rojo') accion='Hablar con él hoy, antes de entrenar, y ajustar la carga si hace falta.';
-  else if(t&&t.d<=-8) accion='Charla breve sobre sus últimos partidos: qué situaciones lo afectaron y qué necesita.';
-  else if(nivel==='verde') accion='Reforzar lo que viene haciendo y darle una responsabilidad nueva.';
-  else accion=capa?ACCION_CAPA_JUG[capa.key]:'Conversación individual para entender qué lo está frenando.';
-  return {ev:fuentes.join(' · '),conf,accion,capa:capa?capa.nombre:null};
+  else if(viejo&&nivel!=='verde'){ const meses=Math.round((hoy-new Date(String(r.fecha).slice(0,10)+'T12:00:00'))/864e5/30);
+    accion='Primero reevaluar: que repita el test MDC (el último tiene '+meses+' meses) para decidir con datos actuales. Mientras tanto: '+base.charAt(0).toLowerCase()+base.slice(1); }
+  else accion=base;
+  return {ev:fuentes.join(' · '),conf,accion,capa:capa?capa.nombre:null,patron:(pat&&base===pat.accion)?pat.nombre:null,reevaluar:!!(viejo&&nivel!=='verde')};
 }
 function decConfChip(c){ if(!c) return ''; const m={alta:['#22c55e','Confianza alta'],media:['#f59e0b','Confianza media'],baja:['#94a3b8','Confianza baja']}[c];
   return '<span title="Según cuántas fuentes distintas y recientes respaldan la señal" style="font-size:10px;font-weight:800;color:'+m[0]+';border:1px solid '+m[0]+'55;border-radius:12px;padding:1px 7px;white-space:nowrap">'+m[1]+'</span>'; }
@@ -19651,7 +19659,7 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
           '<div style="font-size:14.5px;font-weight:800;color:#fff;margin-top:2px">'+it.nom+(it.pos?' <span style="font-size:11px;font-weight:600;color:#7c8fae">· '+it.pos+'</span>':'')+'</div>'+
           '<div style="font-size:12.5px;color:#c0d0e8;line-height:1.45;margin-top:2px"><b style="color:#94a3b8;font-weight:700">Se observa:</b> '+it.txt+'</div>'+
           (it.ev?'<div style="font-size:11px;color:#7c8fae;line-height:1.4;margin-top:2px">📎 '+it.ev+'</div>':'')+
-          (it.accion?'<div style="font-size:12.5px;color:#4ade80;line-height:1.45;margin-top:4px"><b>→ Acción sugerida:</b> '+it.accion+'</div>':'')+
+          (it.accion?'<div style="font-size:12.5px;color:#4ade80;line-height:1.45;margin-top:4px"><b>→ Acción sugerida'+(it.patron?' <span style="font-weight:600;color:#a7f3d0">(patrón: '+it.patron+')</span>':'')+':</b> '+it.accion+'</div>':'')+
           '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+
             '<button onclick="'+it.go+'" style="'+btnS+';color:#00c2ff;border:1px solid #00c2ff55">'+(it.equipo?'Ver informe grupal →':'Ver perfil →')+'</button>'+
             (it.rid?'<button onclick="decRegistrarAccionN('+decRegAcc(it)+')" style="'+btnS+';color:#c4b5fd;border:1px solid #7c3aed66">＋ Registrar acción</button>':'')+
