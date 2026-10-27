@@ -2512,6 +2512,7 @@ tr:hover td{background:#0d1b3e40}
       <div class="pp-tab-bar" style="margin-bottom:1rem">
         <div class="pp-tab active" id="ev-tab-ind" onclick="evSwitchTab('individual')">👤 Individual</div>
         <div class="pp-tab" id="ev-tab-eq" onclick="evSwitchTab('equipo')">👥 Equipo</div>
+        <div class="pp-tab" id="ev-tab-acc" onclick="evSwitchTab('acciones')">🔁 Qué hicimos y qué pasó</div>
       </div>
       <!-- Vista individual -->
       <div id="ev-vista-individual">
@@ -2633,6 +2634,8 @@ tr:hover td{background:#0d1b3e40}
           <div class="tw"><div class="th">PARTIDOS — RESUMEN</div><div id="eveq-tabla"></div></div>
         </div>
       </div>
+      <!-- Vista acciones: intervenciones registradas, su resultado y qué cambió en los datos -->
+      <div id="ev-vista-acciones" style="display:none"><div id="evacc-contenido"><div class="es">Cargando…</div></div></div>
     </div><!-- fin screen-evolucion -->
 
 <!-- =========================================================
@@ -9112,6 +9115,7 @@ async function loadAlertas(resetVista){
   if(activas>0){badge.textContent=activas;badge.style.display='inline';}
   else{badge.style.display='none';}
   const bd=document.getElementById('decisiones-badge'); if(bd){ bd.textContent=activas; bd.style.display=activas>0?'inline':'none'; }
+  try{ dashSyncAlertas(); }catch(e){}
   renderAlertas();
 }
 
@@ -10103,7 +10107,10 @@ function evSwitchTab(tab){
   document.getElementById('ev-tab-eq').classList.toggle('active',tab==='equipo');
   document.getElementById('ev-vista-individual').style.display=tab==='individual'?'block':'none';
   document.getElementById('ev-vista-equipo').style.display=tab==='equipo'?'block':'none';
+  const ta=document.getElementById('ev-tab-acc'), va=document.getElementById('ev-vista-acciones');
+  if(ta) ta.classList.toggle('active',tab==='acciones'); if(va) va.style.display=tab==='acciones'?'block':'none';
   if(tab==='equipo') evEquipoInit();
+  if(tab==='acciones') evAccionesCargar();
 }
 let EVEQ_CH=null;
 let EVEQ_DATA=[];
@@ -18514,7 +18521,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='27/10/2026 · 1';
+const SC360_VERSION='27/10/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -18802,6 +18809,38 @@ async function fichasUnir(i,cual){
 // las mismas dimensiones del MDC) y cruza lo que mejora en el test con lo
 // que pasa en los partidos (Observación SC360). No es diagnóstico clínico.
 // ═══════════════════════════════════════════════════════════════
+let MPT_ORIGEN=null; // de qué señal salió la acción (Prioridades / Decisiones)
+function segFechaMas(d){ const x=new Date(); x.setDate(x.getDate()+d); return x.toLocaleDateString('en-CA',{timeZone:'America/Argentina/Buenos_Aires'}); }
+const SEG_RESULTADOS=[['Funcionó','#22c55e'],['Funcionó en parte','#f59e0b'],['No funcionó','#ef4444'],['Sigue en proceso','#00c2ff']];
+function segColRes(r){ const x=SEG_RESULTADOS.find(z=>z[0]===r); return x?x[1]:'#94a3b8'; }
+// Registrar el resultado de una acción / intervención
+function mptResultado(id){
+  const it=(MPT_ST.ints||[]).find(i=>String(i.id)===String(id)); if(!it) return;
+  let m=document.getElementById('mo-mpt'); if(m) m.remove();
+  m=document.createElement('div'); m.id='mo-mpt'; m.style.cssText='position:fixed;inset:0;background:#000b;z-index:400;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 12px';
+  const inp='width:100%;padding:8px 10px;background:#0a1024;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box';
+  m.innerHTML='<div style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:14px;width:min(520px,100%);padding:18px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px;color:#fff">Resultado · '+decEsc(it.jugador_nombre||'')+'</b><button onclick="document.getElementById(\'mo-mpt\').remove()" aria-label="Cerrar" style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer">✕</button></div>'+
+    '<div style="font-size:12.5px;color:#b4c2d4;margin-top:6px">'+decEsc(it.tipo)+(it.objetivo?' · '+decEsc(it.objetivo):'')+'<br><span style="color:#7c8fae">Desde el '+mptFecha(it.fecha_inicio)+(it.profesional?' · Responsable: '+decEsc(it.profesional):'')+'</span></div>'+
+    '<div style="display:grid;gap:10px;margin-top:12px">'+
+    '<div style="font-size:12px;color:#94a3b8">¿Cómo resultó?<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">'+
+      SEG_RESULTADOS.map((z,i)=>'<label style="font-size:13px;color:#e8eff8;background:#0a1024;border:1px solid '+z[1]+'55;border-radius:9px;padding:9px 10px;cursor:pointer"><input type="radio" name="seg-res" value="'+z[0]+'"'+(i===3?'':'')+' style="margin-right:6px">'+z[0]+'</label>').join('')+'</div></div>'+
+    '<label style="font-size:12px;color:#94a3b8">Qué se observó (opcional)<textarea id="seg-com" rows="2" style="'+inp+'" placeholder="Ej: se repone más rápido después del error en los dos últimos partidos"></textarea></label>'+
+    '<div style="font-size:11px;color:#7c8fae">"Sigue en proceso" deja la acción abierta y la vuelve a programar en 14 días. Las otras opciones la cierran y queda en el historial.</div>'+
+    '<button onclick="mptGuardarResultado(\''+it.id+'\')" class="btn-p" style="padding:11px;font-size:14px">Guardar resultado</button></div></div>';
+  document.body.appendChild(m);
+}
+async function mptGuardarResultado(id){
+  const sel=document.querySelector('input[name="seg-res"]:checked'); if(!sel){ alert('Elegí cómo resultó.'); return; }
+  const it=(MPT_ST.ints||[]).find(i=>String(i.id)===String(id))||{};
+  const com=(document.getElementById('seg-com')||{}).value||'';
+  const hoy=new Date().toISOString().slice(0,10);
+  const obs=[it.observaciones||'',com.trim()?'['+hoy+'] '+sel.value+': '+com.trim():''].filter(Boolean).join('\n');
+  const b=sel.value==='Sigue en proceso'?{resultado:sel.value,fecha_revision:segFechaMas(14),observaciones:obs||null}:{resultado:sel.value,estado:'finalizada',fecha_fin:hoy,observaciones:obs||null};
+  await q('intervenciones?id=eq.'+id,{m:'PATCH',b,h:{Prefer:'return=minimal'}});
+  document.getElementById('mo-mpt').remove(); cargarMPT(MPT_ST.r);
+  try{ if(DEC_CACHE) dashAccionesRevisar(DEC_CACHE.cods,DEC_CACHE.jugs); }catch(e){}
+}
 const MPT_TIPOS=['Entrenamiento mental','Coaching individual','Psicología deportiva','Programa del club','Acción del cuerpo técnico','Intervención externa'];
 let MPT_ST={r:null,ints:[],tests:[],pp:[]};
 function mptVal(r,k){ const v=r&&r.dims?r.dims[k]:null; return v>0?Math.round(v/5*100):null; }
@@ -18848,7 +18887,10 @@ function renderMPT(){
       '<div style="font-size:14px;font-weight:800;color:#fff;margin-top:3px">'+activa.tipo+(activa.profesional?' · <span style="font-weight:600;color:#b4c2d4">'+activa.profesional+'</span>':'')+'</div>'+
       (activa.objetivo?'<div style="font-size:12px;color:#cbd5e1;margin-top:3px">🎯 '+activa.objetivo+'</div>':'')+
       ((activa.variables||[]).length?'<div style="font-size:11px;color:#a78bfa;margin-top:3px">Trabaja: '+activa.variables.map(k=>DIM_LABELS[k]||k).join(' · ')+'</div>':'')+
-      '<button onclick="mptFinalizar(\''+activa.id+'\')" style="margin-top:8px;font-size:11px;padding:4px 10px;background:transparent;color:#c4b5fd;border:1px solid #7c3aed66;border-radius:6px;cursor:pointer">Finalizar proceso</button></div>';
+      (activa.fecha_revision?(function(){ const venc=String(activa.fecha_revision)<=segFechaMas(0); return '<div style="font-size:11.5px;color:'+(venc?'#fbbf24':'#94a3b8')+';margin-top:4px">🔁 '+(venc?'Para revisar: tocaba el ':'Revisar el ')+mptFecha(activa.fecha_revision)+(activa.resultado?' · Último resultado: <b style="color:'+segColRes(activa.resultado)+'">'+decEsc(activa.resultado)+'</b>':'')+'</div>'; })():'')+
+      (activa.origen?'<div style="font-size:11px;color:#7c8fae;margin-top:2px">📎 Salió de: '+decEsc(activa.origen)+'</div>':'')+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button onclick="mptResultado(\''+activa.id+'\')" style="font-size:11px;padding:4px 10px;background:#7c3aed;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700">✓ Registrar resultado</button>'+
+      '<button onclick="mptFinalizar(\''+activa.id+'\')" style="font-size:11px;padding:4px 10px;background:transparent;color:#c4b5fd;border:1px solid #7c3aed66;border-radius:6px;cursor:pointer">Finalizar proceso</button></div></div>';
   } else {
     h+='<div style="flex:1;min-width:240px;font-size:12.5px;color:#94a3b8">Sin un proceso de trabajo activo. Registralo para medir el antes y el después.</div>';
   }
@@ -18924,17 +18966,20 @@ function renderMPTResumen(activa,ini,act,hayComp,ref,obs){
       '<span style="font-size:11px;font-weight:900;color:#c4b5fd;letter-spacing:0.08em">🧠 MENTAL PERFORMANCE TRACKING</span>'+
       '<span style="font-size:11px;color:#e8eff8">'+(activa?'<b style="color:#c4b5fd">● '+activa.tipo+'</b> desde '+mptFecha(activa.fecha_inicio):'<span style="color:#94a3b8">Sin proceso activo</span>')+
         '</span></div>'+
+    (activa&&activa.fecha_revision?(function(){ const venc=String(activa.fecha_revision)<=segFechaMas(0);
+      return '<div style="font-size:11.5px;color:'+(venc?'#fbbf24':'#94a3b8')+';margin-bottom:6px">🔁 '+(venc?'Para revisar: tocaba el ':'Revisar el ')+mptFecha(activa.fecha_revision)+(activa.profesional?' · Responsable: '+decEsc(activa.profesional):'')+(activa.resultado?' · Último resultado: <b style="color:'+segColRes(activa.resultado)+'">'+decEsc(activa.resultado)+'</b>':'')+'</div>'; })():'')+
     (activa&&(activa.objetivo||(activa.variables||[]).length)?'<div style="font-size:11.5px;color:#cbd5e1;margin-bottom:6px">'+(activa.objetivo?'🎯 '+activa.objetivo:'')+((activa.variables||[]).length?' <span style="color:#a78bfa">· Trabaja: '+activa.variables.map(k=>DIM_LABELS[k]||k).join(', ')+'</span>':'')+'</div>':'')+
     cuerpo+
     (obs?'<div style="font-size:12px;color:#e8eff8;line-height:1.45;margin-top:8px;background:'+obs[2]+'12;border-left:3px solid '+obs[2]+';border-radius:6px;padding:6px 10px"><b style="color:'+obs[2]+'">'+obs[0]+' Observación SC360:</b> '+obs[1]+' <span style="color:#4a5a78;font-size:10.5px">(basada en los datos registrados, no es un diagnóstico)</span></div>':'')+
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+
       '<button onclick="mptNueva()" class="btn-p" style="'+btn+'">+ Registrar intervención</button>'+
+      (activa?'<button onclick="mptResultado(\''+activa.id+'\')" style="'+btn+';background:#7c3aed;color:#fff;border:none">✓ Registrar resultado</button>':'')+
       (activa?'<button onclick="mptFinalizar(\''+activa.id+'\')" style="'+btn+';background:transparent;color:#c4b5fd;border:1px solid #7c3aed66">Finalizar proceso</button>':'')+
       (hist.length?'<button onclick="const t=document.getElementById(\'pj-mpt-hist\');t.style.display=t.style.display===\'none\'?\'block\':\'none\'" style="'+btn+';background:transparent;color:#b4c2d4;border:1px solid #1a3a6e">Historial ('+hist.length+')</button>':'')+
     (tabla?'<button onclick="const t=document.getElementById(\'pj-mpt-tabla-arriba\');const ab=t.style.display===\'none\';t.style.display=ab?\'block\':\'none\';this.textContent=ab?\'Ocultar variables ▴\':\'Ver todas las variables ▾\'" style="'+btn+';background:transparent;color:#c4b5fd;border:1px solid #7c3aed66">Ver todas las variables ▾</button>':'')+
     '</div>'+
     (tabla?'<div id="pj-mpt-tabla-arriba" style="display:none;margin-top:8px">'+tabla+'</div>':'')+
-    (hist.length?'<div id="pj-mpt-hist" style="display:none;margin-top:8px">'+hist.map(i=>'<div style="font-size:12px;color:#b4c2d4;padding:4px 0;border-bottom:1px solid #1a3a6e33">'+i.tipo+' · '+mptFecha(i.fecha_inicio)+' → '+mptFecha(i.fecha_fin)+(i.objetivo?' · '+i.objetivo:'')+'</div>').join('')+'</div>':'')+
+    (hist.length?'<div id="pj-mpt-hist" style="display:none;margin-top:8px">'+hist.map(i=>'<div style="font-size:12px;color:#b4c2d4;padding:4px 0;border-bottom:1px solid #1a3a6e33">'+i.tipo+' · '+mptFecha(i.fecha_inicio)+' → '+mptFecha(i.fecha_fin)+(i.objetivo?' · '+i.objetivo:'')+(i.resultado?' · <b style="color:'+segColRes(i.resultado)+'">'+i.resultado+'</b>':'')+'</div>').join('')+'</div>':'')+
     (function(){ const pats=patronesSituacion(MPT_ST.pp,2).slice(0,2); if(!pats.length) return '';
       return '<div style="margin-top:8px;font-size:12px;color:#e8eff8;line-height:1.5">'+pats.map(p=>'<div style="padding:4px 0">📊 <b style="color:#00c2ff">Patrón observado:</b> '+patronTexto(p)+' <span style="color:#f59e0b">Variable a monitorear.</span></div>').join('')+'</div>'; })()+
     (MPT_ST.tablaOk===false?'<div style="font-size:11px;color:#f59e0b;margin-top:6px">Falta crear la tabla de intervenciones (intervenciones.sql).</div>':'')+
@@ -18944,7 +18989,7 @@ function mptNueva(){
   const r=MPT_ST.r; if(!r) return;
   let m=document.getElementById('mo-mpt'); if(m) m.remove();
   m=document.createElement('div'); m.id='mo-mpt'; m.style.cssText='position:fixed;inset:0;background:#000b;z-index:400;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 12px';
-  const inp='width:100%;padding:8px 10px;background:#0a1024;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px;font-size:13px';
+  const inp='width:100%;padding:8px 10px;background:#0a1024;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box';
   m.innerHTML='<div style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:14px;width:min(560px,100%);padding:18px">'+
     '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px;color:#fff">Registrar intervención · '+(r.jugador_nombre||'')+'</b><button onclick="document.getElementById(\'mo-mpt\').remove()" style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer">✕</button></div>'+
     '<div style="display:grid;gap:10px;margin-top:12px">'+
@@ -18954,7 +18999,9 @@ function mptNueva(){
     '<label style="font-size:12px;color:#94a3b8">Objetivo<input id="mpt-obj" style="'+inp+'" placeholder="Ej: Mejorar la regulación después del error"></label>'+
     '<div style="font-size:12px;color:#94a3b8">Variables que se trabajan<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">'+
       Object.keys(DIM_LABELS).map(k=>'<label style="font-size:12px;color:#e8eff8;background:#0a1024;border:1px solid #1a3a6e;border-radius:16px;padding:4px 10px;cursor:pointer"><input type="checkbox" class="mpt-var" value="'+k+'" style="margin-right:4px">'+DIM_LABELS[k]+'</label>').join('')+'</div></div>'+
-    '<label style="font-size:12px;color:#94a3b8">Fecha de inicio<input id="mpt-ini" type="date" value="'+new Date().toISOString().slice(0,10)+'" style="'+inp+'"></label>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><label style="font-size:12px;color:#94a3b8">Fecha de inicio<input id="mpt-ini" type="date" value="'+new Date().toISOString().slice(0,10)+'" style="'+inp+'"></label>'+
+    '<label style="font-size:12px;color:#94a3b8">Revisar el<input id="mpt-rev" type="date" value="'+segFechaMas(14)+'" style="'+inp+'"></label></div>'+
+    (MPT_ORIGEN?'<div style="font-size:11.5px;color:#7c8fae">📎 Origen: '+decEsc(MPT_ORIGEN)+'</div>':'')+
     '<label style="font-size:12px;color:#94a3b8">Observaciones (opcional)<textarea id="mpt-obs" rows="2" style="'+inp+'"></textarea></label>'+
     '<button onclick="mptGuardar()" class="btn-p" style="padding:11px;font-size:14px">Guardar</button></div></div>';
   document.body.appendChild(m);
@@ -18965,13 +19012,14 @@ async function mptGuardar(){
   const body={jugador_uid:r.jugador_uid||null,jugador_nombre:r.jugador_nombre,grupo_codigo:r.grupo_codigo||null,tipo,externa:tipo==='Intervención externa',
     profesional:document.getElementById('mpt-prof').value.trim()||null,objetivo:document.getElementById('mpt-obj').value.trim()||null,variables:vars,
     fecha_inicio:document.getElementById('mpt-ini').value||new Date().toISOString().slice(0,10),observaciones:document.getElementById('mpt-obs').value.trim()||null,
-    creado_por:USUARIO_ACTUAL?(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email):null,estado:'activa'};
+    creado_por:USUARIO_ACTUAL?(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email):null,estado:'activa',
+    fecha_revision:(document.getElementById('mpt-rev')||{}).value||null,origen:MPT_ORIGEN||null};
   // Si hay una activa, se finaliza al empezar la nueva
   const act=MPT_ST.ints.find(i=>i.estado==='activa');
   if(act) await q('intervenciones?id=eq.'+act.id,{m:'PATCH',b:{estado:'finalizada',fecha_fin:body.fecha_inicio},h:{Prefer:'return=minimal'}});
   const res=await q('intervenciones',{m:'POST',b:body});
   if(!Array.isArray(res)||!res.length){ alert('No se pudo guardar. ¿Ya corriste intervenciones.sql en Supabase?'); return; }
-  document.getElementById('mo-mpt').remove(); cargarMPT(r);
+  MPT_ORIGEN=null; document.getElementById('mo-mpt').remove(); cargarMPT(r);
 }
 async function mptFinalizar(id){
   if(!confirm('¿Finalizar este proceso? Queda en el historial.')) return;
@@ -19430,13 +19478,14 @@ function decConfChip(c){ if(!c) return ''; const m={alta:['#22c55e','Confianza a
   return '<span title="Según cuántas fuentes distintas y recientes respaldan la señal" style="font-size:10px;font-weight:800;color:'+m[0]+';border:1px solid '+m[0]+'55;border-radius:12px;padding:1px 7px;white-space:nowrap">'+m[1]+'</span>'; }
 function decEsc(t){ return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 // Registrar acción desde una señal: abre el perfil y el formulario de intervención ya existente
-let DEC_ACC=[]; function decRegAcc(it){ return DEC_ACC.push({id:it.rid,accion:it.accion})-1; }
-function decRegistrarAccionN(i){ const a=DEC_ACC[i]; if(a) decRegistrarAccion(a.id,a.accion); }
+let DEC_ACC=[]; function decRegAcc(it){ return DEC_ACC.push({id:it.rid,accion:it.accion,origen:(it.tipo||'Decisiones de hoy')+': '+String(it.txt||'').replace(/<[^>]+>/g,'').slice(0,160)})-1; }
+function decRegistrarAccionN(i){ const a=DEC_ACC[i]; if(a){ MPT_ORIGEN=a.origen; decRegistrarAccion(a.id,a.accion); } }
 async function decRegistrarAccion(id,accion){
   try{
     await irAPerfilJugador(id);
     let n=0; while(n<40&&!(MPT_ST&&MPT_ST.r&&String(MPT_ST.r.id)===String(id)&&MPT_ST.tablaOk!==undefined)){ await new Promise(r=>setTimeout(r,150)); n++; }
     if(!(MPT_ST&&MPT_ST.r)){ alert('No se pudo abrir el perfil del jugador.'); return; }
+    if(!MPT_ORIGEN) MPT_ORIGEN='Decisiones de hoy';
     mptNueva();
     const o=document.getElementById('mpt-obj'); if(o&&accion) o.value=accion;
     const tp=document.getElementById('mpt-tipo'); if(tp) tp.value='Acción del cuerpo técnico';
@@ -19618,9 +19667,84 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
     boxC.innerHTML='<div class="tw" style="margin:0 0 12px"><div class="th" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span>🎯 PRIORIDADES DE HOY · QUÉ CONVIENE HACER Y POR QUÉ</span>'+
         '<button onclick="go(\'decisiones\')" style="white-space:nowrap;font-size:11.5px;font-weight:800;color:#0a0f1e;background:#00c2ff;border:none;border-radius:7px;padding:5px 11px;cursor:pointer">Ver las '+nDec+' decisiones →</button></div>'+
       '<div style="padding:0.3rem 0.95rem 0.7rem">'+priHtml+
-        (nAl?'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;padding:9px 11px;border-radius:9px;background:#ef444412;border:1px solid #ef444444"><span style="font-size:12.5px;color:#fca5a5">🔔 <b>'+nAl+' alerta'+(nAl>1?'s':'')+' activa'+(nAl>1?'s':'')+'</b> para revisar (Post Partido, MDC o ausencias)</span><button onclick="go(\'alertas\')" style="'+btnS+';color:#fca5a5;border:1px solid #ef444466">Ver alertas →</button></div>':'')+
-        '<div style="font-size:10.5px;color:#4a5a78;margin-top:8px">Basado en los datos cargados. Son señales para decidir qué mirar primero, no certezas ni diagnósticos. La decisión final es del cuerpo técnico.</div></div></div>'+proxHtml;
+        '<div id="dash-pri-alertas">'+dashPriAlertasHtml()+'</div>'+
+        '<div style="font-size:10.5px;color:#4a5a78;margin-top:8px">Basado en los datos cargados. Son señales para decidir qué mirar primero, no certezas ni diagnósticos. La decisión final es del cuerpo técnico.</div></div></div>'+
+      '<div id="dash-acciones"></div>'+proxHtml;
+    dashAccionesRevisar(cods,jugs);
   }catch(e){ console.warn('Centro de decisiones:',e); }
+}
+// Alertas activas: un solo número (el mismo que la pantalla Alertas y el menú)
+function dashPriAlertasHtml(){
+  const nAl=(TODAS_ALERTAS||[]).filter(a=>a.estado==='activa').length; if(!nAl) return '';
+  return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;padding:9px 11px;border-radius:9px;background:#ef444412;border:1px solid #ef444444"><span style="font-size:12.5px;color:#fca5a5">🔔 <b>'+nAl+' alerta'+(nAl>1?'s':'')+' activa'+(nAl>1?'s':'')+'</b> para revisar (Post Partido, MDC o ausencias)</span><button onclick="go(\'alertas\')" style="white-space:nowrap;font-size:11.5px;padding:6px 11px;border-radius:7px;cursor:pointer;background:transparent;color:#fca5a5;border:1px solid #ef444466">Ver alertas →</button></div>';
+}
+function dashSyncAlertas(){
+  const nAl=(TODAS_ALERTAS||[]).filter(a=>a.estado==='activa').length;
+  const b=document.getElementById('dash-pri-alertas'); if(b) b.innerHTML=dashPriAlertasHtml();
+  ['dash-alertas','dash-alertas-club'].forEach(id=>{ const el=document.getElementById(id); if(!el) return;
+    el.innerHTML=nAl?'<div style="padding:1.5rem;text-align:center;cursor:pointer" onclick="go(\'alertas\')"><div style="font-size:32px;font-weight:900;color:#ef4444">'+nAl+'</div><div style="font-size:12px;color:#b4c2d4;margin-top:2px">alerta'+(nAl!==1?'s':'')+' activa'+(nAl!==1?'s':'')+'</div><button style="margin-top:10px;padding:6px 16px;background:#ef444422;color:#ef4444;border:1px solid #ef444444;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">Ver Alertas →</button></div>'
+      :'<div style="padding:1.5rem;text-align:center;font-size:12.5px;color:#22c55e">✓ Sin alertas activas</div>'; });
+}
+// Acciones registradas que toca revisar (vencidas o en los próximos 7 días)
+let DASH_ACC=[];
+async function dashAccionesRevisar(cods,jugs){
+  const box=document.getElementById('dash-acciones'); if(!box) return;
+  let ints=null;
+  try{ ints=await q('intervenciones?grupo_codigo=in.('+(cods||[]).map(encodeURIComponent).join(',')+')&estado=eq.activa&order=fecha_revision.asc.nullslast&limit=300',{sinCache:true}); }catch(e){}
+  if(!Array.isArray(ints)){ box.innerHTML=''; return; }
+  const lim=segFechaMas(7), hoy=segFechaMas(0);
+  const aRev=ints.filter(i=>i.fecha_revision&&String(i.fecha_revision)<=lim);
+  const btnS='white-space:nowrap;font-size:11.5px;padding:5px 10px;border-radius:7px;cursor:pointer;background:transparent';
+  DASH_ACC=aRev.map(i=>{ const j=(jugs||[]).find(r=>(i.jugador_uid&&r.jugador_uid===i.jugador_uid)||idcNom(r.jugador_nombre)===idcNom(i.jugador_nombre)); return {i,rid:j?j.id:null}; });
+  const filas=DASH_ACC.slice(0,6).map((a,k)=>{ const venc=String(a.i.fecha_revision)<hoy;
+    return '<div class="dec-item"><span style="width:9px;height:9px;border-radius:50%;background:'+(venc?'#f59e0b':'#7c3aed')+';margin-top:6px;flex-shrink:0"></span><div style="flex:1;min-width:0">'+
+      '<div style="font-size:13.5px;font-weight:800;color:#fff">'+decEsc(a.i.jugador_nombre)+' <span style="font-size:11px;font-weight:600;color:#7c8fae">· '+decEsc(a.i.tipo)+'</span></div>'+
+      '<div style="font-size:12px;color:#b4c2d4;line-height:1.45">'+(a.i.objetivo?decEsc(a.i.objetivo):'Sin objetivo cargado')+'</div>'+
+      '<div style="font-size:11px;color:'+(venc?'#fbbf24':'#7c8fae')+'">'+(venc?'Tocaba revisar el ':'Revisar el ')+mptFecha(a.i.fecha_revision)+(a.i.profesional?' · Responsable: '+decEsc(a.i.profesional):'')+'</div></div>'+
+      (a.rid?'<button onclick="dashRevisarAccion('+k+')" style="'+btnS+';color:#c4b5fd;border:1px solid #7c3aed66;flex-shrink:0">✓ Revisar</button>':'')+'</div>'; }).join('');
+  box.innerHTML='<div class="dsh-card" style="margin:0 0 12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div class="dsh-card-t">🔁 Acciones para revisar esta semana · '+aRev.length+'</div>'+
+      '<button onclick="go(\'evolucion\');evSwitchTab(\'acciones\')" style="'+btnS+';color:#00c2ff;border:1px solid #00c2ff55">Qué hicimos y qué pasó →</button></div>'+
+    (aRev.length?filas+(aRev.length>6?'<div style="font-size:11.5px;color:#7c8fae;margin-top:6px">y '+(aRev.length-6)+' más en Evolución.</div>':'')
+      :'<div style="font-size:12.5px;color:#7c8fae;padding:6px 0">'+(ints.length?ints.length+' acción'+(ints.length>1?'es':'')+' en curso, ninguna para revisar esta semana.':'Todavía no hay acciones registradas. Usá <b style="color:#c4b5fd">＋ Registrar acción</b> en una prioridad para empezar el seguimiento.')+'</div>')+'</div>';
+}
+async function dashRevisarAccion(k){
+  const a=DASH_ACC[k]; if(!a||!a.rid) return;
+  await irAPerfilJugador(a.rid);
+  let n=0; while(n<40&&!(MPT_ST&&MPT_ST.r&&String(MPT_ST.r.id)===String(a.rid)&&MPT_ST.tablaOk!==undefined)){ await new Promise(r=>setTimeout(r,150)); n++; }
+  if((MPT_ST.ints||[]).some(i=>String(i.id)===String(a.i.id))) mptResultado(a.i.id);
+}
+// Evolución › Qué hicimos y qué pasó: cada acción, su resultado y el cambio en los datos
+async function evAccionesCargar(){
+  const box=document.getElementById('evacc-contenido'); if(!box) return;
+  box.innerHTML='<div class="es">Cargando…</div>';
+  const gs=filtrarGrupos((await q('grupos?select=codigo,nombre,club,habilitado'))||[]); const cods=gs.map(g=>g.codigo).filter(Boolean);
+  if(!cods.length){ box.innerHTML='<div class="es">No hay divisiones para mostrar.</div>'; return; }
+  const enc=cods.map(encodeURIComponent).join(',');
+  const [ints,res]=await Promise.all([
+    q('intervenciones?grupo_codigo=in.('+enc+')&order=fecha_inicio.desc&limit=300',{sinCache:true}),
+    q('resultados?grupo_codigo=in.('+enc+')&select=id,jugador_uid,jugador_nombre,fecha,disponibilidad&order=fecha.asc&limit=3000')]);
+  if(!Array.isArray(ints)){ box.innerHTML='<div class="es">No se pudieron cargar las acciones.</div>'; return; }
+  if(!ints.length){ box.innerHTML='<div class="tw" style="padding:1.25rem;font-size:13px;color:#b4c2d4;line-height:1.55">Todavía no hay acciones registradas.<br>Desde el Inicio o desde Decisiones de hoy, tocá <b style="color:#c4b5fd">＋ Registrar acción</b>: queda con responsable, fecha de revisión y, cuando la revisen, su resultado. Acá se ve qué se hizo y qué pasó después.</div>'; return; }
+  const R=Array.isArray(res)?res:[];
+  const delJug=i=>R.filter(r=>(i.jugador_uid&&r.jugador_uid===i.jugador_uid)||idcNom(r.jugador_nombre)===idcNom(i.jugador_nombre));
+  const cambio=i=>{ const ts=delJug(i); const antes=ts.filter(t=>String(t.fecha).slice(0,10)<=String(i.fecha_inicio)).pop(); const desp=ts.filter(t=>String(t.fecha).slice(0,10)>String(i.fecha_inicio)).pop();
+    if(!antes||!desp) return null; return {a:antes.disponibilidad,d:desp.disponibilidad,dif:(desp.disponibilidad||0)-(antes.disponibilidad||0)}; };
+  const fin=ints.filter(i=>i.estado!=='activa'), act=ints.filter(i=>i.estado==='activa');
+  const cnt={}; fin.forEach(i=>{ const k=i.resultado||'Sin resultado cargado'; cnt[k]=(cnt[k]||0)+1; });
+  const tile=(t,v,col)=>'<div class="dsh-tile" style="border-color:'+col+'55"><div class="dsh-tile-t">'+t+'</div><div class="dsh-tile-v" style="color:'+col+'">'+v+'</div></div>';
+  const fila=i=>{ const c=cambio(i);
+    return '<div class="dec-item"><span style="width:9px;height:9px;border-radius:50%;background:'+(i.estado==='activa'?'#7c3aed':segColRes(i.resultado))+';margin-top:6px;flex-shrink:0"></span><div style="flex:1;min-width:0">'+
+      '<div style="font-size:13.5px;font-weight:800;color:#fff">'+decEsc(i.jugador_nombre)+' <span style="font-size:11px;font-weight:600;color:#7c8fae">· '+decEsc(i.tipo)+' · '+mptFecha(i.fecha_inicio)+(i.fecha_fin?' → '+mptFecha(i.fecha_fin):' · en curso')+'</span></div>'+
+      '<div style="font-size:12.5px;color:#c0d0e8;line-height:1.45">'+(i.objetivo?decEsc(i.objetivo):'Sin objetivo cargado')+(i.profesional?' <span style="color:#7c8fae">· '+decEsc(i.profesional)+'</span>':'')+'</div>'+
+      (i.origen?'<div style="font-size:11px;color:#7c8fae">📎 Salió de: '+decEsc(i.origen)+'</div>':'')+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">'+
+        (i.resultado?'<span style="font-size:11.5px;font-weight:800;color:'+segColRes(i.resultado)+';border:1px solid '+segColRes(i.resultado)+'55;border-radius:12px;padding:2px 9px">'+decEsc(i.resultado)+'</span>':(i.estado==='activa'?'<span style="font-size:11.5px;color:#c4b5fd">Revisar el '+mptFecha(i.fecha_revision)+'</span>':'<span style="font-size:11.5px;color:#94a3b8">Sin resultado cargado</span>'))+
+        (c?'<span style="font-size:11.5px;color:#e8eff8;background:#0a1024;border:1px solid #1a3a6e;border-radius:12px;padding:2px 9px">Disponibilidad '+c.a+' → '+c.d+' <b style="color:'+(c.dif>0?'#22c55e':c.dif<0?'#ef4444':'#94a3b8')+'">'+(c.dif>0?'+':'')+c.dif+'</b></span>':'<span style="font-size:11px;color:#7c8fae">Sin test posterior para comparar</span>')+
+      '</div>'+(i.observaciones?'<div style="font-size:11.5px;color:#94a3b8;white-space:pre-line;margin-top:3px">'+decEsc(i.observaciones)+'</div>':'')+'</div></div>'; };
+  box.innerHTML='<div class="dsh-tiles" style="margin-bottom:10px">'+tile('En curso',act.length,'#7c3aed')+tile('Funcionó',(cnt['Funcionó']||0)+(cnt['Funcionó en parte']?' <span style="font-size:13px;color:#f59e0b">+'+cnt['Funcionó en parte']+' en parte</span>':''),'#22c55e')+tile('No funcionó',cnt['No funcionó']||0,'#ef4444')+tile('Sin resultado',cnt['Sin resultado cargado']||0,'#94a3b8')+'</div>'+
+    (act.length?'<div class="dsh-card" style="margin-bottom:10px"><div class="dsh-card-t">🔁 En curso · '+act.length+'</div>'+act.map(fila).join('')+'</div>':'')+
+    (fin.length?'<div class="dsh-card"><div class="dsh-card-t">✓ Cerradas · '+fin.length+'</div>'+fin.map(fila).join('')+'</div>':'')+
+    '<div style="font-size:10.5px;color:#4a5a78;margin-top:10px">El cambio de disponibilidad compara el último test antes de empezar con el último test después. Que mejore no prueba que fue por la acción: es una referencia para conversar, no una conclusión.</div>';
 }
 
 // ═══════════════════════════════════════════════════════════════
