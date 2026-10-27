@@ -130,6 +130,13 @@ async function q(path,opts){
   }catch(e){ console.error('Error de red:',e); return {__error:true, mensaje:String(e)}; }
 }
 
+async function rpcPub(fn, body){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+    const t=await r.text(); if(!r.ok){ console.error('rpc '+fn+':',t); return null; }
+    return t?JSON.parse(t):null;
+  }catch(e){ console.error('Error de red:',e); return null; }
+}
 const COG_LABELS={
   reaccion_simple:'tu tiempo de reacción', go_nogo:'Go / No-Go', stroop:'el Stroop',
   memoria_trabajo:'tu memoria de trabajo', apuesta_confianza:'la Apuesta de Confianza', resistencia:'Resistencia',
@@ -155,9 +162,8 @@ async function init(){
     return;
   }
 
-  const selectCampos='id,jugador_nombre,disponibilidad,semaforo_color,primary_disc';
-  let data=await q('resultados?token_perfil=eq.'+token+'&limit=1&select='+selectCampos);
-  if(!data||!data.length) data=await q('resultados?id=eq.'+token+'&limit=1&select='+selectCampos);
+  const perfil=await rpcPub('sc_perfil_publico',{p_token:token});
+  const data=perfil&&perfil.id?[perfil]:[];
   if(!data||!data.length){
     app.innerHTML='<div class="err">No encontramos tu perfil.<br>Pedile a tu profe que te lo reenvíe.</div>';
     return;
@@ -167,13 +173,11 @@ async function init(){
   const nombreEsc=encodeURIComponent((r.jugador_nombre||'').trim());
   const hace30=new Date(Date.now()-30*86400000);
 
-  const [ppRaw,cogRaw,primeraPP,primeraCog,todosCog]=await Promise.all([
-    q('entreno_jugador?jugador_nombre=ilike.'+nombreEsc+'&order=creado_en.desc&limit=60'),
-    q('ejercicios_cognitivos?or=(jugador_id.eq.'+r.id+',jugador_nombre.ilike.'+nombreEsc+')&order=creado_en.desc&limit=60'),
-    q('entreno_jugador?jugador_nombre=ilike.'+nombreEsc+'&order=creado_en.asc&limit=1'),
-    q('ejercicios_cognitivos?or=(jugador_id.eq.'+r.id+',jugador_nombre.ilike.'+nombreEsc+')&order=creado_en.asc&limit=1'),
-    q('ejercicios_cognitivos?or=(jugador_id.eq.'+r.id+',jugador_nombre.ilike.'+nombreEsc+')&order=creado_en.desc&limit=200&select=tipo,creado_en'),
-  ]);
+  // Función segura: solo la actividad de este jugador
+  const act=await rpcPub('sc_actividad_jugador',{p_token:token})||{};
+  const ppRaw=act.entrenos||[], cogRaw=(act.cog||[]).slice(0,60), todosCog=act.cog||[];
+  const primeraPP=act.entreno_primero?[{creado_en:act.entreno_primero}]:[];
+  const primeraCog=act.cog_primero?[{creado_en:act.cog_primero}]:[];
   const ppRows=(ppRaw||[]).filter(c=>c.creado_en && new Date(c.creado_en)>=hace30);
   const cogRows=(cogRaw||[]).filter(c=>c.creado_en && new Date(c.creado_en)>=hace30);
 
