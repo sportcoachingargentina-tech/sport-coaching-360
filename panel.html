@@ -3639,6 +3639,15 @@ function qAvisoTope(path){
   try{ if(window.SC360_reportar) window.SC360_reportar('consulta','Consulta llegó al tope de 1000 filas: '+tabla,String(path).slice(0,300),false); }catch(e){}
 }
 
+// Parte aleatoria de los códigos de partido y de entreno: el link ya no se
+// puede adivinar a partir de la fecha (antes era solo la hora en base 36).
+function codAleatorio(n){
+  const abc='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let out='';
+  try{ const a=new Uint32Array(n); crypto.getRandomValues(a); for(let i=0;i<n;i++) out+=abc[a[i]%abc.length]; }
+  catch(e){ for(let i=0;i<n;i++) out+=abc[Math.floor(Math.random()*abc.length)]; }
+  return out;
+}
+
 function irCentroDecisiones(){
   go('dashboard');
   let n=0; const t=setInterval(function(){ const el=document.getElementById('dash-centro'); n++;
@@ -8660,13 +8669,13 @@ async function crearClub(){
   // Crear usuario via Netlify Function (seguro)
   const authResp=await fetch('/.netlify/functions/crear-usuario',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(USER_ACCESS_TOKEN||'')},
     body:JSON.stringify({email:coordEmail,password:coordPass})
   });
 
   if(!authResp.ok){
-    const err=await authResp.json();
-    msg.textContent='Error al crear usuario: '+(err.msg||err.message||'Verificá que el email no esté en uso');
+    const err=await authResp.json().catch(()=>({}));
+    msg.textContent='Error al crear usuario: '+(err.error||err.msg||err.message||'Verificá que el email no esté en uso');
     msg.style.color='#ef4444';return;
   }
 
@@ -8907,7 +8916,7 @@ async function crearUsuario(){
   // Crear en Supabase Auth via Netlify Function (usa service_role key segura)
   const authResp=await fetch('/.netlify/functions/crear-usuario',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(USER_ACCESS_TOKEN||'')},
     body:JSON.stringify({email,password:pass})
   });
 
@@ -8926,8 +8935,8 @@ async function crearUsuario(){
     creado_por_id:USUARIO_ACTUAL?.id||null
   }});
 
-  if(!perfil){
-    msg.textContent='Usuario creado en Auth pero hubo un error guardando el perfil.';
+  if(!Array.isArray(perfil)||!perfil.length){
+    msg.textContent='Usuario creado en Auth pero hubo un error guardando el perfil'+(perfil&&perfil.message?': '+perfil.message:'')+'. Avisá al administrador.';
     msg.style.color='#f59e0b';return;
   }
 
@@ -9651,7 +9660,7 @@ async function crearPartido(){
   if(!fecha){alert('Ingresá la fecha del partido.');return;}
   const parts=gv.split('|');
   const gid=parts[0],gcod=parts[1],gnomb=parts[2];
-  const cod='PP'+Date.now().toString(36).toUpperCase();
+  const cod='PP'+Date.now().toString(36).toUpperCase()+codAleatorio(6);
   // Antes: parseInt('0')||null guardaba un 0 como vacío → los partidos sin goles quedaban sin resultado
   const numOVacio=v=>{ const t=(v==null?'':String(v)).trim(); if(t==='') return null; const n=parseInt(t,10); return isNaN(n)?null:n; };
   const golesFavor=numOVacio(document.getElementById('pp-goles-favor')?.value);
@@ -9964,7 +9973,7 @@ async function crearSesionEntreno(){
   if(!gv){alert('Seleccioná un grupo.');return;}
   if(!fecha){alert('Ingresá la fecha.');return;}
   const parts=gv.split('|');
-  const cod='EN'+Date.now().toString(36).toUpperCase();
+  const cod='EN'+Date.now().toString(36).toUpperCase()+codAleatorio(6);
   const payload={grupo_id:parts[0],grupo_codigo:parts[1],grupo_nombre:parts[2],fecha,notas:notas||null,codigo:cod};
   const res=await q('sesiones_entreno',{m:'POST',b:payload});
   if(res){
@@ -18140,7 +18149,7 @@ function idcEstado(v){ return v==null?'Sin datos':v>=80?'Disponible':v>=65?'Prec
 // Fecha de un partido: tabla partidos; si no está, el código PP+base36 es un timestamp
 function idcFechaPartido(codigo, mapaFechas){
   if(mapaFechas&&mapaFechas[codigo]) return new Date(mapaFechas[codigo]+'T12:00:00');
-  const t=parseInt(String(codigo||'').replace(/^PP/i,''),36);
+  const t=parseInt(String(codigo||'').replace(/^PP/i,'').slice(0,8),36);
   return (t&&t>1.5e12&&t<4e12)?new Date(t):null;
 }
 function idcDiasDesde(fecha){ return fecha?Math.floor((Date.now()-fecha.getTime())/86400000):null; }
@@ -18767,7 +18776,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='28/10/2026 · 3';
+const SC360_VERSION='28/10/2026 · 4';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
