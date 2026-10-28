@@ -474,7 +474,7 @@ tr:hover td{background:#0d1b3e40}
 
 <!-- MOBILE BOTTOM NAV — solo visible en mobile via CSS -->
 <nav id="mobile-nav">
-  <div class="mn-item active" id="mn-dashboard" onclick="go('dashboard')"><span class="mn-icon">📊</span>Inicio</div>
+  <div class="mn-item active" id="mn-dashboard" onclick="go('dashboard')"><span class="mn-icon">🏠</span>Inicio</div>
   <div class="mn-item" id="mn-resultados" onclick="go('resultados')"><span class="mn-icon">👥</span>Plantel</div>
   <div class="mn-item" id="mn-tracking" onclick="go('tracking')"><span class="mn-icon">⚡</span>Rendimiento</div>
   <div class="mn-item" id="mn-postpartido" onclick="go('postpartido')"><span class="mn-icon">⚽</span>Partidos</div>
@@ -485,7 +485,7 @@ tr:hover td{background:#0d1b3e40}
 </nav>
 <div class="layout">
   <div class="sidebar">
-    <div data-nav="dashboard" class="nav-item nav-main active" onclick="go('dashboard')"><span class="nav-icon">📊</span> Dashboard</div>
+    <div data-nav="dashboard" class="nav-item nav-main active" onclick="go('dashboard')"><span class="nav-icon">🏠</span> Inicio</div>
     <div class="nav-main nav-section-label" onclick="toggleNavGroup('plantel')"><span><span class="nav-icon">👥</span> Plantel</span><span class="nav-chevron" id="chev-plantel">▾</span></div>
     <div id="navgroup-plantel" class="nav-sub">
       <div data-nav="resultados" class="nav-item" onclick="go('resultados')"><span class="nav-icon">📋</span> Jugadores</div>
@@ -497,7 +497,7 @@ tr:hover td{background:#0d1b3e40}
     <div id="navgroup-mental" class="nav-sub">
       <div data-nav="tracking" class="nav-item" onclick="go('tracking')"><span class="nav-icon">🧠</span> Tracking mental</div>
       <div data-nav="checkin" class="nav-item" onclick="go('checkin')"><span class="nav-icon">⚡</span> Check-in diario</div>
-      <div data-nav="cognitivo" class="nav-item" onclick="go('cognitivo')"><span class="nav-icon">🎯</span> Ejercicios cognitivos</div>
+      <div data-nav="cognitivo" class="nav-item" onclick="go('cognitivo')"><span class="nav-icon">🧪</span> Ejercicios cognitivos</div>
       <div data-nav="entreno" class="nav-item" onclick="go('entreno')"><span class="nav-icon">💪</span> Post entreno</div>
       <div data-nav="recuperacion" class="nav-item" onclick="go('recuperacion')"><span class="nav-icon">🫀</span> Recuperación</div>
       <div data-nav="nutricion" class="nav-item" id="nav-nutricion" onclick="go('nutricion')"><span class="nav-icon">🥗</span> Nutrición</div>
@@ -505,7 +505,7 @@ tr:hover td{background:#0d1b3e40}
     </div>
     <div class="nav-main nav-section-label" onclick="toggleNavGroup('partidos')"><span><span class="nav-icon">⚽</span> Partidos</span><span class="nav-chevron" id="chev-partidos">▾</span></div>
     <div id="navgroup-partidos" class="nav-sub">
-      <div data-nav="postpartido" class="nav-item" onclick="go('postpartido')"><span class="nav-icon">🎯</span> Post partido</div>
+      <div data-nav="postpartido" class="nav-item" onclick="go('postpartido')"><span class="nav-icon">📝</span> Post partido</div>
       <div data-nav="estadisticas" class="nav-item" onclick="go('estadisticas')"><span class="nav-icon">📊</span> Estadísticas <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
     </div>
     <div data-nav="evolucion" class="nav-item nav-main" onclick="go('evolucion')"><span class="nav-icon">📈</span> Evolución <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
@@ -3549,11 +3549,40 @@ async function q(path,o){
     if(Q_VUELO.has(path)){ const txt=await Q_VUELO.get(path); return txt?JSON.parse(txt):null; }
   }
   const pedido=(async()=>{
-    const r=await fetch(SB+'/rest/v1/'+path,{
+    const pedir=(ruta)=>fetch(SB+'/rest/v1/'+(ruta||path),{
       headers:{'apikey':SK,'Authorization':'Bearer '+(USER_ACCESS_TOKEN||SK),'Content-Type':'application/json','Prefer':'return=representation',...(o&&o.h||{})},
       method:m,body:(o&&o.b)?JSON.stringify(o.b):undefined
     });
-    const txt=await r.text();
+    let r;
+    try{ r=await pedir(); }
+    catch(e){ if(m==='GET') qAvisoCarga('red',path,0,String(e&&e.message||e)); throw e; }
+    // Sesión vencida: se renueva una vez y se repite el pedido
+    if(r.status===401&&USER_ACCESS_TOKEN){
+      try{ const {data}=await sbAuth.auth.refreshSession(); if(data&&data.session){ USER_ACCESS_TOKEN=data.session.access_token; r=await pedir(); } }catch(e){}
+    }
+    if(!r.ok&&m==='GET'){ const t=await r.clone().text().catch(()=>''); qAvisoCarga(r.status===401?'sesion':'error',path,r.status,t); }
+    let txt=await r.text();
+    // La base devuelve como máximo 1000 filas por pedido: si se pidió más
+    // (o no se puso límite), se traen las páginas siguientes en vez de cortar en silencio.
+    if(r.ok&&m==='GET'&&/^0-999\//.test(r.headers.get('content-range')||'')&&!/[?&]offset=/.test(path)){
+      const lm=(path.match(/[?&]limit=(\d+)/)||[])[1], tope=lm?Number(lm):Infinity;
+      if(tope>1000){
+        try{
+          let filas=JSON.parse(txt), off=1000;
+          const base=path.replace(/([?&])limit=\d+&?/,'$1').replace(/[?&]$/,'');
+          const sep=base.indexOf('?')>=0?'&':'?';
+          while(off<tope&&off<20000){
+            const n=Math.min(1000,tope-off);
+            const r2=await pedir(base+sep+'limit='+n+'&offset='+off);
+            if(!r2.ok){ qAvisoCarga(r2.status===401?'sesion':'error',path,r2.status,await r2.text().catch(()=>'')); break; }
+            const pag=JSON.parse(await r2.text()||'[]'); filas=filas.concat(pag);
+            if(pag.length<n) break; off+=n;
+          }
+          if(off>=20000) qAvisoTope(path);
+          txt=JSON.stringify(filas);
+        }catch(e){ qAvisoTope(path); }
+      }
+    }
     if(m==='GET'&&/^grupos\b/.test(path)&&r.ok){ try{ (JSON.parse(txt)||[]).forEach(g=>{ if(g&&g.codigo&&g.club!==undefined) GRUPO_CLUB[g.codigo]=g.club||''; }); }catch(e){} }
     if(m!=='GET') qLimpiarCache();
     else if(cacheable&&r.ok) Q_CACHE.set(path,{t:Date.now(),txt});
@@ -3562,6 +3591,34 @@ async function q(path,o){
   if(cacheable) Q_VUELO.set(path,pedido);
   try{ const txt=await pedido; return txt?JSON.parse(txt):null; }
   finally{ if(cacheable) Q_VUELO.delete(path); }
+}
+
+// ── Avisos de carga: una lectura que falla no se muestra como "sin datos" ──
+// Aparece un aviso visible (con Reintentar) y el error queda registrado.
+let Q_AVISO_TIPO=null;
+function qAvisoCarga(tipo,path,status,detalle){
+  const tabla=String(path).split('?')[0];
+  console.warn('No se pudo cargar',tabla,status,detalle);
+  try{ if(window.SC360_reportar) window.SC360_reportar('consulta',(tipo==='sesion'?'Sesión vencida al leer ':'No se pudo cargar ')+tabla+(status?' ('+status+')':' (sin conexión)'),String(detalle||'').slice(0,500),false); }catch(e){}
+  if(Q_AVISO_TIPO==='sesion') return; // el aviso de sesión tiene prioridad
+  Q_AVISO_TIPO=tipo;
+  let b=document.getElementById('q-aviso');
+  if(!b){ b=document.createElement('div'); b.id='q-aviso';
+    b.style.cssText='position:fixed;left:50%;transform:translateX(-50%);top:10px;z-index:9999;max-width:calc(100vw - 32px);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#1a0f12;border:1px solid #ef444488;color:#fecaca;border-radius:10px;padding:9px 12px;font-size:13px;box-shadow:0 6px 24px #0008';
+    document.body.appendChild(b); }
+  const btn=(txt,fn)=>'<button onclick="'+fn+'" style="padding:6px 11px;font-size:12px;font-weight:800;background:#ef444422;color:#fecaca;border:1px solid #ef444477;border-radius:8px;cursor:pointer">'+txt+'</button>';
+  b.innerHTML=tipo==='sesion'
+    ? '<span>⚠ Tu sesión venció: los datos que ves pueden estar incompletos.</span>'+btn('Volver a entrar','qAvisoCerrar();doLogout()')
+    : '<span>⚠ '+(tipo==='red'?'Sin conexión: ':'')+'algunos datos no se pudieron cargar. Lo que figura como "—" o vacío puede no ser real.</span>'+btn('Reintentar','qReintentar()')+btn('✕','qAvisoCerrar()');
+  b.style.display='flex';
+}
+function qAvisoCerrar(){ Q_AVISO_TIPO=null; const b=document.getElementById('q-aviso'); if(b) b.style.display='none'; }
+function qReintentar(){ qAvisoCerrar(); qLimpiarCache(); const a=document.querySelector('.screen.active'); if(a) go(a.id.replace('screen-','')); }
+const Q_TOPE_VISTO={};
+function qAvisoTope(path){
+  const tabla=String(path).split('?')[0]; if(Q_TOPE_VISTO[tabla]) return; Q_TOPE_VISTO[tabla]=1;
+  console.warn('Consulta con 1000 filas (puede estar cortada):',tabla);
+  try{ if(window.SC360_reportar) window.SC360_reportar('consulta','Consulta llegó al tope de 1000 filas: '+tabla,String(path).slice(0,300),false); }catch(e){}
 }
 
 function irCentroDecisiones(){
@@ -4460,12 +4517,12 @@ async function loadD(){
 
   const [gs,rs,pp,alertasRaw,usuarios,leads,ppNombresRaw,cogNombresRaw]=await Promise.all([
     q('grupos?select=id,codigo,club,habilitado,logo_url'),
-    q('resultados?select=id,jugador_nombre,jugador_club,jugador_pos,disponibilidad,semaforo_color,fecha,ctx_familiar,ctx_academico,ctx_social,ctx_apoyo,ctx_economico,ctx_bienestar,modo_motivacional,grupo_codigo,grupo_nombre,primary_disc,dims&order=fecha.desc&limit=500'),
+    q('resultados?select=id,jugador_nombre,jugador_club,jugador_pos,disponibilidad,semaforo_color,fecha,ctx_familiar,ctx_academico,ctx_social,ctx_apoyo,ctx_economico,ctx_bienestar,modo_motivacional,grupo_codigo,grupo_nombre,primary_disc,dims&order=fecha.desc&limit=10000'),
     q('postpartido_jugador?select=id&limit=1'),
     q('alertas?tipo=eq.discrepancia&estado=eq.activa&select=id,grupo_codigo&limit=200'),
     q('usuarios?select=id,nombre,email,rol,club_nombre,habilitado'),
     q('servicios_leads?order=fecha.desc&limit=10'),
-    q('postpartido_jugador?select=jugador_nombre&limit=3000'),
+    q('postpartido_jugador?select=jugador_nombre&order=partido_codigo.desc&limit=10000'),
     q('ejercicios_cognitivos?select=jugador_nombre,creado_en&order=creado_en.desc&limit=3000'),
   ]);
   const gsFilt=(gs||[]).filter(g=>g.habilitado);
@@ -4707,11 +4764,10 @@ async function loadD(){
   // ── Club dashboard ──────────────────────────────────────
   if(esClub){
     // IDC Mental
-    const mdcProm=prom;
-    const mdcCol=mdcProm>=80?'#22c55e':mdcProm>=65?'#f59e0b':'#ef4444';
-    const mdcLabel=mdcProm>=80?'Disponible':mdcProm>=65?'Precaución':'Riesgo';
-    document.getElementById('idc-mental').textContent=mdcProm+'%';
-    document.getElementById('idc-mental').style.color=mdcCol;
+    const mdcProm=conDisp.length?prom:null;
+    const mdcCol=mdcProm==null?'#94a3b8':mdcProm>=80?'#22c55e':mdcProm>=65?'#f59e0b':'#ef4444';
+    (document.getElementById('idc-mental')||{style:{}}).textContent=mdcProm==null?'—':mdcProm+'%';
+    (document.getElementById('idc-mental')||{style:{}}).style.color=mdcCol;
 
     // IDC Entorno
     const ctxKeys=['ctx_familiar','ctx_academico','ctx_social','ctx_apoyo','ctx_economico','ctx_bienestar'];
@@ -4719,27 +4775,26 @@ async function loadD(){
     const ctxProm=ctxVals.length?Math.round(ctxVals.map(v=>v.reduce((a,b)=>a+b,0)/v.length).reduce((a,b)=>a+b,0)/ctxVals.length*10):null;
     if(ctxProm!=null){
       const ctxCol=ctxProm>=70?'#22c55e':ctxProm>=50?'#f59e0b':'#ef4444';
-      document.getElementById('idc-entorno').textContent=ctxProm+'%';
-      document.getElementById('idc-entorno').style.color=ctxCol;
+      (document.getElementById('idc-entorno')||{style:{}}).textContent=ctxProm+'%';
+      (document.getElementById('idc-entorno')||{style:{}}).style.color=ctxCol;
     } else {
-      document.getElementById('idc-entorno').textContent='—';
-      document.getElementById('idc-entorno').style.color='#94a3b8';
+      (document.getElementById('idc-entorno')||{style:{}}).textContent='—';
+      (document.getElementById('idc-entorno')||{style:{}}).style.color='#94a3b8';
     }
 
     // IDC Post partido
     const ppCount=(pp||[]).length;
-    document.getElementById('idc-pp').textContent=ppCount>0?'✓':'—';
-    document.getElementById('idc-pp').style.color=ppCount>0?'#22c55e':'#94a3b8';
+    (document.getElementById('idc-pp')||{style:{}}).textContent=ppCount>0?'✓':'—';
+    (document.getElementById('idc-pp')||{style:{}}).style.color=ppCount>0?'#22c55e':'#94a3b8';
 
-    // IDC global (solo con disponibles)
-    const idcVal=mdcProm;
-    const idcCol=idcVal>=80?'#22c55e':idcVal>=65?'#f59e0b':'#ef4444';
-    const idcLabel=idcVal>=80?'DISPONIBLE':idcVal>=65?'PRECAUCIÓN':'RIESGO';
-    document.getElementById('dash-idc-valor').textContent=idcVal+'%';
-    document.getElementById('dash-idc-valor').style.color=idcCol;
-    document.getElementById('dash-idc-label').textContent=idcLabel;
-    document.getElementById('dash-idc-label').style.color=idcCol;
-    dashRingIDC(idcVal,idcCol);
+    // IDC: no se muestra un valor provisorio (antes salía el MDC con %, y
+    // "0% RIESGO" cuando no había tests). Queda "—" hasta que llega el IDC real.
+    document.getElementById('dash-idc-valor').textContent='—';
+    document.getElementById('dash-idc-valor').style.color='#94a3b8';
+    document.getElementById('dash-idc-label').textContent=conDisp.length?'Calculando…':'Sin tests todavía';
+    document.getElementById('dash-idc-label').style.color='#94a3b8';
+    dashRingIDC(0,'#94a3b8');
+    if(!conDisp.length){ const dm=document.getElementById('dash-mirar'); if(dm) dm.innerHTML='<div class="es">Todavía no hay tests MDC en este plantel. Cuando los jugadores lo completen, acá aparece a quién mirar.</div>'; }
     // IDC real (6 módulos) — reemplaza el valor provisorio de arriba cuando termina
     idcActualizarDashboard(rL, codigosDash);
     dashCumpleanos(rL);
@@ -4891,7 +4946,7 @@ async function loadD(){
 
   // Últimos resultados — cards visuales (rL ya viene filtrado por filtrarResultados())
   const rLFiltDash = rL;
-  if(!rLFiltDash.length){document.getElementById('dash-r').innerHTML='<div class="es">Aún no hay resultados</div>';}
+  if(!rLFiltDash.length){(document.getElementById('dash-r')||{}).innerHTML='<div class="es">Aún no hay resultados</div>';}
   else{
     let h='<div style="padding:0.5rem">';
     rLFiltDash.slice(0,3).forEach(r=>{
@@ -4945,7 +5000,15 @@ async function loadD(){
   const dAl=document.getElementById('d-al'); if(dAl) dAl.textContent=totalAlertas;
   const daB=document.getElementById('dash-alertas-club'); if(daB) daB.innerHTML=accesoAlertasHtml;
 
-  }catch(e){const er=document.getElementById('dash-admin-clubes')||document.getElementById('dash-r-club');if(er)er.innerHTML='<div class="es">Error: '+e.message+'</div>';}
+  }catch(e){
+    console.error('Inicio:',e);
+    const esClubE=USUARIO_ACTUAL&&(USUARIO_ACTUAL.rol==='coordinador'||USUARIO_ACTUAL.rol==='tecnico');
+    const msg='<div class="es" style="color:#fca5a5">No se pudieron cargar los datos del Inicio. <button onclick="qReintentar()" style="margin-left:6px;padding:4px 10px;font-size:12px;font-weight:700;background:#ef444422;color:#fecaca;border:1px solid #ef444477;border-radius:7px;cursor:pointer">Reintentar</button></div>';
+    (esClubE?['dash-mirar','dash-r-club','dash-funnel']:['dash-admin-clubes','dash-funnel']).forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=msg; });
+    if(esClubE){ const b30=document.getElementById('dash-30s'); if(b30) b30.innerHTML='<div class="dsh-card" style="margin-bottom:12px">'+msg+'</div>'; const bc=document.getElementById('dash-centro'); if(bc) bc.innerHTML='';
+      const v=document.getElementById('dash-idc-valor'), l=document.getElementById('dash-idc-label'); if(v){ v.textContent='—'; v.style.color='#94a3b8'; } if(l){ l.textContent='Sin cargar'; l.style.color='#94a3b8'; } dashRingIDC(0,'#94a3b8'); }
+    try{ if(window.SC360_reportar) window.SC360_reportar('js','Inicio sin cargar: '+(e&&e.message),e&&e.stack,false); }catch(x){}
+  }
 }
 
 async function loadGrupal(){
@@ -7926,7 +7989,7 @@ function clusterizarClubes(lista){
 // del lado del cliente (misma técnica que el resto de la app) ya que no
 // hay una vista de agregación armada en Supabase para esto.
 const NAV_PANTALLA_LABEL={
-  dashboard:'Dashboard', resultados:'Jugadores', perfiljugador:'Perfil de jugador',
+  dashboard:'Inicio', resultados:'Jugadores', perfiljugador:'Perfil de jugador',
   grupal:'Informe grupal', plantel:'Informe de plantel y predicciones', roles:'Roles y Desarrollo',
   postpartido:'Post partido', estadisticas:'Estadísticas', evolucion:'Evolución', tracking:'Mental Performance Tracking',
   entreno:'Post entreno', racha:'Racha', cognitivo:'Ejercicios Cognitivos',
@@ -18274,7 +18337,8 @@ async function idcActualizarDashboard(rL, codigosAccesibles){
   const box=document.getElementById('dash-idc-modulos'); if(!box) return;
   try{
     const jugs=idcUltimaPorJugador(rL).filter(r=>r.disponibilidad>0);
-    if(!jugs.length) return;
+    if(!jugs.length){ const dm=document.getElementById('dash-mirar'); if(dm) dm.innerHTML='<div class="es">Todavía no hay tests MDC en este plantel. Cuando los jugadores lo completen, acá aparece a quién mirar.</div>';
+      const b30=document.getElementById('dash-30s'); if(b30) b30.innerHTML='<div class="dsh-card" style="margin-bottom:12px"><div style="font-size:17px;font-weight:900;color:#fff;margin-bottom:6px">¿Cómo está mi equipo?</div><div style="font-size:13.5px;color:#b4c2d4;line-height:1.5">Todavía no hay tests MDC en este plantel, así que no hay prioridades para mostrar. Enviá el link del test a los jugadores y, apenas lo completen, acá aparece el estado del plantel.</div><button onclick="go(\'grupos\')" style="display:inline-block;width:auto;margin-top:10px;padding:8px 14px;font-size:12.5px;font-weight:800;background:#00c2ff;color:#04101f;border:none;border-radius:8px;cursor:pointer">Enviar el test →</button></div>'; const bc=document.getElementById('dash-centro'); if(bc) bc.innerHTML=''; return; }
     // Grupos de los jugadores visibles (resultados trae grupo_codigo/grupo_nombre)
     const gm={}; jugs.forEach(r=>{ const c=r.grupo_codigo||((AG||[]).find(g=>g.id===r.grupo_id)||{}).codigo; if(c&&!gm[c]) gm[c]={codigo:c,nombre:r.grupo_nombre||((AG||[]).find(g=>g.codigo===c)||{}).nombre||c}; });
     const grupos=Object.values(gm);
@@ -18284,7 +18348,7 @@ async function idcActualizarDashboard(rL, codigosAccesibles){
     dashRenderMirar(jugs,resTodos);
     dashCentroDecisiones(jugs,resTodos,D,cods,rL);
     const res=resTodos.filter(x=>x.idc!=null);
-    if(!res.length) return;
+    if(!res.length){ const l0=document.getElementById('dash-idc-label'); if(l0){ l0.textContent='Sin datos suficientes'; l0.style.color='#94a3b8'; } return; }
     const idcEq=Math.round(idcProm(res.map(x=>x.idc)));
     const v=document.getElementById('dash-idc-valor'), l=document.getElementById('dash-idc-label');
     if(v){ v.textContent=idcEq; v.style.color=idcColor(idcEq); }
@@ -18313,7 +18377,10 @@ async function idcActualizarDashboard(rL, codigosAccesibles){
     }).join('');
     const alertBox=document.getElementById('dash-idc-alertas');
     if(alertBox) alertBox.innerHTML=''; // el aviso del DT se muestra arriba, en los avisos de uso del club
-  }catch(e){ console.error('IDC dashboard:',e); }
+  }catch(e){ console.error('IDC dashboard:',e);
+    const l=document.getElementById('dash-idc-label'); if(l){ l.innerHTML='No se pudo calcular · <a href="#" onclick="qReintentar();return false" style="color:#fca5a5">Reintentar</a>'; l.style.color='#fca5a5'; }
+    const dm=document.getElementById('dash-mirar'); if(dm&&/Calculando/.test(dm.textContent)) dm.innerHTML='<div class="es" style="color:#fca5a5">No se pudo calcular el IDC del plantel.</div>';
+    try{ if(window.SC360_reportar) window.SC360_reportar('js','IDC del Inicio: '+(e&&e.message),e&&e.stack,false); }catch(x){} }
 }
 
 // ── PERFIL DE JUGADOR: tarjeta IDC en la ficha ───────────────────────
@@ -18567,7 +18634,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='27/10/2026 · 5';
+const SC360_VERSION='28/10/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -19594,7 +19661,7 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
     const ppAll=Object.values(D.pp||{}).flat();
     const porPartido={}; ppAll.forEach(x=>{ const m=ppMental(x); if(m==null) return; (porPartido[x.partido_codigo]=porPartido[x.partido_codigo]||[]).push(m); });
     const ordP=Object.keys(porPartido).sort((a,b)=>String(D.fechas[a]||'').localeCompare(String(D.fechas[b]||''))).map(k=>prom(porPartido[k]));
-    let evol=null; if(ordP.length>=4){ const n=Math.min(3,Math.floor(ordP.length/2)); evol=Math.round(prom(ordP.slice(-n))-prom(ordP.slice(-2*n,-n))); }
+    let evol=null, evolN=0; if(ordP.length>=4){ const n=Math.min(3,Math.floor(ordP.length/2)); evolN=n; evol=Math.round(prom(ordP.slice(-n))-prom(ordP.slice(-2*n,-n))); }
     // Predicción: ventana con más goles en contra
     let ventana=null, contra=[0,0,0,0,0,0];
     const TRAMO_TXT=['minutos 0–15 del 1er tiempo','minutos 15–30 del 1er tiempo','final del 1er tiempo','minutos 0–15 del 2do tiempo','minutos 15–30 del 2do tiempo','últimos 15 minutos del partido'];
@@ -19674,10 +19741,10 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
     box30.innerHTML='<div style="margin-bottom:12px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:2px 2px 8px"><div style="font-size:17px;font-weight:900;color:#fff">¿Cómo está mi equipo?</div><div style="font-size:10px;color:#7c8fae;letter-spacing:0.08em">INTELIGENCIA COMPETITIVA · '+jugs.length+' JUGADORES</div></div>'+
       '<div class="dsh-tiles seis">'+
-        tile('Disponibilidad',Dp,'<b style="color:'+est[1]+'">'+est[0].toUpperCase()+'</b> · promedio',est[1],"go('resultados')")+
+        tile('Disponibilidad (MDC)',Dp,'<b style="color:'+est[1]+'">'+est[0].toUpperCase()+'</b> · promedio del plantel',est[1],"go('resultados')")+
         tile('Jugadores evaluados',jugs.length,'con test inicial','#00c2ff',"go('resultados')")+
         tile('En riesgo hoy',jugR.length,'actuar esta semana',jugR.length?'#ef4444':'#22c55e',"go('decisiones')")+
-        tile('Evolución',evolTxt,evol==null?'faltan Post Partido':'estado mental, últimos partidos',evol==null?'#94a3b8':evol>0?'#22c55e':evol<0?'#ef4444':'#e8eff8',"go('evolucion')")+
+        tile('Evolución',evolTxt,evol==null?'faltan Post Partido':'estado mental · últimos '+evolN+' partidos vs. '+evolN+' anteriores',evol==null?'#94a3b8':evol>0?'#22c55e':evol<0?'#ef4444':'#e8eff8',"go('evolucion')")+
         tile('Recuperación',recP==null?'—':recP,recP==null?'se completa con el Post Partido':'sueño y energía declarados',recP==null?'#94a3b8':colD(recP),"go('recuperacion')")+
         tile('Decisiones hoy',nDec,nDec?'<b style="color:#ef4444">'+jugR.length+' en riesgo</b> · '+jugN.length+' a observar':'todo en orden',nDec?'#ef4444':'#22c55e',"go('decisiones')")+
       '</div>'+
@@ -19814,7 +19881,7 @@ function renderTableroPJ(){
   const D=r.disponibilidad||0, est=D>=80?'DISPONIBLE':D>=65?'PRECAUCIÓN':'EN RIESGO';
   const st=(typeof MPT_ST!=='undefined'&&MPT_ST.r===r)?MPT_ST:null;
   // Evolución: última evaluación contra la anterior
-  let evol=null; if(st&&st.tests.length>=2){ const t=st.tests; evol=(t[t.length-1].disponibilidad||0)-(t[t.length-2].disponibilidad||0); }
+  let evol=null; if(st&&st.tests.length>=2){ const t=st.tests; const a1=t[t.length-1].disponibilidad, a0=t[t.length-2].disponibilidad; evol=(a1!=null&&a0!=null)?a1-a0:null; }
   // Estado mental en partidos: promedio de los últimos 3 Post Partido
   const serie=st?st.pp.map(ppMental).filter(v=>v!=null).map(v=>Math.round(v)):[];
   const ult3=serie.slice(-3), mentalPP=ult3.length?Math.round(ult3.reduce((a,b)=>a+b,0)/ult3.length):null;
