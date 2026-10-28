@@ -2124,6 +2124,12 @@ tr:hover td{background:#0d1b3e40}
               <option value="llamada">Llamada en frío</option>
             </select>
           </div>
+          <div class="fg"><label>Canal comercial</label>
+            <select id="crm-canal" style="width:100%;padding:10px 12px;border:1px solid #1a3a6e;border-radius:10px;font-size:14px;background:#0d1b3e;color:#e8eff8">
+              <option value="directo">Venta directa SC360</option>
+              <option value="gloouds">GLOOUDS</option>
+            </select>
+          </div>
         </div>
         <div class="fg" style="margin-bottom:10px"><label>Notas</label><textarea id="crm-notas" rows="2" placeholder="Contexto, observaciones, próximos pasos..." style="width:100%;padding:10px 12px;border:1px solid #1a3a6e;border-radius:10px;font-size:14px;background:#0d1b3e;color:#e8eff8;resize:vertical"></textarea></div>
         <div class="mdf">
@@ -16719,6 +16725,8 @@ async function loadCRM() {
 const PCT_VENDEDOR_SOLO = 0.25;
 const PCT_SUBVENDEDOR   = 0.20;
 const PCT_VENDEDOR_PADRE= 0.15;
+// Clubes del canal GLOOUDS: no generan comisión de vendedor (los vende GLOOUDS).
+let CRM_SIN_COMISION = [];
 
 function mrrActivoDeClub(club){
   const ops = CRM_OPS[club.id] || [];
@@ -16735,7 +16743,9 @@ function calcularComisiones(){
     return porUsuario[u.id];
   }
 
+  CRM_SIN_COMISION = [];
   CRM_DATA.forEach(club => {
+    if(club.canal === 'gloouds'){ const m = mrrActivoDeClub(club); if(m) CRM_SIN_COMISION.push({nombre:club.nombre, mrr:m}); return; }
     if(!club.vendedor_id) return;
     const mrr = mrrActivoDeClub(club);
     if(!mrr) return;
@@ -16772,9 +16782,10 @@ function renderComisiones(){
   if(!el) return;
   const datos = calcularComisiones();
   const filas = Object.values(datos).sort((a,b) => (b.propio+b.comoSubvendedor+b.comoPadre) - (a.propio+a.comoSubvendedor+a.comoPadre));
+  const notaG = CRM_SIN_COMISION.length ? '<div style="font-size:11.5px;color:#a78bfa;background:#a78bfa12;border:1px solid #a78bfa44;border-radius:8px;padding:8px 10px;margin-top:10px">Canal GLOOUDS, sin comisión de vendedor: '+CRM_SIN_COMISION.map(c=>c.nombre).join(', ')+'.</div>' : '';
 
   if(!filas.length){
-    el.innerHTML = '<div class="es">Todavía no hay clubes con estado "Cliente activo" y valor mensual cargado.</div>';
+    el.innerHTML = '<div class="es">Todavía no hay clubes con estado "Cliente activo" y valor mensual cargado.</div>'+notaG;
     return;
   }
 
@@ -16798,7 +16809,7 @@ function renderComisiones(){
       </td>
     </tr>`;
   });
-  html += '</tbody></table>';
+  html += '</tbody></table>'+notaG;
   el.innerHTML = html;
 }
 
@@ -17034,6 +17045,7 @@ function abrirModalNuevoClub() {
   document.getElementById('crm-club-pais').value = 'Argentina';
   document.getElementById('crm-vendedor').value = '';
   document.getElementById('crm-fuente').value = 'manual';
+  if(document.getElementById('crm-canal')) document.getElementById('crm-canal').value = 'directo';
   document.getElementById('mo-crm-club').classList.add('open');
 }
 
@@ -17053,6 +17065,7 @@ function abrirEditarClub(clubId) {
   document.getElementById('crm-contacto-email').value = club.contacto_email || '';
   document.getElementById('crm-vendedor').value = club.vendedor_id || '';
   document.getElementById('crm-fuente').value = club.fuente || 'manual';
+  if(document.getElementById('crm-canal')) document.getElementById('crm-canal').value = club.canal || 'directo';
   document.getElementById('crm-notas').value = club.notas || '';
   document.getElementById('mo-crm-club').classList.add('open');
 }
@@ -17076,6 +17089,7 @@ async function guardarCRMClub() {
     fuente: document.getElementById('crm-fuente').value || 'manual',
     notas: document.getElementById('crm-notas').value.trim() || null,
   };
+  if(document.getElementById('crm-canal')) payload.canal = document.getElementById('crm-canal').value || 'directo';
 
   let resp;
   if(id) {
@@ -18753,7 +18767,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='28/10/2026 · 2';
+const SC360_VERSION='28/10/2026 · 3';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
