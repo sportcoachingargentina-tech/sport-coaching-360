@@ -1321,11 +1321,23 @@ tr:hover td{background:#0d1b3e40}
               <option value="pro">Pro</option>
             </select>
           </div>
+          <div class="fg"><label style="font-size:12px;color:#b4c2d4;display:block;margin-bottom:4px">Canal comercial</label>
+            <select id="nc-canal" style="width:100%;padding:9px 12px;border:1px solid #1a3a6e;border-radius:8px;font-size:13px;background:#0d1b3e;color:#e8eff8">
+              <option value="directo">Venta directa SC360</option>
+              <option value="gloouds">GLOOUDS</option>
+            </select>
+          </div>
         </div>
         <div style="padding:0 1rem 1rem">
           <button onclick="crearClub()" class="btn-p" style="width:100%;padding:11px">+ Crear club y coordinador</button>
           <div id="nc-msg" style="font-size:12px;margin-top:8px;display:none"></div>
         </div>
+      </div>
+
+      <!-- Canal y licencia por club (tabla clubes + licencias) -->
+      <div class="tw" style="margin-bottom:1.5rem">
+        <div class="th">CANAL Y LICENCIA POR CLUB <span style="font-weight:400;color:#94a3b8;font-size:11px">· directo o GLOOUDS · precio y reparto que usa el reporte de activos</span></div>
+        <div id="clubes-canal"><div class="es">Cargando…</div></div>
       </div>
 
       <!-- Lista de clubes -->
@@ -8509,6 +8521,7 @@ function recRenderizar(){
 
 async function loadClubes(){
   document.getElementById('clubes-lista').innerHTML='<div class="es">Cargando...</div>';
+  loadClubesCanal();
 
   // Traer usuarios coordinadores (representan clubes)
   const usuarios=await q('usuarios?rol=in.(coordinador)&order=club_nombre.asc');
@@ -8631,6 +8644,13 @@ async function crearClub(){
 
   msg.textContent='Creando club...';msg.style.color='#b4c2d4';msg.style.display='block';
 
+  // Registrar el club (tabla clubes) con su canal; si ya existe, se deja como está
+  try{ const cn=document.getElementById('nc-canal'); const canal=cn?cn.value:'directo';
+    const ya=await q('clubes?select=id,nombre&limit=500',{sinCache:true});
+    if(Array.isArray(ya)&&!ya.some(c=>normClub(c.nombre)===normClub(nombre)))
+      await q('clubes',{m:'POST',b:{nombre,ciudad:ciudad||null,canal,canal_desde:new Date().toISOString().slice(0,10)},h:{'Prefer':'return=minimal'}});
+  }catch(e){ console.warn('Club (tabla clubes):',e); }
+
   // Crear usuario via Netlify Function (seguro)
   const authResp=await fetch('/.netlify/functions/crear-usuario',{
     method:'POST',
@@ -8663,6 +8683,105 @@ async function crearClub(){
   });
 
   loadClubes();
+}
+
+// ── CANAL Y LICENCIA POR CLUB ─────────────────────────────────────
+// Cada club tiene canal (directo o GLOOUDS) y una licencia abierta con
+// precio por jugador y % de reparto para el socio. Si cambian las
+// condiciones, la licencia anterior se cierra el día previo y se abre
+// una nueva (queda el historial). No se cobra nada: el reporte de
+// activos solo calcula con estos valores.
+let CLUBES_CANAL=[], LIC_ABIERTA={}, CC_MSG=null;
+function ccEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+async function loadClubesCanal(){
+  const box=document.getElementById('clubes-canal'); if(!box) return;
+  box.innerHTML='<div class="es">Cargando…</div>';
+  try{
+    const [cl,li,gs]=await Promise.all([
+      q('clubes?select=*&order=nombre.asc',{sinCache:true}),
+      q('licencias?select=*&order=inicio.desc',{sinCache:true}),
+      q('grupos?select=club_id,habilitado',{sinCache:true})
+    ]);
+    if(!Array.isArray(cl)){ box.innerHTML='<div class="es" style="color:#fca5a5">No se pudo leer la tabla de clubes.</div>'; return; }
+    CLUBES_CANAL=cl; LIC_ABIERTA={};
+    (Array.isArray(li)?li:[]).forEach(l=>{ if(!l.fin&&!LIC_ABIERTA[l.club_id]) LIC_ABIERTA[l.club_id]=l; });
+    const nPl={}; (Array.isArray(gs)?gs:[]).forEach(g=>{ if(g.club_id) nPl[g.club_id]=(nPl[g.club_id]||0)+1; });
+    if(!cl.length){ box.innerHTML='<div class="es">Todavía no hay clubes cargados.</div>'; return; }
+    const orden={club:0,particular:1,interno:2};
+    const lista=cl.slice().sort((a,b)=>(b.activo-a.activo)||(orden[a.tipo]-orden[b.tipo])||a.nombre.localeCompare(b.nombre));
+    const inp='padding:6px 8px;border:1px solid #1a3a6e;border-radius:7px;font-size:12px;background:#060d1a;color:#e8eff8';
+    const lab=t=>'<span style="display:block;font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:0.04em;margin-bottom:3px">'+t+'</span>';
+    const opt=(v,t,sel)=>'<option value="'+v+'"'+(v===sel?' selected':'')+'>'+t+'</option>';
+    box.innerHTML='<div style="font-size:12px;color:#b4c2d4;padding:10px 14px 0;line-height:1.5">Sin licencia cargada, el reporte usa el precio de referencia de USD '+PRECIO_JUGADOR_USD+' y el canal del club (directo: 100 % SC360 · GLOOUDS: 50/50). Si cambiás precio, canal o reparto, la licencia anterior queda en el historial.</div>'+
+      '<div style="padding:10px 14px 14px;display:flex;flex-direction:column;gap:8px">'+lista.map(c=>{
+        const l=LIC_ABIERTA[c.id]||null, id=c.id;
+        const canalCol=c.canal==='gloouds'?'#a78bfa':'#94a3b8';
+        return '<div id="cc-'+id+'" style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:10px;padding:10px 12px;'+(c.activo?'':'opacity:0.7')+'">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+            '<div style="font-size:14px;font-weight:800;color:#fff">'+ccEsc(c.nombre)+' <span style="font-size:10px;font-weight:800;padding:1px 7px;border-radius:6px;color:'+canalCol+';background:'+canalCol+'1f">'+(c.canal==='gloouds'?'GLOOUDS':'DIRECTO')+'</span>'+
+              (c.tipo!=='club'?' <span style="font-size:10px;font-weight:700;color:#94a3b8">· '+(c.tipo==='particular'?'cuenta particular':'interno')+'</span>':'')+
+              ' <span style="font-size:11px;font-weight:500;color:#7c8fae">· '+(nPl[id]||0)+' plantel'+((nPl[id]||0)===1?'':'es')+'</span></div>'+
+            '<div style="font-size:11px;color:#94a3b8">'+(l?'Licencia desde '+String(l.inicio).split('-').reverse().join('/')+(l.precio_jugador!=null?' · '+l.moneda+' '+l.precio_jugador:'')+' · reparto socio '+Number(l.reparto_socio_pct)+' %':'<span style="color:#fbbf24">Sin licencia cargada</span>')+'</div></div>'+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">'+
+            '<label>'+lab('TIPO')+'<select id="cc-tipo-'+id+'" style="'+inp+'">'+opt('club','Club',c.tipo)+opt('particular','Particular',c.tipo)+opt('interno','Interno',c.tipo)+'</select></label>'+
+            '<label>'+lab('CANAL')+'<select id="cc-canal-'+id+'" onchange="ccCanalCambio(\''+id+'\')" style="'+inp+'">'+opt('directo','Directo',l?l.canal:c.canal)+opt('gloouds','GLOOUDS',l?l.canal:c.canal)+'</select></label>'+
+            '<label>'+lab('PRECIO / JUGADOR')+'<input id="cc-precio-'+id+'" type="number" min="0" step="0.5" placeholder="'+PRECIO_JUGADOR_USD+' (ref.)" value="'+(l&&l.precio_jugador!=null?l.precio_jugador:'')+'" style="'+inp+';width:110px"></label>'+
+            '<label>'+lab('MONEDA')+'<select id="cc-moneda-'+id+'" style="'+inp+'">'+opt('USD','USD','USD')+'</select></label>'+
+            '<label>'+lab('% SOCIO')+'<input id="cc-pct-'+id+'" type="number" min="0" max="100" step="1" value="'+(l?Number(l.reparto_socio_pct):(c.canal==='gloouds'?50:0))+'" style="'+inp+';width:70px"></label>'+
+            '<label>'+lab('BASE DEL REPARTO')+'<select id="cc-base-'+id+'" style="'+inp+'">'+opt('a_definir','A definir',l?l.base_reparto:'a_definir')+opt('bruto','Bruto',l?l.base_reparto:'')+opt('neto','Neto',l?l.base_reparto:'')+'</select></label>'+
+            '<label>'+lab('DESDE')+'<input id="cc-desde-'+id+'" type="date" value="'+(l?l.inicio:new Date().toISOString().slice(0,10))+'" style="'+inp+'"></label>'+
+            '<label>'+lab('ID GLOOUDS')+'<input id="cc-gid-'+id+'" placeholder="—" value="'+ccEsc(c.gloouds_id||'')+'" style="'+inp+';width:110px"></label>'+
+            '<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#e8eff8;padding-bottom:6px"><input type="checkbox" id="cc-activo-'+id+'"'+(c.activo?' checked':'')+' style="accent-color:#22c55e"> Activo</label>'+
+            '<button onclick="guardarClubCanal(\''+id+'\')" style="padding:7px 14px;background:#00c2ff;color:#04101f;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer">Guardar</button>'+
+            '<span id="cc-msg-'+id+'" style="font-size:11.5px"></span>'+
+          '</div></div>';
+      }).join('')+'</div>';
+    if(CC_MSG){ const m=document.getElementById('cc-msg-'+CC_MSG.id); if(m){ m.textContent=CC_MSG.t; m.style.color='#22c55e'; } CC_MSG=null; }
+  }catch(e){ console.error('Clubes canal:',e); box.innerHTML='<div class="es" style="color:#fca5a5">No se pudo cargar: '+ccEsc(e.message)+'</div>'; }
+}
+function ccCanalCambio(id){
+  const c=document.getElementById('cc-canal-'+id), p=document.getElementById('cc-pct-'+id); if(!c||!p) return;
+  p.value=c.value==='gloouds'?50:0;
+}
+async function guardarClubCanal(id){
+  const v=k=>{ const e=document.getElementById('cc-'+k+'-'+id); return e?e.value:''; };
+  const msg=document.getElementById('cc-msg-'+id); const di=(t,col)=>{ if(msg){ msg.textContent=t; msg.style.color=col; } };
+  const club=CLUBES_CANAL.find(c=>c.id===id); if(!club) return;
+  const canal=v('canal'), precioTxt=String(v('precio')).trim(), pct=Number(v('pct')), base=v('base'), moneda=v('moneda');
+  const desde=v('desde')||new Date().toISOString().slice(0,10), gid=String(v('gid')).trim();
+  const activo=!!(document.getElementById('cc-activo-'+id)||{}).checked, tipo=v('tipo');
+  const precio=precioTxt===''?null:Number(precioTxt);
+  if(precio!=null&&(!isFinite(precio)||precio<0)){ di('Precio inválido','#fca5a5'); return; }
+  if(!isFinite(pct)||pct<0||pct>100){ di('El % del socio va de 0 a 100','#fca5a5'); return; }
+  if(desde>new Date(Date.now()+366*864e5).toISOString().slice(0,10)){ di('Revisá la fecha','#fca5a5'); return; }
+  di('Guardando…','#b4c2d4');
+  const ok=r=>Array.isArray(r)||r===null||r===true;
+  try{
+    // 1) Datos del club
+    const rc=await q('clubes?id=eq.'+id,{m:'PATCH',b:{canal,tipo,activo,gloouds_id:gid||null,canal_desde:canal!==club.canal?desde:(club.canal_desde||null)}});
+    if(!ok(rc)){ di('No se pudo guardar el club'+(rc&&rc.message?': '+rc.message:''),'#fca5a5'); return; }
+    // 2) Licencia: se crea o se renueva solo si cambian las condiciones
+    const l=LIC_ABIERTA[id]||null;
+    const nueva={club_id:id,canal,precio_jugador:precio,moneda,reparto_socio_pct:pct,base_reparto:base,inicio:desde,estado:activo?'activa':'suspendida'};
+    const cambio=!l||l.canal!==canal||Number(l.precio_jugador)!==Number(precio)||(l.precio_jugador==null)!==(precio==null)||Number(l.reparto_socio_pct)!==pct||l.base_reparto!==base||l.moneda!==moneda;
+    if(!l&&precio==null&&canal===club.canal&&pct===(canal==='gloouds'?50:0)){ CC_MSG={id,t:'✓ Guardado (sin licencia: usa el precio de referencia)'}; loadClubesCanal(); return; }
+    if(l&&!cambio){
+      if((l.estado==='activa')!==activo){ await q('licencias?id=eq.'+l.id,{m:'PATCH',b:{estado:activo?'activa':'suspendida'}}); }
+      CC_MSG={id,t:'✓ Guardado'}; loadClubesCanal(); return;
+    }
+    if(l&&desde<=String(l.inicio)){
+      // Misma fecha (o anterior): es una corrección de la licencia vigente
+      const r=await q('licencias?id=eq.'+l.id,{m:'PATCH',b:{canal,precio_jugador:precio,moneda,reparto_socio_pct:pct,base_reparto:base,inicio:desde,estado:nueva.estado}});
+      if(!ok(r)){ di('No se pudo corregir la licencia'+(r&&r.message?': '+r.message:''),'#fca5a5'); return; }
+    } else {
+      if(l){ const ayer=new Date(new Date(desde+'T12:00:00').getTime()-864e5).toISOString().slice(0,10);
+        const r1=await q('licencias?id=eq.'+l.id,{m:'PATCH',b:{fin:ayer}});
+        if(!ok(r1)){ di('No se pudo cerrar la licencia anterior'+(r1&&r1.message?': '+r1.message:''),'#fca5a5'); return; } }
+      const r2=await q('licencias',{m:'POST',b:nueva});
+      if(!ok(r2)){ di('No se pudo crear la licencia'+(r2&&r2.message?': '+r2.message:''),'#fca5a5'); return; }
+    }
+    CC_MSG={id,t:'✓ Guardado'}; loadClubesCanal();
+  }catch(e){ console.error('Guardar club:',e); di('Error: '+e.message,'#fca5a5'); }
 }
 
 async function toggleClub(clubNombre,activo){
@@ -18634,7 +18753,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='28/10/2026 · 1';
+const SC360_VERSION='28/10/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -18680,7 +18799,7 @@ async function abrirReporteActivos(){
   m.innerHTML='<div style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:14px;width:min(880px,100%);padding:18px">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
       '<div><div style="font-size:17px;font-weight:900;color:#fff">📊 Jugadores activos por club</div>'+
-      '<div style="font-size:11.5px;color:#94a3b8;margin-top:2px">Base de facturación · jugador activo = hizo el test inicial (alta) en un plantel habilitado · USD '+PRECIO_JUGADOR_USD+' por mes · '+Math.round(PARTE_SC360*100)+'% SC360</div></div>'+
+      '<div style="font-size:11.5px;color:#94a3b8;margin-top:2px">Base de facturación · jugador activo = hizo el test inicial (alta) en un plantel habilitado · precio y reparto según la licencia de cada club · canal GLOOUDS: '+Math.round(PARTE_SC360*100)+'% SC360</div></div>'+
       '<div style="display:flex;gap:8px;align-items:center"><input type="month" id="act-mes" value="'+mesDef+'" onchange="calcularActivos()" style="padding:7px 10px;background:#0a1024;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px">'+
       '<button onclick="document.getElementById(\'mo-activos\').remove()" style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer">✕</button></div></div>'+
     '<div id="act-cuerpo" style="margin-top:14px"><div class="es">Calculando…</div></div></div>';
@@ -18694,7 +18813,7 @@ async function calcularActivos(){
     const ini=new Date(y,mm-1,1), fin=new Date(y,mm,1);
     const d1=ini.toISOString().slice(0,10), d2=fin.toISOString().slice(0,10);
     const [gs,rs,pp,en,cg,nu,ra]=await Promise.all([
-      invTodo('grupos','select=codigo,club,nombre,habilitado'),
+      invTodo('grupos','select=codigo,club,nombre,habilitado,club_id'),
       invTodo('resultados','select=id,jugador_uid,jugador_nombre,grupo_codigo,jugador_club,fecha'),
       invTodo('postpartido_jugador','select=jugador_nombre,grupo_codigo,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2),
       invTodo('entreno_jugador','select=jugador_nombre,grupo_codigo,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2),
@@ -18704,7 +18823,19 @@ async function calcularActivos(){
     ]);
     // Bajas: se factura el mes de la baja; desde el mes siguiente, no
     let bajas={}; try{ const fj=await invTodo('jugadores','select=id,baja_desde&baja_desde=not.is.null'); (fj||[]).forEach(x=>{ bajas[x.id]=x.baja_desde; }); }catch(e){}
-    const clubDeGrupo={}, grupoHab={}; gs.forEach(g=>{ if(g.codigo){ clubDeGrupo[g.codigo]=(g.club||'').trim()||'(sin club)'; grupoHab[g.codigo]=g.habilitado!==false; } });
+    // Clubes y licencias: el canal y las condiciones se leen por club (si la tabla todavía no está, se sigue como antes)
+    let clubesT=[], licT=[]; try{ [clubesT,licT]=await Promise.all([invTodo('clubes','select=id,nombre,tipo,canal,activo'),invTodo('licencias','select=club_id,canal,precio_jugador,moneda,reparto_socio_pct,inicio,fin,estado')]); }catch(e){}
+    clubesT=Array.isArray(clubesT)?clubesT:[]; licT=Array.isArray(licT)?licT:[];
+    const clubPorId={}; clubesT.forEach(c=>{ clubPorId[c.id]=c; });
+    const CI={}; // condiciones por nombre de club
+    const condClub=nombre=>{ if(CI[nombre]) return CI[nombre];
+      const c=clubesT.find(x=>activosNorm(x.nombre)===activosNorm(nombre))||null;
+      const lic=c?licT.find(l=>l.club_id===c.id&&l.estado!=='baja'&&String(l.inicio)<d2&&(!l.fin||String(l.fin)>=d1)):null;
+      const canal=lic?lic.canal:(c?c.canal:'directo');
+      return CI[nombre]={canal, tipo:c?c.tipo:'club', activo:c?c.activo!==false:true, conLicencia:!!lic,
+        precio:lic&&lic.precio_jugador!=null?Number(lic.precio_jugador):PRECIO_JUGADOR_USD,
+        socio:lic?Number(lic.reparto_socio_pct||0)/100:(canal==='gloouds'?1-PARTE_SC360:0)}; };
+    const clubDeGrupo={}, grupoHab={}; gs.forEach(g=>{ if(g.codigo){ const cc=g.club_id&&clubPorId[g.club_id]; clubDeGrupo[g.codigo]=(cc?cc.nombre:(g.club||'').trim())||'(sin club)'; grupoHab[g.codigo]=g.habilitado!==false; } });
     // Plantel registrado: jugador = nombre normalizado + club
     const reg={}, porId={}, clubesDeNombre={};
     rs.forEach(r=>{
@@ -18758,24 +18889,31 @@ async function calcularActivos(){
     Object.values(sinFicha).forEach(j=>{ const c=clubes[j.club]=clubes[j.club]||{club:j.club,reg:0,activos:[],sinFicha:[],conUso:0}; c.sinFicha.push(j); });
     Object.keys(clubes).forEach(k=>{ if(!clubes[k].activos.length&&!clubes[k].sinFicha.length) delete clubes[k]; });
     const filas=Object.values(clubes).sort((a,b)=>b.activos.length-a.activos.length||a.club.localeCompare(b.club));
-    const totA=filas.reduce((s,c)=>s+c.activos.length,0), totSF=filas.reduce((s,c)=>s+c.sinFicha.length,0);
-    ACTIVOS_DATOS={mes,filas};
+    filas.forEach(c=>{ const k=condClub(c.club); c.cond=k; c.fact=c.activos.length*k.precio; c.socio=c.fact*k.socio; c.sc=c.fact-c.socio; });
+    const sum=(f,fn)=>f.reduce((s,c)=>s+fn(c),0);
+    const totA=sum(filas,c=>c.activos.length), totSF=sum(filas,c=>c.sinFicha.length);
+    const fG=filas.filter(c=>c.cond.canal==='gloouds'), fD=filas.filter(c=>c.cond.canal!=='gloouds');
+    const T={fact:sum(filas,c=>c.fact), sc:sum(filas,c=>c.sc), socio:sum(filas,c=>c.socio), factD:sum(fD,c=>c.fact), factG:sum(fG,c=>c.fact), aD:sum(fD,c=>c.activos.length), aG:sum(fG,c=>c.activos.length)};
+    const sinLic=filas.filter(c=>c.activos.length&&!c.cond.conLicencia).length;
+    ACTIVOS_DATOS={mes,filas,T};
     const usd=n=>'USD '+(Math.round(n*100)/100).toLocaleString('es-AR');
     const nomMes=ini.toLocaleDateString('es-AR',{month:'long',year:'numeric'});
     box.innerHTML=
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">'+
-        [['Jugadores activos',totA,'#00c2ff'],['Total facturable',usd(totA*PRECIO_JUGADOR_USD),'#e8eff8'],['Parte SC360',usd(totA*PRECIO_JUGADOR_USD*PARTE_SC360),'#22c55e'],['Parte Gloouds',usd(totA*PRECIO_JUGADOR_USD*(1-PARTE_SC360)),'#a78bfa']]
+        [['Jugadores activos',totA+'<span style="font-size:11px;font-weight:600;color:#94a3b8"> · '+T.aD+' directo · '+T.aG+' GLOOUDS</span>','#00c2ff'],['Total facturable',usd(T.fact),'#e8eff8'],['Parte SC360',usd(T.sc),'#22c55e'],['Parte GLOOUDS',usd(T.socio)+'<span style="font-size:11px;font-weight:600;color:#94a3b8"> · solo canal GLOOUDS</span>','#a78bfa']]
           .map(x=>'<div style="background:#0a1024;border:1px solid #1a3a6e;border-radius:10px;padding:10px 12px"><div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:0.06em;text-transform:uppercase">'+x[0]+'</div><div style="font-size:21px;font-weight:900;color:'+x[2]+';margin-top:3px">'+x[1]+'</div></div>').join('')+'</div>'+
+      (sinLic?'<div style="font-size:12px;color:#b4c2d4;background:#00c2ff0d;border:1px solid #1a3a6e;border-radius:8px;padding:8px 10px;margin-bottom:10px">ℹ '+sinLic+' club'+(sinLic>1?'es':'')+' todavía sin licencia cargada: se usa el precio de referencia de USD '+PRECIO_JUGADOR_USD+' y el canal marcado en el club (directo = 100 % SC360).</div>':'')+
       (totSF?'<div style="font-size:12px;color:#f59e0b;background:#f59e0b12;border:1px solid #f59e0b44;border-radius:8px;padding:8px 10px;margin-bottom:10px">⚠ <b>'+totSF+' jugador'+(totSF>1?'es':'')+' usaron la app este mes sin haber hecho el test inicial</b>. No están dados de alta, así que no se facturan: pedile al club que les envíe el test.</div>':'')+
       '<div style="font-size:11.5px;color:#94a3b8;margin-bottom:8px">'+nomMes.charAt(0).toUpperCase()+nomMes.slice(1)+' · tocá un club para ver sus jugadores dados de alta</div>'+
       '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#94a3b8;font-size:10.5px;text-transform:uppercase">'+
-        '<th style="text-align:left;padding:6px 8px">Club</th><th style="padding:6px 8px" title="Jugadores con actividad en el mes (informativo)">Usaron la app</th><th style="padding:6px 8px">Activos (alta)</th><th style="padding:6px 8px" title="Usaron la app sin haber hecho el test">Sin test</th><th style="padding:6px 8px">Facturable</th><th style="padding:6px 8px">SC360</th></tr></thead><tbody>'+
+        '<th style="text-align:left;padding:6px 8px">Club</th><th style="padding:6px 8px" title="Jugadores con actividad en el mes (informativo)">Usaron la app</th><th style="padding:6px 8px">Activos (alta)</th><th style="padding:6px 8px" title="Usaron la app sin haber hecho el test">Sin test</th><th style="padding:6px 8px">Precio</th><th style="padding:6px 8px">Facturable</th><th style="padding:6px 8px">SC360</th><th style="padding:6px 8px">GLOOUDS</th></tr></thead><tbody>'+
       filas.map((c,i)=>'<tr onclick="var d=document.getElementById(\'act-det-'+i+'\');d.style.display=d.style.display===\'none\'?\'table-row\':\'none\'" style="cursor:pointer;border-top:1px solid #1a3a6e44">'+
-          '<td style="padding:8px;color:#e8eff8;font-weight:700">'+c.club+'</td><td style="padding:8px;text-align:center;color:#b4c2d4">'+(c.conUso||0)+'</td>'+
+          '<td style="padding:8px;color:#e8eff8;font-weight:700">'+c.club+' <span style="font-size:10px;font-weight:800;padding:1px 6px;border-radius:6px;'+(c.cond.canal==='gloouds'?'color:#a78bfa;background:#a78bfa1f">GLOOUDS':'color:#94a3b8;background:#94a3b81a">DIRECTO')+'</span>'+(c.cond.tipo==='particular'?' <span style="font-size:10px;color:#94a3b8">particular</span>':'')+(c.cond.activo?'':' <span style="font-size:10px;color:#f59e0b">inactivo</span>')+'</td><td style="padding:8px;text-align:center;color:#b4c2d4">'+(c.conUso||0)+'</td>'+
           '<td style="padding:8px;text-align:center;font-weight:900;color:'+(c.activos.length?'#00c2ff':'#4a5a78')+'">'+c.activos.length+'</td>'+
           '<td style="padding:8px;text-align:center;color:'+(c.sinFicha.length?'#f59e0b':'#4a5a78')+'">'+(c.sinFicha.length||'—')+'</td>'+
-          '<td style="padding:8px;text-align:center;color:#e8eff8">'+usd(c.activos.length*PRECIO_JUGADOR_USD)+'</td><td style="padding:8px;text-align:center;color:#22c55e;font-weight:700">'+usd(c.activos.length*PRECIO_JUGADOR_USD*PARTE_SC360)+'</td></tr>'+
-        '<tr id="act-det-'+i+'" style="display:none"><td colspan="6" style="padding:6px 8px 12px;background:#0a1024">'+
+          '<td style="padding:8px;text-align:center;color:#b4c2d4" title="'+(c.cond.conLicencia?'Según la licencia del club':'Sin licencia cargada: precio de referencia')+'">'+usd(c.cond.precio)+(c.cond.conLicencia?'':'*')+'</td>'+
+          '<td style="padding:8px;text-align:center;color:#e8eff8">'+usd(c.fact)+'</td><td style="padding:8px;text-align:center;color:#22c55e;font-weight:700">'+usd(c.sc)+'</td><td style="padding:8px;text-align:center;color:'+(c.socio?'#a78bfa':'#4a5a78')+'">'+(c.socio?usd(c.socio):'—')+'</td></tr>'+
+        '<tr id="act-det-'+i+'" style="display:none"><td colspan="9" style="padding:6px 8px 12px;background:#0a1024">'+
           (c.activos.length?c.activos.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(j=>'<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0;border-bottom:1px solid #1a3a6e33"><span style="color:#e8eff8">'+j.nombre+' <span style="color:#4a5a78">· alta '+String(j.alta).slice(0,10).split('-').reverse().join('/')+'</span></span><span style="color:#94a3b8">'+([...j.act].join(' · ')||'sin uso este mes')+'</span></div>').join(''):'<div style="font-size:12px;color:#4a5a78">Sin jugadores dados de alta.</div>')+
           (c.sinFicha.length?'<div style="font-size:10.5px;font-weight:800;color:#f59e0b;margin-top:8px">SIN TEST (no se facturan todavía)</div>'+c.sinFicha.map(j=>'<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0;color:#f59e0b"><span>'+j.nombre+'</span><span>'+[...j.act].join(' · ')+'</span></div>').join(''):'')+
         '</td></tr>').join('')+
@@ -18791,14 +18929,17 @@ function descargarActivos(){
   const L=[];
   L.push(['Reporte de jugadores activos — Sport Coaching 360'].map(esc).join(';'));
   L.push(['Mes',ACTIVOS_DATOS.mes].map(esc).join(';'));
-  L.push(['Precio por jugador activo (USD)',num(PRECIO_JUGADOR_USD)].map(esc).join(';'));
+  L.push(['Precio de referencia por jugador (USD, clubes sin licencia cargada)',num(PRECIO_JUGADOR_USD)].map(esc).join(';'));
   L.push('');
   L.push(['Criterio','Jugador activo = hizo el test inicial (alta) en un plantel habilitado del club'].map(esc).join(';'));
   L.push('');
-  L.push(['Club','Usaron la app en el mes','Jugadores activos (alta)','Facturable (USD)','SC360 (USD)','Gloouds (USD)'].join(';'));
+  L.push(['Reparto','50/50 solo para clubes del canal GLOOUDS; canal directo = 100 % SC360'].map(esc).join(';'));
+  L.push('');
+  L.push(['Club','Canal','Tipo','Licencia cargada','Usaron la app en el mes','Jugadores activos (alta)','Precio por jugador (USD)','Facturable (USD)','SC360 (USD)','GLOOUDS (USD)'].join(';'));
   let tA=0;
-  ACTIVOS_DATOS.filas.forEach(c=>{ const a=c.activos.length; tA+=a; L.push([esc(c.club),c.conUso||0,a,num(a*PRECIO_JUGADOR_USD),num(a*PRECIO_JUGADOR_USD*PARTE_SC360),num(a*PRECIO_JUGADOR_USD*(1-PARTE_SC360))].join(';')); });
-  L.push(['TOTAL','',tA,num(tA*PRECIO_JUGADOR_USD),num(tA*PRECIO_JUGADOR_USD*PARTE_SC360),num(tA*PRECIO_JUGADOR_USD*(1-PARTE_SC360))].join(';'));
+  ACTIVOS_DATOS.filas.forEach(c=>{ const a=c.activos.length; tA+=a; L.push([esc(c.club),c.cond.canal==='gloouds'?'GLOOUDS':'Directo',esc(c.cond.tipo),c.cond.conLicencia?'Sí':'No (precio de referencia)',c.conUso||0,a,num(c.cond.precio),num(c.fact),num(c.sc),num(c.socio)].join(';')); });
+  const T=ACTIVOS_DATOS.T||{fact:0,sc:0,socio:0};
+  L.push(['TOTAL','','','','',tA,'',num(T.fact),num(T.sc),num(T.socio)].join(';'));
   L.push(''); L.push('Detalle de jugadores activos');
   L.push(['Club','Jugador','Fecha de alta (test inicial)','Actividades del mes'].join(';'));
   ACTIVOS_DATOS.filas.forEach(c=>c.activos.forEach(j=>L.push([esc(c.club),esc(j.nombre),esc(String(j.alta).slice(0,10)),esc([...j.act].join(', ')||'—')].join(';'))));
