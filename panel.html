@@ -14735,7 +14735,8 @@ async function rivalGuardarPrediccion(ai, rival, form, xiSlots){
     const res=await q('predicciones_ia',{m:'POST',b:[{grupo_codigo:rivalGrupoCodigo(),rival:rival.nombre||null,rival_norm:rival.nombre?rivalNorm(rival.nombre):null,
       formacion:form,xi,prediccion:ai,creado_por:(USUARIO_ACTUAL&&(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email))||'',
       tipo:'cancha',club:(gObj&&gObj.club)||null,titulo:((gObj&&gObj.nombre)||'Equipo')+' vs '+(rival.nombre||'rival'),
-      datos:{condicion:rival.condicion||'',grupo:(gObj&&gObj.nombre)||''}}]});
+      datos:{condicion:rival.condicion||'',grupo:(gObj&&gObj.nombre)||'',rival_estilo:rival.estilo||'',rival_notas:rival.notas||'',
+        sc360:CANCHA_SIM.ultimaSC360||null,historial:rival.nombre?rivalHistorial(rival.nombre):null}}]});
     if(rivalEsErrorTabla(res)){ RIVAL_DB_OK=false; return null; }
     if(rival.nombre) rivalUltimaPrediccion(rival.nombre);
     predListaCargar();
@@ -14828,6 +14829,7 @@ rivalTxt+'\n\n'+
 'Máximo 3 jugadores clave y 4 escenarios. por_linea: una entrada por cada línea del equipo.';
 
   box.innerHTML='<div style="background:#0d1b3e;border:1px solid #7c3aed55;border-radius:12px;padding:16px;text-align:center;color:#b4c2d4;font-size:13px">✦ Armando la predicción'+(rival.web&&rival.nombre?' y buscando datos del rival…':'…')+'</div>';
+  const promSC360=predDatosSC360(rivalGrupoCodigo());
 
   async function llamar(conWeb){
     const body={model:'claude-haiku-4-5-20251001',max_tokens:2500,messages:[{role:'user',content:prompt}]};
@@ -14852,6 +14854,7 @@ rivalTxt+'\n\n'+
     return;
   }
   ai=predLimpiarCites(ai);
+  try{ CANCHA_SIM.ultimaSC360=await promSC360; }catch(e){ CANCHA_SIM.ultimaSC360=null; }
   CANCHA_SIM.ultimaIA={ai,rival:rival.nombre,fecha:new Date().toISOString()};
   if(rival.nombre) rivalGuardarAhora(); // las notas usadas quedan guardadas junto con la predicción
   const pid=await rivalGuardarPrediccion(ai, rival, form, xi);
@@ -14865,9 +14868,10 @@ function canchaIaHtml(ai, rival, n, form, avisoWeb, pid){
   const sec=(t,c)=>`<div style="font-size:10px;font-weight:800;color:${c||'#a78bfa'};letter-spacing:0.08em;text-transform:uppercase;margin:14px 0 6px">${t}</div>`;
   let h=`<div style="background:#0d1b3e;border:1px solid #7c3aed55;border-radius:14px;padding:16px 18px">
     <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:baseline">
-      <div style="font-size:11px;font-weight:800;color:#a78bfa;letter-spacing:0.08em">✦ PREDICCIÓN CON IA${rival.nombre?' · VS '+esc(rival.nombre).toUpperCase():''}</div>
+      <div style="font-size:11px;font-weight:800;color:#a78bfa;letter-spacing:0.08em">✦ LECTURA DEL PARTIDO (HIPÓTESIS)${rival.nombre?' · VS '+esc(rival.nombre).toUpperCase():''}</div>
       <div style="font-size:10.5px;color:#94a3b8">${n} jugadores · ${esc(form)} · ${new Date().toLocaleDateString('es-AR',{day:'numeric',month:'short'})}</div></div>`;
   if(avisoWeb) h+=`<div style="font-size:11px;color:#f59e0b;margin-top:6px">${avisoWeb}</div>`;
+  if(pid) h+=`<div style="font-size:11.5px;color:#b4c2d4;margin-top:6px;line-height:1.45">Esto es la lectura (bloque C). Los datos del equipo y del rival, con su fuente, y la comparación después del partido están en el informe: <a href="#" onclick="predVer('${pid}');return false" style="color:#00c2ff;font-weight:700">ver informe completo →</a></div>`;
   if(ai.resumen) h+=`<p style="font-size:14px;color:#e8eff8;line-height:1.6;margin:10px 0 0">${esc(ai.resumen)}</p>`;
   if(Array.isArray(ai.por_linea)&&ai.por_linea.length){
     h+=sec('Por línea')+'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">'+ai.por_linea.map(l=>
@@ -14893,7 +14897,7 @@ function canchaIaHtml(ai, rival, n, form, avisoWeb, pid){
   }
   const fuentes=(ai.fuentes_web||[]).filter(u=>/^https?:\/\//.test(u));
   if(fuentes.length) h+=`<div style="font-size:10.5px;color:#94a3b8;margin-top:10px">Fuentes web: ${fuentes.map(u=>`<a href="${u.replace(/"/g,'')}" target="_blank" rel="noopener" style="color:#00c2ff">${esc(u.replace(/^https?:\/\//,'').slice(0,40))}</a>`).join(' · ')}</div>`;
-  h+=`<div style="font-size:10.5px;color:#4a5a78;margin-top:12px;border-top:1px solid #1a3a6e;padding-top:8px">${ai.limites?esc(ai.limites)+' ':''}Predicción de comportamiento generada con IA a partir de los datos de SC360; es una guía para el cuerpo técnico, no una certeza.</div>
+  h+=`<div style="font-size:10.5px;color:#4a5a78;margin-top:12px;border-top:1px solid #1a3a6e;padding-top:8px">${ai.limites?esc(ai.limites)+' ':''}Lectura generada con IA a partir de los datos de SC360 (modelo experimental): patrones y variables a monitorear, no certezas.</div>
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button onclick="canchaPrediccionIA()" class="bg" style="padding:7px 14px;font-size:12px">↻ Regenerar</button>
     ${pid?`<button onclick="predPDF('${pid}')" class="bg" style="padding:7px 14px;font-size:12px;color:#00c2ff;border-color:#00c2ff66">📄 PDF de esta predicción</button><span style="font-size:11px;color:#22c55e;align-self:center">✓ Guardada en Predicciones guardadas</span>`:''}</div></div>`;
   return h;
@@ -15015,6 +15019,7 @@ function predModalCerrar(){ const m=document.getElementById('pred-modal'); if(m)
 async function predVer(id){
   predModal('<div class="pred-modal-in"><div style="color:#b4c2d4;text-align:center;padding:40px">Abriendo…</div></div>');
   const p=await predObtener(id);
+  if(p&&!p._realBuscado){ p._real=await predResultadoReal(p); p._realBuscado=true; }
   if(!p){ predModal('<div class="pred-modal-in"><div style="color:#ef4444;padding:20px">No se encontró la predicción.</div><button class="bg" onclick="predModalCerrar()">Cerrar</button></div>'); return; }
   predModal(`<div class="pred-modal-in">
     <div class="pred-barra">
@@ -15033,6 +15038,7 @@ async function predBorrar(id){
 // ── PDF: hoja A4 clara, se imprime / guarda como PDF desde el navegador ──
 async function predPDF(id){
   const p=await predObtener(id); if(!p){ alert('No se encontró la predicción.'); return; }
+  if(!p._realBuscado){ p._real=await predResultadoReal(p); p._realBuscado=true; }
   let box=document.getElementById('pred-pdf'); if(!box){ box=document.createElement('div'); box.id='pred-pdf'; document.body.appendChild(box); }
   box.innerHTML='<div class="rp">'+predInformeHtml(p)+'</div>';
   const titulo=document.title;
@@ -15044,6 +15050,115 @@ async function predPDF(id){
   Promise.all(imgs.map(i=>new Promise(res=>{ i.onload=i.onerror=res; }))).then(()=>setTimeout(()=>window.print(),150));
 }
 
+// ═══════════════════════════════════════════════════════════════
+// PREDICCIÓN v2 (29/10/2026) — cuatro bloques bien separados:
+//   A · Nuestro equipo: DATOS medidos en SC360 y cargados por el DT
+//   B · Rival: DATOS solo con fuente (cuerpo técnico, historial, web citada)
+//   C · Lectura del partido: HIPÓTESIS de la IA, con nivel de confianza
+//   D · Después del partido: qué se anticipó y qué pasó
+// Sin porcentajes de resultado: se reemplazan por factores a favor y en
+// contra, cada uno con el dato que lo respalda.
+// ═══════════════════════════════════════════════════════════════
+function predParseDet(p){ let d=p&&p.goles_detalle; if(typeof d==='string'){ try{ d=JSON.parse(d); }catch(e){ d=null; } } return d||{}; }
+function predFechaCorta(f){ const s=String(f||'').slice(0,10); return /^\d{4}-\d{2}-\d{2}$/.test(s)?s.slice(8,10)+'/'+s.slice(5,7):(s||''); }
+
+// Datos propios del plantel en SC360 (se guardan con la predicción, con su fecha)
+async function predDatosSC360(gcod){
+  if(!gcod||/^CLUB-/.test(gcod)) return null;
+  try{
+    const [rs,ps]=await Promise.all([
+      q('resultados?grupo_codigo=eq.'+encodeURIComponent(gcod)+'&select=jugador_nombre,disponibilidad,fecha&order=fecha.desc&limit=2000'),
+      q('partidos?grupo_codigo=eq.'+encodeURIComponent(gcod)+'&select=codigo,rival,fecha,goles_favor,goles_contra,goles_detalle&order=fecha.desc&limit=60')
+    ]);
+    const vistos=new Set(), ult=[];
+    (Array.isArray(rs)?rs:[]).forEach(r=>{ const k=idcNom(r.jugador_nombre); if(!k||vistos.has(k)) return; vistos.add(k); if(Number(r.disponibilidad)>0) ult.push(r); });
+    const conRes=(Array.isArray(ps)?ps:[]).filter(p=>p.goles_favor!=null&&p.goles_contra!=null);
+    const favor=[0,0,0,0,0,0], contra=[0,0,0,0,0,0]; let conDet=0;
+    conRes.slice(0,10).forEach(p=>{ const d=predParseDet(p);
+      if((d.favor||[]).length||(d.contra||[]).length) conDet++;
+      (d.favor||[]).forEach(g=>{ const t=predTramo(g); if(t!=null) favor[t]++; });
+      (d.contra||[]).forEach(g=>{ const t=predTramo(g); if(t!=null) contra[t]++; }); });
+    return {
+      mdc: ult.length?Math.round(predProm(ult.map(r=>Number(r.disponibilidad)))):null,
+      n: ult.length,
+      fecha_test: ult.map(r=>String(r.fecha||'').slice(0,10)).sort().pop()||null,
+      ultimos: conRes.slice(0,5).map(p=>({rival:p.rival||'',fecha:p.fecha||'',gf:p.goles_favor,gc:p.goles_contra})),
+      favor, contra, partidos_tramos: conDet, partidos_total: conRes.length,
+      al: new Date().toISOString().slice(0,10)
+    };
+  }catch(e){ console.warn('Datos SC360 de la predicción:',e); return null; }
+}
+function predDatosSC360Texto(s){
+  if(!s) return 'sin datos de SC360 (equipo no vinculado a un plantel)';
+  const tr=a=>PRED_TRAMOS.map((t,i)=>t+': '+a[i]).join(', ');
+  return [
+    s.mdc!=null?'Disponibilidad MDC promedio del plantel: '+s.mdc+' (0-100; '+s.n+' jugadores, último test '+s.fecha_test+')':'Sin tests MDC del plantel',
+    s.ultimos.length?'Últimos resultados: '+s.ultimos.map(p=>'vs '+p.rival+' '+p.gf+'-'+p.gc+' ('+p.fecha+')').join('; '):'Sin resultados cargados',
+    s.partidos_tramos?'Goles A FAVOR por tramo (últimos '+s.partidos_tramos+' partidos con minuto): '+tr(s.favor):'',
+    s.partidos_tramos?'Goles EN CONTRA por tramo (últimos '+s.partidos_tramos+' partidos con minuto): '+tr(s.contra):''
+  ].filter(Boolean).join('\n');
+}
+
+// Nivel de confianza: depende de cuántos datos reales hay, no de la IA
+function predConfianza(p){
+  const d=p.datos||{}, ai=p.prediccion||{}, s=d.sc360, completo=p.tipo==='completo';
+  const R=d.rival||{}, A=d.propio||{};
+  const tiene=v=>v!=null&&String(v).trim()!=='';
+  const items=[
+    {ok:!!(s&&s.mdc!=null)||(!completo&&(p.xi||[]).length>0), falta:'tests MDC del plantel'},
+    {ok:!!(s&&s.partidos_total>=3)||(completo&&tiene(A.pj)), falta:'resultados de los últimos partidos propios'},
+    {ok:!!(s&&s.partidos_tramos>=3), falta:'minuto de los goles en al menos 3 partidos'},
+    {ok:completo?(tiene(R.pj)||tiene(R.forma)||tiene(R.gf)):tiene(d.rival_notas)||!!(d.historial&&d.historial.partidos), falta:'datos del rival cargados por el cuerpo técnico'},
+    {ok:(ai.fuentes_web||[]).some(u=>/^https?:\/\//.test(u))||(completo&&tiene(R.jugadores)), falta:'jugadores o fuentes del rival'}
+  ];
+  const n=items.filter(x=>x.ok).length;
+  return {nivel:n>=4?'Alta':n>=2?'Media':'Baja', n, total:items.length, faltan:items.filter(x=>!x.ok).map(x=>x.falta)};
+}
+
+// Jugadores del rival: solo con fuente (lo que cargó el DT o una página citada)
+function predJugadoresRivalConFuente(lista, textoDT){
+  const base=rivalNorm(textoDT||'');
+  return (Array.isArray(lista)?lista:[]).filter(j=>{
+    if(!j||!j.nombre) return false;
+    if(/^https?:\/\//.test(String(j.fuente||''))) return true;
+    const partes=rivalNorm(j.nombre).split(/\s+/).filter(t=>t.length>2);
+    return !!base&&partes.length>0&&partes.some(t=>base.includes(t));
+  }).map(j=>Object.assign({},j,{fuente:/^https?:\/\//.test(String(j.fuente||''))?j.fuente:'Cuerpo técnico'}));
+}
+
+// Después del partido: busca el partido real contra ese rival, cargado después de la predicción
+async function predResultadoReal(p){
+  if(!p||!p.grupo_codigo||/^CLUB-/.test(p.grupo_codigo)||!p.rival) return null;
+  try{
+    const desde=String(p.creado_en||'').slice(0,10);
+    const ps=await q('partidos?grupo_codigo=eq.'+encodeURIComponent(p.grupo_codigo)+'&fecha=gte.'+desde+'&select=codigo,rival,fecha,goles_favor,goles_contra,goles_detalle&order=fecha.asc&limit=20',{sinCache:true});
+    const n=rivalNorm(p.rival);
+    return (Array.isArray(ps)?ps:[]).find(x=>{ const r=rivalNorm(x.rival); return r&&n&&(r===n||r.includes(n)||n.includes(r)); })||null;
+  }catch(e){ return null; }
+}
+function predMinutoAbs(g){ let m=parseInt(g&&g.minuto,10); if(isNaN(m)) return null; const st=(g.periodo||'').toUpperCase()==='ST'; return st?(m>45?m:m+45):m; }
+function predDespuesHtml(p,E){
+  if(!p._realBuscado) return '<p class="rp-p" style="color:#64748b">Buscando el resultado del partido…</p>';
+  const m=p._real;
+  if(!m) return '<p class="rp-p" style="color:#64748b">Todavía no hay un partido cargado contra '+E(p.rival||'este rival')+' después de esta predicción. Cuando se cargue el resultado en Post Partido, acá aparece la comparación entre lo anticipado y lo que pasó.</p>';
+  const ai=p.prediccion||{}, d=predParseDet(m);
+  let h='<table class="rp-t"><tbody>'+
+    '<tr><td style="width:38%"><b>Resultado</b></td><td>'+(m.goles_favor!=null&&m.goles_contra!=null?E(m.goles_favor+' - '+m.goles_contra):'Sin marcador cargado')+' · '+E(predFechaCorta(m.fecha))+'</td></tr>';
+  const contra=(d.contra||[]).map(predMinutoAbs).filter(x=>x!=null), favor=(d.favor||[]).map(predMinutoAbs).filter(x=>x!=null);
+  if(contra.length||favor.length) h+='<tr><td><b>Minutos de los goles</b></td><td>'+(favor.length?'A favor: '+favor.map(x=>x+"'").join(', '):'A favor: —')+' · '+(contra.length?'En contra: '+contra.map(x=>x+"'").join(', '):'En contra: —')+'</td></tr>';
+  const ventanas=(Array.isArray(ai.ventanas)?ai.ventanas:[]).map(v=>{ const mm=String(v.minutos||'').match(/(\d+)\s*[-–]\s*(\d+)/); return mm?{a:+mm[1],b:+mm[2],nivel:String(v.nivel||'').toUpperCase(),nombre:v.nombre||''}:null; }).filter(Boolean);
+  if(ventanas.length&&contra.length){
+    const enRiesgo=contra.filter(x=>ventanas.some(v=>(v.nivel==='ALTO'||v.nivel==='MEDIO')&&x>=v.a&&x<=v.b));
+    h+='<tr><td><b>Ventanas de riesgo anticipadas</b></td><td>'+enRiesgo.length+' de '+contra.length+' goles en contra cayeron dentro de una ventana marcada como ALTO o MEDIO.</td></tr>';
+  } else if(ventanas.length&&m.goles_contra===0){
+    h+='<tr><td><b>Ventanas de riesgo anticipadas</b></td><td>No hubo goles en contra.</td></tr>';
+  } else if(ventanas.length){
+    h+='<tr><td><b>Ventanas de riesgo anticipadas</b></td><td>Sin minuto de los goles cargado: no se puede comparar.</td></tr>';
+  }
+  h+='</tbody></table><div class="rp-mini">Comparación automática con el partido cargado en SC360. Sirve para ver, partido a partido, cuánto aciertan las lecturas.</div>';
+  return h;
+}
+
 // ── Informe (mismo HTML para el visor y para el PDF) ──
 function predInformeHtml(p){
   const ai=predLimpiarCites(p.prediccion||{}), d=p.datos||{};
@@ -15051,9 +15166,12 @@ function predInformeHtml(p){
   const logo=(document.querySelector('.topbar img')||{}).src||'';
   const propio=d.propio&&d.propio.nombre?d.propio.nombre:(predNombreGrupo(p.grupo_codigo)||p.club||'Nuestro equipo');
   const rival=p.rival||'Rival';
-  const lista=(arr,cls)=>Array.isArray(arr)&&arr.length?'<ul class="rp-ul">'+arr.map(x=>'<li'+(cls?' class="'+cls+'"':'')+'>'+E(x)+'</li>').join('')+'</ul>':'';
-  let n=0; const H=(t,sub)=>'<div class="rp-h"><span>'+(++n)+'. '+E(t)+'</span>'+(sub?'<small> — '+E(sub)+'</small>':'')+'</div>';
+  const lista=(arr,cls)=>Array.isArray(arr)&&arr.length?'<ul class="rp-ul">'+arr.map(x=>'<li'+(cls?' class="'+cls+'"':'')+'>'+E(typeof x==='object'?(x.factor||''):x)+(typeof x==='object'&&x.base?'<div class="rp-mini">Base: '+E(x.base)+'</div>':'')+'</li>').join('')+'</ul>':'';
+  const BL=(letra,t,sub,col)=>'<div class="rp-h" style="border-bottom-color:'+col+';margin-top:20px"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:'+col+';color:#fff;font-size:11px;margin-right:4px">'+letra+'</span><span>'+E(t)+'</span>'+(sub?'<small> — '+E(sub)+'</small>':'')+'</div>';
+  const SUB=(t)=>'<div class="rp-k" style="margin:10px 0 4px">'+E(t)+'</div>';
   const infoPartido=[d.torneo, d.condicion?(d.condicion==='Local'?'Local':d.condicion==='Visitante'?'Visitante':'Cancha neutral'):'', d.fecha||p.fecha_partido, d.estadio].filter(Boolean).join(' · ');
+  const conf=predConfianza(p);
+  const confCol=conf.nivel==='Alta'?'#15803d':conf.nivel==='Media'?'#b45309':'#b91c1c';
 
   let h=`<div class="rp-portada">
     <div style="display:flex;align-items:center;gap:10px">
@@ -15061,17 +15179,34 @@ function predInformeHtml(p){
       <div style="flex:1"><div style="font-size:12px;font-weight:900;letter-spacing:0.08em">SPORT COACHING 360</div><div style="font-size:9.5px;color:#7fd8ff;letter-spacing:0.06em">MODELO MDC · D = T − I</div></div>
       <div style="font-size:9.5px;color:#9fb0c8;text-align:right">${E(predFecha(p.creado_en))}${p.creado_por?'<br>'+E(p.creado_por):''}</div>
     </div>
-    <div style="font-size:10px;font-weight:800;letter-spacing:0.16em;color:#00c2ff;margin-top:14px">${completo?'INFORME DE SCOUTING Y PREDICCIÓN':'PREDICCIÓN DEL PARTIDO'}</div>
+    <div style="font-size:10px;font-weight:800;letter-spacing:0.16em;color:#00c2ff;margin-top:14px">${completo?'INFORME DE PARTIDO · SCOUTING Y LECTURA':'PREDICCIÓN DEL PARTIDO'}</div>
     <div style="font-size:24px;font-weight:900;line-height:1.15;margin-top:4px">${E(propio)} <span style="color:#00c2ff">vs</span> ${E(rival)}</div>
     ${infoPartido?`<div style="font-size:11px;color:#c3cfe0;margin-top:4px">${E(infoPartido)}</div>`:''}
     ${!completo&&p.formacion?`<div style="font-size:11px;color:#c3cfe0;margin-top:2px">${E(predNombreGrupo(p.grupo_codigo))}${predNombreGrupo(p.grupo_codigo)?' · ':''}${E(p.formacion)} · ${(p.xi||[]).length} jugadores</div>`:''}
+    <div style="font-size:10px;color:#c3cfe0;margin-top:8px">A y B son datos con su fuente · C es una lectura (hipótesis) · D compara con lo que pasó</div>
   </div>`;
 
+  // ── A · NUESTRO EQUIPO (datos)
+  h+=BL('A','Nuestro equipo','datos medidos y cargados','#0284c7');
+  const s=d.sc360;
+  if(s){
+    h+='<table class="rp-t"><tbody>'+
+      '<tr><td style="width:38%"><b>Disponibilidad MDC del plantel</b></td><td>'+(s.mdc!=null?E(s.mdc)+' <span class="rp-mini" style="display:inline">('+E(s.n)+' jugadores · último test '+E(predFechaCorta(s.fecha_test))+')</span>':'Sin tests')+'</td></tr>'+
+      '<tr><td><b>Últimos resultados</b></td><td>'+(s.ultimos.length?s.ultimos.map(x=>'vs '+E(x.rival)+' <b>'+E(x.gf+'-'+x.gc)+'</b> <span class="rp-mini" style="display:inline">('+E(predFechaCorta(x.fecha))+')</span>').join(' · '):'Sin resultados cargados')+'</td></tr>'+
+      '</tbody></table>';
+    if(s.partidos_tramos){
+      h+=SUB('Goles por tramo (últimos '+s.partidos_tramos+' partidos con minuto cargado)')+
+        '<table class="rp-t"><thead><tr><th></th>'+PRED_TRAMOS.map(t=>'<th style="text-align:center">'+E(t)+'</th>').join('')+'</tr></thead><tbody>'+
+        '<tr><td><b>A favor</b></td>'+s.favor.map(v=>'<td style="text-align:center">'+v+'</td>').join('')+'</tr>'+
+        '<tr><td><b>En contra</b></td>'+s.contra.map((v,i)=>'<td style="text-align:center;'+(v&&v===Math.max(...s.contra)?'font-weight:800;color:#b91c1c':'')+'">'+v+'</td>').join('')+'</tr></tbody></table>';
+    }
+    h+='<div class="rp-mini">Fuente: SC360 · datos al '+E(predFechaCorta(s.al))+'</div>';
+  }
+  if(!completo&&Array.isArray(p.xi)&&p.xi.length){
+    h+=SUB('Equipo que juega')+`<table class="rp-t"><thead><tr><th>Jugador</th><th>Línea</th><th>Perfil</th><th>D test</th><th>D proyectada</th><th>IDC</th></tr></thead><tbody>${p.xi.map(j=>`<tr><td>${E(j.nombre)}</td><td>${E(j.linea||'')}</td><td>${E(j.disc||'')}</td><td>${E(j.d??'—')}</td><td>${E(j.dp??'—')}</td><td>${E(j.idc??'—')}</td></tr>`).join('')}</tbody></table><div class="rp-mini">D proyectada: experimental (ajusta la D del test por Post Partido, asistencia y recuperación). Fuente: SC360.</div>`;
+  }
+  const A=d.propio||{}, B=d.rival||{};
   if(completo){
-    // 1. Contexto + contraste estadístico (calculado con lo cargado, no por la IA)
-    h+=H('Contexto del partido');
-    if(ai.contexto) h+='<p class="rp-p">'+E(ai.contexto)+'</p>';
-    const A=d.propio||{}, B=d.rival||{};
     const num=v=>v===''||v==null||isNaN(+v)?null:+v;
     const porPJ=(x,pj)=>num(x)!=null&&num(pj)?(num(x)/num(pj)).toFixed(2):null;
     const dif=o=>num(o.gf)!=null&&num(o.gc)!=null?(num(o.gf)-num(o.gc)):null;
@@ -15084,70 +15219,96 @@ function predInformeHtml(p){
       ['Diferencia de gol',dif(A)==null?'':fmtDif(dif(A)),dif(B)==null?'':fmtDif(dif(B))],
       ['Goleador',A.goleador,B.goleador],['Últimos resultados',A.forma,B.forma]
     ].filter(f=>(f[1]!==''&&f[1]!=null)||(f[2]!==''&&f[2]!=null));
-    if(filas.length) h+=`<table class="rp-t"><thead><tr><th>Indicador</th><th>${E(propio)}</th><th>${E(rival)}</th></tr></thead><tbody>${filas.map(f=>`<tr><td>${E(f[0])}</td><td>${E(f[1]||'—')}</td><td>${E(f[2]||'—')}</td></tr>`).join('')}</tbody></table>`;
+    if(filas.length) h+=SUB('Tabla comparativa')+`<table class="rp-t"><thead><tr><th>Indicador</th><th>${E(propio)}</th><th>${E(rival)}</th></tr></thead><tbody>${filas.map(f=>`<tr><td>${E(f[0])}</td><td>${E(f[1]||'—')}</td><td>${E(f[2]||'—')}</td></tr>`).join('')}</tbody></table><div class="rp-mini">Fuente: cargado por el cuerpo técnico.</div>`;
+    if(A.notas) h+='<div class="rp-card" style="margin-top:6px"><b>Notas del cuerpo técnico:</b> '+E(A.notas)+'</div>';
+    if(!s&&!filas.length) h+='<p class="rp-p" style="color:#64748b">Sin datos propios cargados.</p>';
+  } else if(!s&&!(p.xi||[]).length){
+    h+='<p class="rp-p" style="color:#64748b">Sin datos propios guardados en esta predicción.</p>';
+  }
 
-    if(ai.estado_rival||ai.forma_rival){ h+=H('Estado actual de '+rival,'diagnóstico previo'); if(ai.estado_rival) h+='<p class="rp-p">'+E(ai.estado_rival)+'</p>'; if(ai.forma_rival) h+='<div class="rp-card"><b>Forma reciente:</b> '+E(ai.forma_rival)+'</div>'; }
+  // ── B · RIVAL (datos con fuente)
+  h+=BL('B','Rival: '+rival,'solo datos con fuente','#7c3aed');
+  let hayB=false;
+  if(completo){
+    const det=[['Estilo de juego (según el cuerpo técnico)',B.estilo],['Jugadores que conoce el cuerpo técnico',B.jugadores],['Notas del cuerpo técnico',B.notas]].filter(x=>x[1]);
+    if(det.length){ hayB=true; h+='<table class="rp-t"><tbody>'+det.map(x=>'<tr><td style="width:38%"><b>'+E(x[0])+'</b></td><td>'+E(x[1])+'</td></tr>').join('')+'</tbody></table><div class="rp-mini">Fuente: cargado por el cuerpo técnico. La tabla comparativa está en el bloque A.</div>'; }
+  } else {
+    if(d.rival_estilo||d.rival_notas){ hayB=true; h+='<table class="rp-t"><tbody>'+(d.rival_estilo?'<tr><td style="width:38%"><b>Estilo (según el cuerpo técnico)</b></td><td>'+E(d.rival_estilo)+'</td></tr>':'')+(d.rival_notas?'<tr><td><b>Notas del cuerpo técnico</b></td><td>'+E(d.rival_notas)+'</td></tr>':'')+'</tbody></table>'; }
+  }
+  const hi=d.historial;
+  if(hi&&hi.partidos&&hi.partidos.length){
+    hayB=true;
+    h+=SUB('Historial propio contra este rival')+'<table class="rp-t"><tbody><tr><td style="width:38%"><b>Partidos</b></td><td>'+hi.partidos.map(x=>E(x.marcador)+' <span class="rp-mini" style="display:inline">('+E(predFechaCorta(x.fecha))+')</span>').join(' · ')+(hi.g!=null?' · G'+hi.g+' E'+hi.e+' P'+hi.pe:'')+'</td></tr>'+
+      (hi.contra&&hi.contra.some(v=>v)?'<tr><td><b>Goles recibidos por tramo</b></td><td>'+PRED_TRAMOS.map((t,i)=>E(t)+': '+hi.contra[i]).join(' · ')+'</td></tr>':'')+'</tbody></table><div class="rp-mini">Fuente: partidos cargados en SC360.</div>';
+  }
+  const web=(Array.isArray(ai.datos_rival_web)?ai.datos_rival_web:[]).filter(x=>x&&x.dato&&/^https?:\/\//.test(String(x.fuente||'')));
+  if(web.length){
+    hayB=true;
+    h+=SUB('Datos públicos encontrados en internet')+'<table class="rp-t"><tbody>'+web.map(x=>'<tr><td>'+E(x.dato)+'</td><td style="width:34%"><a href="'+E(x.fuente)+'" target="_blank" rel="noopener" style="color:#0369a1">'+E(String(x.fuente).replace(/^https?:\/\//,'').slice(0,48))+'</a></td></tr>').join('')+'</tbody></table>';
+  }
+  const jr=predJugadoresRivalConFuente(ai.jugadores_rival, completo?[B.jugadores,B.notas].join(' '):(d.rival_notas||''));
+  if(jr.length){
+    hayB=true;
+    h+=SUB('Jugadores clave del rival')+`<table class="rp-t"><thead><tr><th>Jugador</th><th>Pos.</th><th>Dato</th><th>Por qué importa</th><th>Fuente</th></tr></thead><tbody>${jr.map(j=>`<tr><td><b>${E(j.nombre)}</b></td><td>${E(j.pos||'')}</td><td>${E(j.dato||'')}</td><td>${E(j.por_que||'')}</td><td>${/^https?:/.test(j.fuente)?'<a href="'+E(j.fuente)+'" target="_blank" rel="noopener" style="color:#0369a1">web</a>':'Cuerpo técnico'}</td></tr>`).join('')}</tbody></table>`;
+  }
+  if(!hayB) h+='<p class="rp-p" style="color:#64748b">No hay datos del rival con fuente. Cargá lo que sabés (resultados, sistema, jugadores) para que el informe sea más preciso.</p>';
+
+  // ── C · LECTURA DEL PARTIDO (hipótesis)
+  h+=BL('C','Lectura del partido','hipótesis con el Modelo MDC','#d97706');
+  h+='<div class="rp-card" style="border-color:'+confCol+'55;margin-bottom:8px"><b style="color:'+confCol+'">Confianza: '+E(conf.nivel)+'</b> <span class="rp-mini" style="display:inline">('+conf.n+' de '+conf.total+' fuentes de datos disponibles)</span>'+(conf.faltan.length?'<div class="rp-mini">Para mejorarla: '+E(conf.faltan.join(' · '))+'.</div>':'')+'<div class="rp-mini">Lectura generada con IA a partir de los bloques A y B. Son patrones y variables a monitorear, no certezas.</div></div>';
+  if(completo){
+    if(ai.contexto) h+=SUB('Contexto')+'<p class="rp-p">'+E(ai.contexto)+'</p>';
+    if(ai.estado_rival||ai.forma_rival){ h+=SUB('Cómo llega '+rival); if(ai.estado_rival) h+='<p class="rp-p">'+E(ai.estado_rival)+'</p>'; if(ai.forma_rival) h+='<p class="rp-p">'+E(ai.forma_rival)+'</p>'; }
     const tac=ai.tactica_rival||{};
     if(tac.estructura||(tac.caracteristicas||[]).length){
-      h+=H('Análisis táctico del rival','sistema y patrones de juego')+'<div class="rp-g2">'+
-        (tac.estructura?'<div class="rp-card"><div class="rp-k">Estructura habitual</div>'+E(tac.estructura)+'</div>':'')+
-        ((tac.caracteristicas||[]).length?'<div class="rp-card"><div class="rp-k">Características</div>'+lista(tac.caracteristicas)+'</div>':'')+'</div>';
-    }
-    if(Array.isArray(ai.jugadores_rival)&&ai.jugadores_rival.length){
-      h+=H('Jugadores clave de '+rival,'referentes a neutralizar')+`<table class="rp-t"><thead><tr><th>Jugador</th><th>Pos.</th><th>Dato</th><th>Por qué importa</th></tr></thead><tbody>${ai.jugadores_rival.map(j=>`<tr><td><b>${E(j.nombre)}</b></td><td>${E(j.pos||'')}</td><td>${E(j.dato||'')}</td><td>${E(j.por_que||'')}</td></tr>`).join('')}</tbody></table>`;
+      h+=SUB('Lectura táctica del rival')+'<div class="rp-g2">'+(tac.estructura?'<div class="rp-card"><div class="rp-k">Estructura probable</div>'+E(tac.estructura)+'</div>':'')+((tac.caracteristicas||[]).length?'<div class="rp-card"><div class="rp-k">Rasgos</div>'+lista(tac.caracteristicas)+'</div>':'')+'</div>';
     }
     if((ai.fortalezas_rival||[]).length||(ai.debilidades_rival||[]).length){
-      h+=H('Fortalezas y debilidades de '+rival)+'<div class="rp-g2"><div class="rp-card rp-verde"><div class="rp-k">✔ Fortalezas (a respetar)</div>'+lista(ai.fortalezas_rival)+'</div><div class="rp-card rp-rojo"><div class="rp-k">✖ Debilidades (a aprovechar)</div>'+lista(ai.debilidades_rival)+'</div></div>';
+      h+=SUB('Fortalezas y debilidades del rival')+'<div class="rp-g2"><div class="rp-card rp-verde"><div class="rp-k">A respetar</div>'+lista(ai.fortalezas_rival)+'</div><div class="rp-card rp-rojo"><div class="rp-k">A aprovechar</div>'+lista(ai.debilidades_rival)+'</div></div>';
     }
     if(Array.isArray(ai.escenarios)&&ai.escenarios.length){
-      h+=H('Escenarios del partido','lectura psico-competitiva MDC')+ai.escenarios.map((e,i)=>`<div class="rp-card" style="margin-bottom:6px">
-        <div class="rp-k">Escenario ${String.fromCharCode(65+i)}: ${E(e.titulo||e.momento||'')}</div>
+      h+=SUB('Escenarios')+ai.escenarios.map((e,i)=>`<div class="rp-card" style="margin-bottom:6px">
+        <div class="rp-k">${String.fromCharCode(65+i)}. ${E(e.titulo||e.momento||'')}</div>
         ${e.que_puede_hacer_rival||e.que_puede_pasar?`<div><b>Qué puede hacer el rival:</b> ${E(e.que_puede_hacer_rival||e.que_puede_pasar)}</div>`:''}
         ${e.riesgo?`<div class="rp-txt-rojo"><b>Riesgo:</b> ${E(e.riesgo)}</div>`:''}
         ${e.oportunidad||e.que_hacer?`<div class="rp-txt-verde"><b>Oportunidad:</b> ${E(e.oportunidad||e.que_hacer)}</div>`:''}</div>`).join('');
     }
     if(Array.isArray(ai.ventanas)&&ai.ventanas.length){
       const col=nv=>/alto/i.test(nv)?'rp-nv-alto':/medio/i.test(nv)?'rp-nv-medio':'rp-nv-bajo';
-      h+=H('Ventanas de riesgo emocional','momentos críticos y cómo contenerlos')+`<table class="rp-t"><thead><tr><th>Momento</th><th>Ventana</th><th>Nivel</th><th>Acción clave</th></tr></thead><tbody>${ai.ventanas.map(v=>`<tr><td><b>${E(v.minutos||'')}</b></td><td>${E(v.nombre||'')}${(v.senales||[]).length?'<div class="rp-mini">Señales: '+E(v.senales.join(' · '))+'</div>':''}</td><td><span class="rp-nv ${col(v.nivel||'')}">${E((v.nivel||'').toUpperCase())}</span></td><td>${E(v.accion||'')}</td></tr>`).join('')}</tbody></table>`;
+      h+=SUB('Ventanas de riesgo')+`<table class="rp-t"><thead><tr><th>Minutos</th><th>Ventana</th><th>Nivel</th><th>Acción clave</th></tr></thead><tbody>${ai.ventanas.map(v=>`<tr><td><b>${E(v.minutos||'')}</b></td><td>${E(v.nombre||'')}${(v.senales||[]).length?'<div class="rp-mini">Señales: '+E(v.senales.join(' · '))+'</div>':''}${v.base?'<div class="rp-mini">Base: '+E(v.base)+'</div>':''}</td><td><span class="rp-nv ${col(v.nivel||'')}">${E((v.nivel||'').toUpperCase())}</span></td><td>${E(v.accion||'')}</td></tr>`).join('')}</tbody></table>`;
     }
-    if(Array.isArray(ai.plan)&&ai.plan.length){
-      h+=H('Plan estratégico para '+propio,'recomendaciones para el cuerpo técnico')+ai.plan.map((x,i)=>`<div class="rp-plan"><div class="rp-num">${i+1}</div><div><b>${E(x.titulo||'')}</b><div>${E(x.detalle||'')}</div></div></div>`).join('');
-    }
-    const pr=ai.probabilidades||{};
-    if(pr.propio!=null||pr.empate!=null||pr.rival!=null){
-      h+=H('Escenario más probable','estimación orientativa, no es una certeza')+`<div class="rp-g3">
-        <div class="rp-prob"><div>${E(propio)} gana</div><b>${E(pr.propio??'—')}%</b></div>
-        <div class="rp-prob"><div>Empate</div><b>${E(pr.empate??'—')}%</b></div>
-        <div class="rp-prob"><div>${E(rival)} gana</div><b>${E(pr.rival??'—')}%</b></div></div>
-        ${pr.fundamento?'<div class="rp-card" style="margin-top:6px"><div class="rp-k">Fundamento — Modelo MDC</div>'+E(pr.fundamento)+'</div>':''}`;
+    const fav=ai.factores_a_favor||ai.fortalezas_propias, con=ai.factores_en_contra||ai.debilidades_propias;
+    if((fav||[]).length||(con||[]).length){
+      h+=SUB('Factores del partido para '+propio)+'<div class="rp-g2"><div class="rp-card rp-verde"><div class="rp-k">A favor</div>'+lista(fav)+'</div><div class="rp-card rp-rojo"><div class="rp-k">En contra</div>'+lista(con)+'</div></div>';
     }
     if(ai.variable_decisiva) h+='<div class="rp-card rp-azul" style="margin-top:6px"><b>Variable decisiva:</b> '+E(ai.variable_decisiva)+'</div>';
-    if((ai.fortalezas_propias||[]).length||(ai.debilidades_propias||[]).length){
-      h+=H('Fortalezas y zonas de riesgo de '+propio)+'<div class="rp-g2"><div class="rp-card rp-verde"><div class="rp-k">✔ Lo que nos favorece</div>'+lista(ai.fortalezas_propias)+'</div><div class="rp-card rp-rojo"><div class="rp-k">✖ Zonas de riesgo propias</div>'+lista(ai.debilidades_propias)+'</div></div>';
+    if(Array.isArray(ai.plan)&&ai.plan.length){
+      h+=SUB('Plan para el cuerpo técnico')+ai.plan.map((x,i)=>`<div class="rp-plan"><div class="rp-num">${i+1}</div><div><b>${E(x.titulo||'')}</b><div>${E(x.detalle||'')}</div></div></div>`).join('');
     }
   } else {
-    // Predicción hecha desde la cancha, con perfiles SC360
-    if(ai.resumen) h+=H('Cómo llega el equipo')+'<p class="rp-p">'+E(ai.resumen)+'</p>';
-    if(Array.isArray(p.xi)&&p.xi.length){
-      h+=H('Equipo')+`<table class="rp-t"><thead><tr><th>Jugador</th><th>Línea</th><th>Perfil</th><th>D proyectada</th><th>IDC</th></tr></thead><tbody>${p.xi.map(j=>`<tr><td>${E(j.nombre)}</td><td>${E(j.linea||'')}</td><td>${E(j.disc||'')}</td><td>${E(j.dp??'—')}</td><td>${E(j.idc??'—')}</td></tr>`).join('')}</tbody></table>`;
-    }
+    if(ai.resumen) h+=SUB('Cómo llega el equipo')+'<p class="rp-p">'+E(ai.resumen)+'</p>';
     if(Array.isArray(ai.por_linea)&&ai.por_linea.length){
-      h+=H('Por línea')+'<div class="rp-g2">'+ai.por_linea.map(l=>`<div class="rp-card"><div class="rp-k">${E(l.linea)}</div>${E(l.prediccion||'')}
+      h+=SUB('Por línea')+'<div class="rp-g2">'+ai.por_linea.map(l=>`<div class="rp-card"><div class="rp-k">${E(l.linea)}</div>${E(l.prediccion||'')}
         ${l.riesgo?`<div class="rp-txt-rojo" style="margin-top:3px"><b>Riesgo:</b> ${E(l.riesgo)}</div>`:''}${l.accion?`<div class="rp-txt-verde" style="margin-top:2px"><b>Acción:</b> ${E(l.accion)}</div>`:''}</div>`).join('')+'</div>';
     }
     if(Array.isArray(ai.escenarios)&&ai.escenarios.length){
-      h+=H('Escenarios del partido')+`<table class="rp-t"><thead><tr><th>Momento</th><th>Qué puede pasar</th><th>Qué hacer</th></tr></thead><tbody>${ai.escenarios.map(e=>`<tr><td><b>${E(e.momento)}</b></td><td>${E(e.que_puede_pasar)}</td><td>${E(e.que_hacer)}</td></tr>`).join('')}</tbody></table>`;
+      h+=SUB('Escenarios')+`<table class="rp-t"><thead><tr><th>Momento</th><th>Qué puede pasar</th><th>Qué hacer</th></tr></thead><tbody>${ai.escenarios.map(e=>`<tr><td><b>${E(e.momento)}</b></td><td>${E(e.que_puede_pasar)}</td><td>${E(e.que_hacer)}</td></tr>`).join('')}</tbody></table>`;
     }
-    if(Array.isArray(ai.jugadores_clave)&&ai.jugadores_clave.length) h+=H('Jugadores clave')+ai.jugadores_clave.map(j=>`<div class="rp-card" style="margin-bottom:5px"><b>${E(j.nombre)}:</b> ${E(j.por_que)}</div>`).join('');
-    if(ai.rival) h+=H('El rival')+'<p class="rp-p">'+E(ai.rival)+'</p>';
-    if(ai.cambios_sugeridos) h+=H('Cambios')+'<p class="rp-p">'+E(ai.cambios_sugeridos)+'</p>';
-    if(Array.isArray(ai.plan_previa)&&ai.plan_previa.length) h+=H('Plan de previa')+ai.plan_previa.map((x,i)=>`<div class="rp-plan"><div class="rp-num">${i+1}</div><div>${E(x)}</div></div>`).join('');
+    if(Array.isArray(ai.jugadores_clave)&&ai.jugadores_clave.length) h+=SUB('Jugadores clave propios')+ai.jugadores_clave.map(j=>`<div class="rp-card" style="margin-bottom:5px"><b>${E(j.nombre)}:</b> ${E(j.por_que)}</div>`).join('');
+    if(ai.rival) h+=SUB('Cómo puede influir el rival')+'<p class="rp-p">'+E(ai.rival)+'</p>';
+    if(ai.cambios_sugeridos) h+=SUB('Cambios')+'<p class="rp-p">'+E(ai.cambios_sugeridos)+'</p>';
+    if(Array.isArray(ai.plan_previa)&&ai.plan_previa.length) h+=SUB('Plan de previa')+ai.plan_previa.map((x,i)=>`<div class="rp-plan"><div class="rp-num">${i+1}</div><div>${E(x)}</div></div>`).join('');
   }
+
+  // ── D · DESPUÉS DEL PARTIDO
+  h+=BL('D','Después del partido','qué se anticipó y qué pasó','#15803d');
+  h+=predDespuesHtml(p,E);
+
   const fuentes=(ai.fuentes_web||[]).filter(u=>/^https?:\/\//.test(u));
   h+=`<div class="rp-pie">
     ${ai.limites?'<div><b>Límites de este informe:</b> '+E(ai.limites)+'</div>':''}
     ${fuentes.length?'<div>Fuentes web: '+fuentes.map(u=>E(u.replace(/^https?:\/\//,'').slice(0,60))).join(' · ')+'</div>':''}
-    <div>Informe generado con IA a partir de los datos de SC360${completo?' y de lo cargado por el cuerpo técnico':''}. Describe patrones y variables a monitorear: es una guía para el cuerpo técnico, no una certeza. No es un diagnóstico clínico.</div>
+    <div>Los bloques A y B muestran datos con su fuente. El bloque C es una lectura generada con IA (hipótesis, no certeza); el modelo de lectura está en etapa experimental y se valida con el bloque D. No es un diagnóstico clínico.</div>
     <div style="margin-top:3px">Sport Coaching 360 · app.sportcoachingpro.com · Medir → Entender → Decidir → Mejorar</div>
   </div>`;
   return h;
@@ -15168,7 +15329,7 @@ function predCompletoForm(){
   predModal(`<div class="pred-modal-in pred-form">
     <div class="pred-barra"><div style="font-size:15px;font-weight:900;color:#e8eff8">📑 Informe completo del rival</div>
       <button class="bg" style="padding:8px 12px;font-size:12px;margin-left:auto" onclick="predModalCerrar()">✕ Cerrar</button></div>
-    <div style="font-size:12.5px;color:#b4c2d4;line-height:1.5;margin-bottom:12px">Para partidos donde no tenés los perfiles de los jugadores cargados (por ejemplo, la Primera). La IA arma el scouting del rival, los escenarios, las ventanas de riesgo y el plan con el Modelo MDC, a partir de las estadísticas que cargues. Cuantos más datos, mejor el informe.</div>
+    <div style="font-size:12.5px;color:#b4c2d4;line-height:1.5;margin-bottom:12px">El informe separa los <b style="color:#e8eff8">datos</b> (lo que medís en SC360 y lo que cargás acá, con su fuente) de la <b style="color:#e8eff8">lectura</b> (escenarios, ventanas de riesgo y plan, como hipótesis con nivel de confianza). Si vinculás una división, suma sola la disponibilidad MDC, los últimos resultados y los goles por tramo. Después del partido, compara lo anticipado con lo que pasó.</div>
 
     <div class="pred-sec">Partido</div>
     <div class="pred-dos">${campo('torneo','Torneo / fecha','Ej: Primera Nacional · Jornada 34')}${campo('fecha','Día y hora','Ej: Sábado 17/10 · 16 hs')}</div>
@@ -15191,7 +15352,7 @@ function predCompletoForm(){
 
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:12px;color:#b4c2d4;cursor:pointer">
       <input type="checkbox" id="pc-web" ${prev.web===false?'':'checked'} style="accent-color:#7c3aed;margin-top:2px">
-      <span>Completar con información pública del rival en internet. <span style="color:#f59e0b">Solo sirve si el rival juega la misma competencia que figura en internet: para inferiores o ligas locales puede traer datos del primer equipo profesional, que no aplican.</span></span></label>
+      <span>Completar con información pública del rival en internet (cada dato aparece con su enlace). <span style="color:#f59e0b">Solo sirve si el rival juega la misma competencia que figura en internet: para inferiores o ligas locales puede traer datos del primer equipo profesional, que no aplican.</span></span></label>
 
     <div id="pc-estado" style="font-size:12px;margin-top:10px"></div>
     <div style="display:flex;gap:8px;margin-top:12px;position:sticky;bottom:0;background:#0d1b3e;padding:10px 0">
@@ -15217,34 +15378,38 @@ async function predCompletoGenerar(){
     grupo:gObj?gObj.nombre:null};
   const stTxt=(o)=>['posición '+(o.posicion||'—'),'puntos '+(o.pts||'—'),'PJ '+(o.pj||'—'),'G-E-P '+[o.g,o.e,o.p].map(x=>x||'—').join('-'),'GF '+(o.gf||'—'),'GC '+(o.gc||'—'),'goleador: '+(o.goleador||'—'),'últimos resultados: '+(o.forma||'—')].join(' · ');
   const P=datos.propio, R=datos.rival;
+  btn.disabled=true; estado.innerHTML='<span style="color:#b4c2d4">Juntando los datos del plantel…</span>';
+  datos.sc360=gObj?await predDatosSC360(gObj.codigo):null;
   const prompt='Sos analista de rendimiento mental deportivo y trabajás con el Modelo de Disponibilidad Competitiva (MDC: Disponibilidad = Talento − Interferencia) de Eduardo Meljin. '+
-'Escribís un INFORME DE SCOUTING Y PREDICCIÓN para un cuerpo técnico, en español rioplatense (voseo), directo y concreto.\n\n'+
+'Escribís la LECTURA DE UN PARTIDO para un cuerpo técnico profesional, en español rioplatense (voseo), directo, concreto y sin relleno. Cada afirmación tiene que poder apoyarse en un dato de abajo.\n\n'+
 'PARTIDO: '+P.nombre+' vs '+R.nombre+' · '+[datos.torneo,datos.fecha,datos.estadio].filter(Boolean).join(' · ')+' · '+P.nombre+' juega de '+(datos.condicion||'—').toLowerCase()+'.\n\n'+
-'NUESTRO EQUIPO ('+P.nombre+'): '+stTxt(P)+(P.notas?'\nNotas del cuerpo técnico: '+P.notas:'')+'\n\n'+
+'NUESTRO EQUIPO ('+P.nombre+'): '+stTxt(P)+(P.notas?'\nNotas del cuerpo técnico: '+P.notas:'')+'\nDatos medidos en SC360:\n'+predDatosSC360Texto(datos.sc360)+'\n\n'+
 'RIVAL ('+R.nombre+'): '+stTxt(R)+'\nEstilo según el cuerpo técnico: '+(R.estilo||'—')+(R.jugadores?'\nJugadores clave: '+R.jugadores:'')+(R.notas?'\nNotas: '+R.notas:'')+'\n\n'+
 (borr.web?'Podés buscar en internet información pública y reciente de '+R.nombre+(datos.torneo?' en '+datos.torneo:'')+' (tabla, resultados, goleadores, sistema). Usá SOLO datos de esa misma competencia y categoría; si lo que encontrás es de otra categoría o del primer equipo profesional y el partido es de otra liga, no lo uses y aclaralo en "limites". No inventes.\n\n':'No busques en internet: usá solo los datos de arriba.\n\n')+
 'MARCO MDC: la interferencia de un equipo se lee en su contexto (presión por el resultado, racha, localía, urgencia en la tabla); la disponibilidad es lo que el equipo puede mostrar hoy. Aplicalo a los dos equipos.\n\n'+
-'REGLAS DE LENGUAJE: hablá de patrones y probabilidades ("puede", "es probable", "patrón observado", "variable a monitorear"), nunca como certeza ("va a pasar"). No uses términos clínicos (ansiedad, depresión, burnout, trastorno): usá "activación", "tensión", "nerviosismo", "señales de sobrecarga". No inventes estadísticas, lesiones ni nombres que no estén en los datos o en una fuente web confiable; si falta información, decilo en "limites" y dejá la sección más corta.\n\n'+
+'REGLAS DE LENGUAJE: hablá de patrones ("puede", "es probable", "patrón observado", "variable a monitorear"), nunca como certeza ("va a pasar"). No uses términos clínicos (ansiedad, depresión, burnout, trastorno): usá "activación", "tensión", "nerviosismo", "señales de sobrecarga".\n'+
+'REGLAS DE DATOS: no inventes estadísticas, lesiones, resultados ni nombres. NO estimes probabilidades ni porcentajes de resultado. Jugadores del rival: SOLO los que figuran en los datos del cuerpo técnico (fuente "cuerpo técnico") o en una página web que citás (fuente = URL exacta); si no hay, dejá la lista vacía. Cada dato del rival sacado de internet va en "datos_rival_web" con su URL. Las ventanas de riesgo tienen que apoyarse en los goles por tramo o en el contexto (decilo en "base"). Si falta información, decilo en "limites" y dejá la sección más corta.\n\n'+
 'Respondé SOLO con este JSON, sin texto adicional ni markdown:\n'+
 '{\n'+
 '  "contexto": "2-3 oraciones: qué se juega cada equipo en este partido",\n'+
 '  "estado_rival": "párrafo: cómo llega el rival",\n'+
 '  "forma_rival": "1-2 oraciones sobre su forma reciente",\n'+
 '  "tactica_rival": {"estructura": "formación y cómo sale, mediocampo y ataque", "caracteristicas": ["3-4 rasgos"]},\n'+
-'  "jugadores_rival": [{"nombre": "", "pos": "", "dato": "partidos/goles si se conocen", "por_que": "por qué importa y cómo neutralizarlo"}],\n'+
+'  "jugadores_rival": [{"nombre": "", "pos": "", "dato": "partidos/goles si se conocen", "por_que": "por qué importa y cómo neutralizarlo", "fuente": "cuerpo técnico o la URL"}],\n'+
+'  "datos_rival_web": [{"dato": "un dato concreto del rival (resultado, posición, goleador, sistema)", "fuente": "URL exacta"}],\n'+
 '  "fortalezas_rival": ["3-5"], "debilidades_rival": ["3-5"],\n'+
 '  "escenarios": [{"titulo": "ej: Inicio del partido (1-30 min) / Si el rival abre el marcador / Si nosotros abrimos el marcador / Partido trabado al minuto 60", "que_puede_hacer_rival": "", "riesgo": "riesgo para nuestro equipo", "oportunidad": ""}],\n'+
-'  "ventanas": [{"minutos": "ej: 0-15", "nombre": "nombre corto", "nivel": "ALTO|MEDIO|BAJO", "senales": ["2-3 señales de alerta"], "accion": "acción clave concreta"}],\n'+
+'  "ventanas": [{"minutos": "ej: 0-15 (minutos absolutos del partido, 0-90)", "nombre": "nombre corto", "nivel": "ALTO|MEDIO|BAJO", "senales": ["2-3 señales de alerta"], "accion": "acción clave concreta", "base": "qué dato la respalda"}],\n'+
 '  "plan": [{"titulo": "", "detalle": "2-3 oraciones"}],\n'+
-'  "probabilidades": {"propio": 0, "empate": 0, "rival": 0, "fundamento": "2-3 oraciones con el MDC"},\n'+
+'  "factores_a_favor": [{"factor": "1 oración", "base": "el dato que lo respalda"}],\n'+
+'  "factores_en_contra": [{"factor": "1 oración", "base": "el dato que lo respalda"}],\n'+
 '  "variable_decisiva": "1 oración",\n'+
-'  "fortalezas_propias": ["3-5"], "debilidades_propias": ["3-5"],\n'+
 '  "limites": "1-2 oraciones: qué datos faltan y cuánto confiar en el informe",\n'+
 '  "fuentes_web": ["URLs usadas; vacío si no buscaste"]\n'+
 '}\n'+
-'Exactamente 4 escenarios, entre 4 y 6 ventanas, entre 4 y 6 puntos de plan, hasta 6 jugadores del rival. Las probabilidades suman 100.';
+'Exactamente 4 escenarios, entre 3 y 6 ventanas, entre 4 y 6 puntos de plan, entre 3 y 5 factores a favor y en contra, hasta 6 jugadores del rival (solo con fuente). datos_rival_web vacío si no buscaste en internet.';
 
-  btn.disabled=true; btn.textContent='✦ Armando el informe'+(borr.web?' y buscando datos del rival…':'…');
+  btn.disabled=true; btn.textContent='✦ Armando la lectura'+(borr.web?' y buscando datos del rival…':'…');
   estado.innerHTML='<span style="color:#b4c2d4">Puede tardar hasta un minuto.</span>';
   async function llamar(conWeb){
     const body={model:'claude-haiku-4-5-20251001',max_tokens:8000,messages:[{role:'user',content:prompt}]};
@@ -18776,7 +18941,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='28/10/2026 · 4';
+const SC360_VERSION='29/10/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
