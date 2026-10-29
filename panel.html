@@ -298,7 +298,7 @@ tr:hover td{background:#0d1b3e40}
 @media(max-width:768px){
 
   /* TOPBAR */
-  .topbar{padding:0 12px;height:50px}
+  .topbar{padding:0 12px;height:50px;position:sticky;top:0;z-index:310}
   .topbar-logo{font-size:13px}
   .topbar-sub{display:none}
   #user-rol{display:none}
@@ -3655,7 +3655,10 @@ function irCentroDecisiones(){
     else if(n>40) clearInterval(t); },150);
 }
 function toggleMenuMobile(){
-  document.querySelector('.sidebar').classList.toggle('mobile-open');
+  const sb=document.querySelector('.sidebar'); sb.classList.toggle('mobile-open');
+  // El menú empieza justo debajo de la barra superior, esté donde esté la pantalla
+  if(sb.classList.contains('mobile-open')){ const tb=document.querySelector('.topbar'); sb.style.top=(tb?Math.max(0,Math.round(tb.getBoundingClientRect().bottom)):0)+'px'; }
+  else sb.style.top='';
 }
 
 // Grupos de menú plegables — el estado (abierto/cerrado) se guarda en el
@@ -18961,7 +18964,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='29/10/2026 · 2';
+const SC360_VERSION='29/10/2026 · 3';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
