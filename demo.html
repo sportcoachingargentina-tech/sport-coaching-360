@@ -957,6 +957,11 @@ body.es-admin .solo-admin{display:inline!important}
 .pj-tab{flex:1;display:flex;flex-direction:column}
 .pj-tab-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex:1}
 @media(max-width:900px){ .pj-tab-cards{grid-template-columns:1fr} }
+#cancha-sim{display:grid;grid-template-columns:minmax(220px,250px) minmax(0,1fr) minmax(250px,290px);grid-template-areas:"imp cancha der";gap:14px;align-items:start}
+#cancha-impacto{grid-area:imp;display:flex;flex-direction:column;gap:10px;min-width:0}
+#cancha-sim .cs-cancha{grid-area:cancha;min-width:0}
+#cancha-sim .cs-der{grid-area:der;position:sticky;top:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+@media(max-width:1250px){ #cancha-sim{grid-template-columns:minmax(0,1fr) minmax(240px,280px);grid-template-areas:"cancha der" "imp der"} }
 @media(max-width:768px){ .dsh-tiles,.dsh-tiles.seis{grid-template-columns:repeat(2,1fr)} .dec-res{gap:6px} .dsh-tile-v{font-size:28px} .dsh-cards{grid-template-columns:1fr} .dsh-cards>.dsh-card,.dsh-cards>.dsh-card:nth-child(4),.dsh-cards>.dsh-card:nth-child(5){grid-column:span 1} #tb-rayo{display:none!important} .topbar-logo{white-space:nowrap;font-size:12px} }
 @media(max-width:440px){
   .topbar-logo{font-size:11px!important;letter-spacing:0.02em!important;gap:5px!important}
@@ -1231,10 +1236,16 @@ tr:hover td{background:#0d1b3e40}
   #dash-admin-clubes{max-height:none!important}
   #dash-admin-clubes table{min-width:760px}
   #dash-admin-clubes td:first-child,#dash-admin-clubes th:first-child{position:sticky;left:0;background:#0f1a33;z-index:1;box-shadow:2px 0 6px #0006}
-  #cancha-sim > div{flex:1 1 100%!important;min-width:0!important}
-  #cancha-sim > div:nth-child(2){order:1}
-  #cancha-panel{order:2}
-  #cancha-impacto{order:3}
+  #cancha-sim{display:flex!important;flex-direction:column;align-items:stretch!important;gap:12px}
+  #cancha-sim > *,#cancha-sim .cs-der > *{min-width:0;max-width:100%}
+  #cancha-sim .cs-der{display:contents}
+  #cancha-panel{order:1;position:sticky;top:58px;z-index:20;box-shadow:0 6px 14px #0009;border-radius:12px}
+  #cancha-sim .cs-cancha{order:2}
+  #cancha-sugerencias{order:3}
+  #cancha-acc{order:4}
+  #cancha-impacto{order:5}
+  #cancha-panel .cancha-bench{flex-direction:row!important;overflow-x:auto;max-height:none!important;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  #cancha-panel .cancha-bench > div{flex:0 0 auto;max-width:175px}
   .plantel-fila input[type=checkbox]{width:22px!important;height:22px!important}
   .mn-item{
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -1247,7 +1258,7 @@ tr:hover td{background:#0d1b3e40}
   .mn-item:active{background:#0d1b3e}
 
   /* MAIN */
-  .main{padding:1rem 12px;overflow-x:hidden;overflow-y:visible}
+  .main{padding:1rem 12px;overflow-x:hidden;overflow-y:visible;overflow-x:clip}
   .page-title{font-size:18px}
   .page-sub{font-size:11px;margin-bottom:1rem}
 
@@ -4691,19 +4702,27 @@ function toggleDeporteSelector(){
 async function crearGrupo(){
   const n=document.getElementById('gn').value.trim();
   if(!n){alert('Ingresá un nombre para el grupo.');return;}
-  const c=document.getElementById('gc').value;
+  let c=document.getElementById('gc').value.trim();
+  // Coordinador o técnico: la división siempre es de su club (la base no deja crearla en otro)
+  const esAdminG=USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin';
+  if(!esAdminG&&USUARIO_ACTUAL&&USUARIO_ACTUAL.club_nombre) c=String(USUARIO_ACTUAL.club_nombre).split('—')[0].trim();
+  if(!c){alert('Ingresá el club.');return;}
   const cat=document.getElementById('gcat').value;
   const t=document.getElementById('gt').value;
   const dep=document.getElementById('gdeporte')?document.getElementById('gdeporte').value:'fútbol';
   const cod=Math.random().toString(36).substring(2,9).toUpperCase();
   const logo=document.getElementById('glogo').value.trim();
   const d=await q('grupos',{m:'POST',b:{codigo:cod,nombre:n,club:c,categoria:cat,tipo:t,deporte:dep,logo_url:logo||null,habilitado:true,creado_por:'Eduardo Meljin'}});
+  if(!Array.isArray(d)||!d.length){
+    alert('No se pudo crear el grupo'+(d&&d.message?': '+d.message:'')+'. Revisá el nombre del club o avisá al administrador.');
+    return;
+  }
   if(d&&d.length){
     ML=TU+'?grupo='+cod;
     document.getElementById('mg-t').textContent=n;
     document.getElementById('mg-l').textContent=ML;
     document.getElementById('mo-g').classList.add('open');
-    ['gn','gc','gcat'].forEach(id=>document.getElementById(id).value='');
+    ['gn','gc','gcat'].forEach(id=>{ const el=document.getElementById(id); if(el&&!el.readOnly) el.value=''; });
     loadG();
   }
 }
@@ -4711,6 +4730,12 @@ async function crearGrupo(){
 function toggleFormGrupo(){
   const f=document.getElementById('form-grupo');
   f.style.display=f.style.display==='none'?'block':'none';
+  // Coordinador o técnico: el club queda fijo (el suyo)
+  const gc=document.getElementById('gc');
+  if(gc&&USUARIO_ACTUAL&&USUARIO_ACTUAL.rol!=='admin'&&USUARIO_ACTUAL.club_nombre){
+    gc.value=String(USUARIO_ACTUAL.club_nombre).split('—')[0].trim(); gc.readOnly=true; gc.style.opacity='0.7'; gc.title='La división se crea en tu club';
+  }
+  const gl=document.getElementById('glogo'); if(gl&&!gl.placeholder.includes('escudo del club')) gl.placeholder='Opcional: si lo dejás vacío, usa el escudo del club';
 }
 
 function toggleFormPartido(){
@@ -4719,7 +4744,8 @@ function toggleFormPartido(){
 }
 
 async function loadG(){
-  const [gs,rs]=await Promise.all([q('grupos?order=creado_en.desc'),q('resultados?select=grupo_codigo')]);
+  const [gs,rs,cls]=await Promise.all([q('grupos?order=creado_en.desc'),q('resultados?select=grupo_codigo'),q('clubes?select=id,nombre,tipo,activo')]);
+  const clubPorId={}; (Array.isArray(cls)?cls:[]).forEach(c=>{ clubPorId[c.id]=c; });
   if(!gs)return;
   // Filtrar por club si no es admin
   const gsFilt=filtrarGrupos(gs);
@@ -4733,7 +4759,7 @@ async function loadG(){
     <div style="font-size:12px;color:#94a3b8">Total grupos: <strong style="color:#00c2ff">${totalGrupos}</strong></div>
     <div style="font-size:12px;color:#94a3b8">Total respuestas: <strong style="color:#22c55e">${totalResp}</strong></div>
   </div>`;
-  html+=gsFilt.map(g=>{
+  const filaG=g=>{
     const c=cnt[g.codigo]||0;
     const lk=TU+'?grupo='+g.codigo;
     const lkEstilo=window.location.origin+window.location.pathname.replace('panel.html','estilo-pensamiento.html')+'?grupo='+g.codigo;
@@ -4758,10 +4784,45 @@ async function loadG(){
         <button data-id="${g.id}" style="padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;background:#1a0a0a;color:#ef4444;border:1px solid #ef444440" onclick="eliminarG(this)">✕</button>
       </div>
     </div>`;
+  };
+  // Agrupado por club: se toca el club y se abren sus divisiones
+  const porClub={};
+  gsFilt.forEach(g=>{ const cl=g.club_id&&clubPorId[g.club_id]; const k=cl?cl.id:'txt:'+normClub(g.club||'Sin club');
+    (porClub[k]=porClub[k]||{k,nombre:cl?cl.nombre:((g.club||'Sin club').split('—')[0].trim()),tipo:cl?cl.tipo:'club',activo:cl?cl.activo!==false:true,grupos:[]}).grupos.push(g); });
+  const clubesG=Object.values(porClub).sort((a,b)=>(b.activo-a.activo)||((a.tipo==='club'?0:1)-(b.tipo==='club'?0:1))||a.nombre.localeCompare(b.nombre));
+  let abiertos={}; try{ abiertos=JSON.parse(localStorage.getItem('sc360_grupos_abiertos')||'{}')||{}; }catch(e){}
+  const unSolo=clubesG.length===1;
+  if(clubesG.length>1) html+='<div style="display:flex;justify-content:flex-end;gap:12px;margin:0 2px 6px"><a href="#" onclick="grpTodos(true);return false" style="font-size:11.5px;color:#00c2ff">Abrir todos</a><a href="#" onclick="grpTodos(false);return false" style="font-size:11.5px;color:#94a3b8">Cerrar todos</a></div>';
+  html+=clubesG.map((cl,i)=>{
+    const id='grpc-'+i, abierto=unSolo||!!abiertos[cl.k];
+    const resp=cl.grupos.reduce((s,g)=>s+(cnt[g.codigo]||0),0), hab=cl.grupos.filter(g=>g.habilitado).length;
+    const logo=(cl.grupos.find(g=>g.logo_url)||{}).logo_url;
+    const tipoTxt=cl.tipo==='particular'?'cuenta particular':cl.tipo==='interno'?'interno':'';
+    return '<div style="margin-bottom:8px;border:1px solid #1a3a6e;border-radius:12px;background:#0a1530;'+(cl.activo?'':'opacity:0.75')+'">'+
+      '<div onclick="grpToggle(\''+id+'\',\''+String(cl.k).replace(/'/g,'')+'\')" style="display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer">'+
+        (logo?'<img src="'+logo+'" style="width:30px;height:30px;border-radius:6px;object-fit:cover;border:1px solid #1a3a6e;flex-shrink:0">':'<div style="width:30px;height:30px;border-radius:6px;background:#1a3a6e;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">🏟</div>')+
+        '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+decEsc(cl.nombre)+(tipoTxt?' <span style="font-size:10.5px;font-weight:600;color:#94a3b8">· '+tipoTxt+'</span>':'')+(cl.activo?'':' <span style="font-size:10.5px;font-weight:700;color:#ef4444">· inactivo</span>')+'</div>'+
+          '<div style="font-size:11px;color:#94a3b8">'+cl.grupos.length+(cl.grupos.length===1?' división':' divisiones')+(hab<cl.grupos.length?' ('+hab+' habilitada'+(hab===1?'':'s')+')':'')+' · '+resp+' respuesta'+(resp===1?'':'s')+'</div></div>'+
+        '<span id="'+id+'-ch" style="font-size:12px;color:#00c2ff;flex-shrink:0">'+(abierto?'▾':'▸')+'</span></div>'+
+      '<div id="'+id+'" data-k="'+String(cl.k).replace(/"/g,'')+'" class="grp-club-cuerpo" style="display:'+(abierto?'block':'none')+';padding:0 8px 8px">'+cl.grupos.map(filaG).join('')+'</div></div>';
   }).join('');
   document.getElementById('grupos-list').innerHTML=html;
   updSel('ig',gsFilt.map(g=>({v:g.codigo,l:g.nombre})),'Todos los grupos');
   updSel('rg',gsFilt.map(g=>({v:g.codigo,l:g.nombre})),'Todos los planteles');
+}
+
+function grpGuardarAbiertos(){
+  const ab={}; document.querySelectorAll('.grp-club-cuerpo').forEach(el=>{ if(el.style.display!=='none') ab[el.dataset.k]=1; });
+  try{ localStorage.setItem('sc360_grupos_abiertos',JSON.stringify(ab)); }catch(e){}
+}
+function grpToggle(id){
+  const el=document.getElementById(id), ch=document.getElementById(id+'-ch'); if(!el) return;
+  const abrir=el.style.display==='none'; el.style.display=abrir?'block':'none'; if(ch) ch.textContent=abrir?'▾':'▸';
+  grpGuardarAbiertos();
+}
+function grpTodos(abrir){
+  document.querySelectorAll('.grp-club-cuerpo').forEach(el=>{ el.style.display=abrir?'block':'none'; const ch=document.getElementById(el.id+'-ch'); if(ch) ch.textContent=abrir?'▾':'▸'; });
+  grpGuardarAbiertos();
 }
 
 // Enviar el link del test: en el celular abre el menú de compartir (WhatsApp,
@@ -15144,20 +15205,21 @@ function renderPlantelCancha(titulares) {
       <select id="sel-formacion" onchange="canchaCambiarFormacion()" style="padding:6px 10px;border:1px solid #1a3a6e;border-radius:8px;font-size:13px;background:#141f3a;color:#e8eff8">${optsHTML}</select>
       <span style="font-size:11px;color:#94a3b8">Tocá un suplente y después el titular que sale · o arrastrá · tocá dos titulares para intercambiarlos</span>
     </div>
-    <div id="cancha-sim" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start">
-      <div id="cancha-impacto" style="flex:0 1 270px;min-width:230px;display:flex;flex-direction:column;gap:10px"></div>
-      <div style="flex:1 1 520px;min-width:0">
+    <div id="cancha-sim">
+      <div id="cancha-impacto"></div>
+      <div class="cs-cancha">
         <div id="cancha-wrapper" style="position:relative;width:100%;max-width:880px;margin:0 auto"></div>
         <div style="margin-top:8px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;font-size:11px;color:#b4c2d4">
           <span><span style="color:#22c55e">●</span> D proyectada ≥80</span><span><span style="color:#f59e0b">●</span> 65–79</span><span><span style="color:#ef4444">●</span> &lt;65</span><span style="color:#f59e0b">⚠ fuera de su línea</span>
         </div>
       </div>
-      <div id="cancha-panel" style="flex:0 1 290px;min-width:240px;display:flex;flex-direction:column;gap:10px"></div>
+      <div class="cs-der">
+        <div id="cancha-panel"></div>
+        <div id="cancha-sugerencias"></div>
+        <div id="cancha-acc"></div>
+      </div>
     </div>
-    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:stretch;margin-top:14px">
-      <div id="cancha-sugerencias" style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column"></div>
-      <div id="cancha-rival" style="flex:2 1 480px;min-width:0"></div>
-    </div>
+    <div id="cancha-rival" style="margin-top:14px"></div>
     <div id="cancha-ia" style="margin-top:14px"></div>`;
   canchaInit(titulares);
   canchaRenderRival();
@@ -15288,7 +15350,7 @@ function canchaLecturaLinea(linea, js){
 function canchaRender(){
   const S=CANCHA_SIM, wrap=document.getElementById('cancha-wrapper'), panel=document.getElementById('cancha-panel');
   if(!S||!wrap||!panel) return;
-  const nFilas=canchaNumFilas(), alto=Math.max(600,nFilas*130+60);
+  const nFilas=canchaNumFilas(), alto=window.innerWidth<=768?Math.max(430,nFilas*92+40):Math.max(600,nFilas*130+60);
   const sel=S.sel;
 
   let h=`<div ondragover="event.preventDefault()" style="position:relative;width:100%;height:${alto}px;background:linear-gradient(180deg,#1a4a2e 0%,#1e5c36 50%,#1a4a2e 100%);border-radius:16px;overflow:hidden;border:2px solid #2d7a4a">
@@ -15333,7 +15395,7 @@ function canchaRender(){
   // Suplentes
   let p=`<div style="${box}" ondragover="event.preventDefault()" ondrop="canchaDrop(event,'b',-1)">${tit('Suplentes ('+S.bench.length+')')}`;
   if(!S.bench.length) p+='<div style="font-size:11px;color:#94a3b8">Todo el grupo está en cancha. Arrastrá un titular acá para sacarlo.</div>';
-  p+='<div style="display:flex;flex-direction:column;gap:4px;max-height:230px;overflow-y:auto">'+S.bench.map(function(b,i){
+  p+='<div class="cancha-bench" style="display:flex;flex-direction:column;gap:4px;max-height:230px;overflow-y:auto">'+S.bench.map(function(b,i){
     const esSel=sel&&sel.t==='b'&&sel.i===i;
     return `<div draggable="true" ondragstart="canchaDrag(event,'b',${i})" onclick="canchaClick('b',${i})" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;border:1px solid ${esSel?'#00c2ff':'#1a3a6e'};background:${esSel?'#00c2ff18':'#0a1024'}">
       <span style="width:24px;font-size:13px;font-weight:900;color:${canchaCol(b.Dp)}">${b.Dp}</span>
@@ -15368,7 +15430,7 @@ function canchaRender(){
   // Sugerencias (debajo de la cancha, al lado del rival)
   let ps='';
   const sug=canchaSugerencias();
-  ps+=`<div style="${box};flex:1">${tit('Sugerencias')}`+(sug.length?sug.map(function(sg){
+  ps+=`<div style="${box}">${tit('Sugerencias')}`+(sug.length?sug.map(function(sg){
     return `<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-top:1px solid #1a3a6e44">
       <div style="flex:1;font-size:11.5px;color:#e8eff8;line-height:1.4">Entra <b>${sg.inn.nombre}</b> (${sg.inn.Dp}) por <b>${sg.out.nombre}</b> (${sg.out.Dp}) · ${sg.linea} <b style="color:#22c55e">+${sg.gana}</b></div>
       <button onclick="canchaAplicarSug(${sg.bi},${sg.si})" style="padding:4px 10px;font-size:11px;font-weight:700;background:#00c2ff22;color:#00c2ff;border:1px solid #00c2ff55;border-radius:6px;cursor:pointer;white-space:nowrap">Aplicar</button></div>`;
@@ -15376,12 +15438,13 @@ function canchaRender(){
 
   // Acciones
   const cambios=JSON.stringify(ahora)!==JSON.stringify(ini);
-  p+=`<div style="display:flex;gap:8px;flex-wrap:wrap">
+  let pa=`<div style="display:flex;gap:8px;flex-wrap:wrap">
     <button onclick="canchaPrediccionIA()" style="flex:1 1 100%;padding:10px 12px;font-size:13px;font-weight:800;background:#7c3aed;color:#fff;border:none;border-radius:8px;cursor:pointer">✦ Generar predicción con IA</button>
     <button onclick="canchaUsarXI()" class="btn-p" style="flex:1;padding:9px 12px;font-size:12.5px">✓ Usar este XI</button>
     <button onclick="canchaReset()" class="bg" style="padding:9px 12px;font-size:12.5px"${(cambios||S.aplicado)?'':' disabled'}>↺ XI inicial</button></div>
     <div style="font-size:10.5px;color:#4a5a78">"Usar este XI" actualiza el Predictivo, la solapa Plantel y el PDF con esta formación.</div>`;
   panel.innerHTML=p;
+  const elAcc=document.getElementById('cancha-acc'); if(elAcc) elAcc.innerHTML=pa;
   const elImp=document.getElementById('cancha-impacto'); if(elImp) elImp.innerHTML=pi;
   const elSug=document.getElementById('cancha-sugerencias'); if(elSug) elSug.innerHTML=ps;
 }
@@ -19876,7 +19939,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='29/10/2026 · 3';
+const SC360_VERSION='29/10/2026 · 6';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
