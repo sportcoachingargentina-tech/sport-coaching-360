@@ -232,7 +232,8 @@ T('alertas').push({id:uuid(),tipo:'discrepancia',jugador_nombre:JUG[12].nombre,g
 T('predicciones_ia').push({id:uuid(),grupo_codigo:'DEMO4TA',club:CLUB,tipo:'completo',rival:'Deportivo Los Álamos',rival_norm:'deportivo los alamos',titulo:'Club Atlético Ejemplo vs Deportivo Los Álamos',fecha_partido:'Sábado · 16 hs',formacion:null,xi:[],creado_por:'Coordinación (Demo)',creado_en:iso(diasAtras(1,20)),
   datos:{torneo:'Liga regional · Fecha 18',fecha:'Sábado · 16 hs',estadio:'Cancha de Los Álamos',condicion:'Visitante',grupo:'Cuarta División',
     propio:{nombre:'Club Atlético Ejemplo',posicion:'3°',pts:'31',pj:'17',g:'9',e:'4',p:'4',gf:'27',gc:'17',goleador:'Extremo derecho, 7 goles',forma:'G G E P G'},
-    rival:{nombre:'Deportivo Los Álamos',posicion:'8°',pts:'22',pj:'17',g:'6',e:'4',p:'7',gf:'19',gc:'21',goleador:'Delantero centro, 6 goles',forma:'P G P E P'}},
+    rival:{nombre:'Deportivo Los Álamos',posicion:'8°',pts:'22',pj:'17',g:'6',e:'4',p:'7',gf:'19',gc:'21',goleador:'Martín Ledesma, 6 goles',forma:'P G P E P',estilo:'Presión alta',jugadores:'Martín Ledesma (DC) 6 goles, fuerte de cabeza; Lucas Ferreyra (MI) conecta medio y ataque',notas:'Necesita sumar para no alejarse de arriba; de local sale a presionar'},
+    sc360:{mdc:76,n:20,fecha_test:ymd(diasAtras(21)),ultimos:[{rival:'Atlético Sur',fecha:ymd(diasAtras(5)),gf:2,gc:1},{rival:'Unión del Valle',fecha:ymd(diasAtras(12)),gf:1,gc:1},{rival:'Racing del Oeste',fecha:ymd(diasAtras(19)),gf:0,gc:2},{rival:'Defensores',fecha:ymd(diasAtras(26)),gf:3,gc:0},{rival:'San Lorenzo Norte',fecha:ymd(diasAtras(33)),gf:2,gc:1}],favor:[2,3,4,3,4,5],contra:[1,2,1,2,3,6],partidos_tramos:10,partidos_total:17,al:ymd(diasAtras(1))}},
   prediccion:null});
 
 // ═══════════════════ IA SIMULADA ═══════════════════
@@ -308,7 +309,7 @@ var IA={
       estado_rival:B+' viene irregular, con más derrotas que victorias en las últimas fechas. La necesidad de sumar puede sumarle tensión al juego.',
       forma_rival:'Una victoria en los últimos cinco partidos.',
       tactica_rival:{estructura:'4-4-2 con salida por los costados y un delantero de referencia.',caracteristicas:['Presión alta en los primeros minutos','Fuerte en la pelota parada','Se desordena cuando va perdiendo']},
-      jugadores_rival:[{nombre:'Delantero centro',pos:'DC',dato:'6 goles',por_que:'Referencia de área: marcarlo de cerca en los centros.'},{nombre:'Volante por izquierda',pos:'MI',dato:'Titular',por_que:'Conecta medio y ataque: cerrarle el pase interior.'}],
+      jugadores_rival:[{nombre:'Martín Ledesma',pos:'DC',dato:'6 goles',por_que:'Referencia de área: marcarlo de cerca en los centros.',fuente:'cuerpo técnico'},{nombre:'Lucas Ferreyra',pos:'MI',dato:'Titular',por_que:'Conecta medio y ataque: cerrarle el pase interior.',fuente:'cuerpo técnico'}],
       fortalezas_rival:['Localía','Pelota parada','Intensidad inicial'],debilidades_rival:['Racha irregular','Concede en los cierres','Se desordena si va abajo'],
       escenarios:[{titulo:'Inicio del partido (1-30 min)',que_puede_hacer_rival:'Salir a presionar alto.',riesgo:'Caer en su ritmo.',oportunidad:'Espacios para el contraataque.'},
         {titulo:'Si el rival abre el marcador',que_puede_hacer_rival:'Replegarse y administrar.',riesgo:'Apurarse y perder el orden.',oportunidad:'Paciencia y circulación.'},
@@ -316,11 +317,11 @@ var IA={
         {titulo:'Partido trabado al minuto 60',que_puede_hacer_rival:'Cambios ofensivos.',riesgo:'Cansancio y desconcentración.',oportunidad:'Protocolo de cierre.'}],
       ventanas:[{minutos:'0-15',nombre:'Trampa del arranque',nivel:'ALTO',senales:['Salidas apuradas','Comunicación cortada'],accion:'Protocolo de los primeros 5 minutos.'},
         {minutos:'40-45',nombre:'Fin del primer tiempo',nivel:'MEDIO',senales:['Faltas cerca del área'],accion:'Concentración en la pelota parada.'},
-        {minutos:'75-90',nombre:'Cierre del partido',nivel:'ALTO',senales:['Baja el ritmo','Se pierde la marca'],accion:'Rol de calma asignado y cambios con tiempo.'}],
+        {minutos:'75-90',nombre:'Cierre del partido',nivel:'ALTO',senales:['Baja el ritmo','Se pierde la marca'],accion:'Rol de calma asignado y cambios con tiempo.',base:'6 de los últimos 15 goles en contra llegaron en el ST 30+.'}],
       plan:[{titulo:'Arranque ordenado',detalle:'Cada jugador sabe su posición base; no perseguir la pelota en los primeros minutos.'},{titulo:'Reseteo después del error',detalle:'Rutina común de 5 segundos, siempre la misma.'},{titulo:'Cierre del partido',detalle:'Desde el minuto 75, consignas cortas y un referente de calma en cada línea.'},{titulo:'Pelota parada',detalle:'Marcas asignadas y revisadas en la previa.'}],
-      probabilidades:{propio:48,empate:27,rival:25,fundamento:'Estimación orientativa: '+A+' llega con mejor diferencia de gol y una disponibilidad grupal buena; '+B+' suma tensión por la tabla.'},
+      factores_a_favor:[{factor:'Mejor diferencia de gol que el rival',base:'+10 contra −2'},{factor:'Disponibilidad grupal buena',base:'MDC del plantel 76'},{factor:'Llega en buena racha',base:'3 victorias en los últimos 5'}],
       variable_decisiva:'Quién maneja mejor los primeros 20 minutos.',
-      fortalezas_propias:['Diferencia de gol positiva','Disponibilidad grupal buena','Goles repartidos'],debilidades_propias:['Goles recibidos en los cierres','Reacción al gol en contra'],
+      factores_en_contra:[{factor:'Recibe goles en los cierres',base:'6 de 15 goles en contra en el ST 30+'},{factor:'Juega de visitante ante un rival que presiona de local',base:'Notas del cuerpo técnico'}],datos_rival_web:[],
       limites:'Informe de demo armado con datos ficticios.',fuentes_web:[]};
   }
 };
@@ -2212,11 +2213,23 @@ tr:hover td{background:#0d1b3e40}
               <option value="pro">Pro</option>
             </select>
           </div>
+          <div class="fg"><label style="font-size:12px;color:#b4c2d4;display:block;margin-bottom:4px">Canal comercial</label>
+            <select id="nc-canal" style="width:100%;padding:9px 12px;border:1px solid #1a3a6e;border-radius:8px;font-size:13px;background:#0d1b3e;color:#e8eff8">
+              <option value="directo">Venta directa SC360</option>
+              <option value="gloouds">GLOOUDS</option>
+            </select>
+          </div>
         </div>
         <div style="padding:0 1rem 1rem">
           <button onclick="crearClub()" class="btn-p" style="width:100%;padding:11px">+ Crear club y coordinador</button>
           <div id="nc-msg" style="font-size:12px;margin-top:8px;display:none"></div>
         </div>
+      </div>
+
+      <!-- Canal y licencia por club (tabla clubes + licencias) -->
+      <div class="tw" style="margin-bottom:1.5rem">
+        <div class="th">CANAL Y LICENCIA POR CLUB <span style="font-weight:400;color:#94a3b8;font-size:11px">· directo o GLOOUDS · precio y reparto que usa el reporte de activos</span></div>
+        <div id="clubes-canal"><div class="es">Cargando…</div></div>
       </div>
 
       <!-- Lista de clubes -->
@@ -3001,6 +3014,12 @@ tr:hover td{background:#0d1b3e40}
               <option value="referido">Referido</option>
               <option value="evento">Evento</option>
               <option value="llamada">Llamada en frío</option>
+            </select>
+          </div>
+          <div class="fg"><label>Canal comercial</label>
+            <select id="crm-canal" style="width:100%;padding:10px 12px;border:1px solid #1a3a6e;border-radius:10px;font-size:14px;background:#0d1b3e;color:#e8eff8">
+              <option value="directo">Venta directa SC360</option>
+              <option value="gloouds">GLOOUDS</option>
             </select>
           </div>
         </div>
@@ -4510,6 +4529,15 @@ function qAvisoTope(path){
   const tabla=String(path).split('?')[0]; if(Q_TOPE_VISTO[tabla]) return; Q_TOPE_VISTO[tabla]=1;
   console.warn('Consulta con 1000 filas (puede estar cortada):',tabla);
   try{ if(window.SC360_reportar) window.SC360_reportar('consulta','Consulta llegó al tope de 1000 filas: '+tabla,String(path).slice(0,300),false); }catch(e){}
+}
+
+// Parte aleatoria de los códigos de partido y de entreno: el link ya no se
+// puede adivinar a partir de la fecha (antes era solo la hora en base 36).
+function codAleatorio(n){
+  const abc='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let out='';
+  try{ const a=new Uint32Array(n); crypto.getRandomValues(a); for(let i=0;i<n;i++) out+=abc[a[i]%abc.length]; }
+  catch(e){ for(let i=0;i<n;i++) out+=abc[Math.floor(Math.random()*abc.length)]; }
+  return out;
 }
 
 function irCentroDecisiones(){
@@ -9400,6 +9428,7 @@ function recRenderizar(){
 
 async function loadClubes(){
   document.getElementById('clubes-lista').innerHTML='<div class="es">Cargando...</div>';
+  loadClubesCanal();
 
   // Traer usuarios coordinadores (representan clubes)
   const usuarios=await q('usuarios?rol=in.(coordinador)&order=club_nombre.asc');
@@ -9522,16 +9551,23 @@ async function crearClub(){
 
   msg.textContent='Creando club...';msg.style.color='#b4c2d4';msg.style.display='block';
 
+  // Registrar el club (tabla clubes) con su canal; si ya existe, se deja como está
+  try{ const cn=document.getElementById('nc-canal'); const canal=cn?cn.value:'directo';
+    const ya=await q('clubes?select=id,nombre&limit=500',{sinCache:true});
+    if(Array.isArray(ya)&&!ya.some(c=>normClub(c.nombre)===normClub(nombre)))
+      await q('clubes',{m:'POST',b:{nombre,ciudad:ciudad||null,canal,canal_desde:new Date().toISOString().slice(0,10)},h:{'Prefer':'return=minimal'}});
+  }catch(e){ console.warn('Club (tabla clubes):',e); }
+
   // Crear usuario via Netlify Function (seguro)
   const authResp=await fetch('/.netlify/functions/crear-usuario',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(USER_ACCESS_TOKEN||'')},
     body:JSON.stringify({email:coordEmail,password:coordPass})
   });
 
   if(!authResp.ok){
-    const err=await authResp.json();
-    msg.textContent='Error al crear usuario: '+(err.msg||err.message||'Verificá que el email no esté en uso');
+    const err=await authResp.json().catch(()=>({}));
+    msg.textContent='Error al crear usuario: '+(err.error||err.msg||err.message||'Verificá que el email no esté en uso');
     msg.style.color='#ef4444';return;
   }
 
@@ -9554,6 +9590,105 @@ async function crearClub(){
   });
 
   loadClubes();
+}
+
+// ── CANAL Y LICENCIA POR CLUB ─────────────────────────────────────
+// Cada club tiene canal (directo o GLOOUDS) y una licencia abierta con
+// precio por jugador y % de reparto para el socio. Si cambian las
+// condiciones, la licencia anterior se cierra el día previo y se abre
+// una nueva (queda el historial). No se cobra nada: el reporte de
+// activos solo calcula con estos valores.
+let CLUBES_CANAL=[], LIC_ABIERTA={}, CC_MSG=null;
+function ccEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+async function loadClubesCanal(){
+  const box=document.getElementById('clubes-canal'); if(!box) return;
+  box.innerHTML='<div class="es">Cargando…</div>';
+  try{
+    const [cl,li,gs]=await Promise.all([
+      q('clubes?select=*&order=nombre.asc',{sinCache:true}),
+      q('licencias?select=*&order=inicio.desc',{sinCache:true}),
+      q('grupos?select=club_id,habilitado',{sinCache:true})
+    ]);
+    if(!Array.isArray(cl)){ box.innerHTML='<div class="es" style="color:#fca5a5">No se pudo leer la tabla de clubes.</div>'; return; }
+    CLUBES_CANAL=cl; LIC_ABIERTA={};
+    (Array.isArray(li)?li:[]).forEach(l=>{ if(!l.fin&&!LIC_ABIERTA[l.club_id]) LIC_ABIERTA[l.club_id]=l; });
+    const nPl={}; (Array.isArray(gs)?gs:[]).forEach(g=>{ if(g.club_id) nPl[g.club_id]=(nPl[g.club_id]||0)+1; });
+    if(!cl.length){ box.innerHTML='<div class="es">Todavía no hay clubes cargados.</div>'; return; }
+    const orden={club:0,particular:1,interno:2};
+    const lista=cl.slice().sort((a,b)=>(b.activo-a.activo)||(orden[a.tipo]-orden[b.tipo])||a.nombre.localeCompare(b.nombre));
+    const inp='padding:6px 8px;border:1px solid #1a3a6e;border-radius:7px;font-size:12px;background:#060d1a;color:#e8eff8';
+    const lab=t=>'<span style="display:block;font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:0.04em;margin-bottom:3px">'+t+'</span>';
+    const opt=(v,t,sel)=>'<option value="'+v+'"'+(v===sel?' selected':'')+'>'+t+'</option>';
+    box.innerHTML='<div style="font-size:12px;color:#b4c2d4;padding:10px 14px 0;line-height:1.5">Sin licencia cargada, el reporte usa el precio de referencia de USD '+PRECIO_JUGADOR_USD+' y el canal del club (directo: 100 % SC360 · GLOOUDS: 50/50). Si cambiás precio, canal o reparto, la licencia anterior queda en el historial.</div>'+
+      '<div style="padding:10px 14px 14px;display:flex;flex-direction:column;gap:8px">'+lista.map(c=>{
+        const l=LIC_ABIERTA[c.id]||null, id=c.id;
+        const canalCol=c.canal==='gloouds'?'#a78bfa':'#94a3b8';
+        return '<div id="cc-'+id+'" style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:10px;padding:10px 12px;'+(c.activo?'':'opacity:0.7')+'">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+            '<div style="font-size:14px;font-weight:800;color:#fff">'+ccEsc(c.nombre)+' <span style="font-size:10px;font-weight:800;padding:1px 7px;border-radius:6px;color:'+canalCol+';background:'+canalCol+'1f">'+(c.canal==='gloouds'?'GLOOUDS':'DIRECTO')+'</span>'+
+              (c.tipo!=='club'?' <span style="font-size:10px;font-weight:700;color:#94a3b8">· '+(c.tipo==='particular'?'cuenta particular':'interno')+'</span>':'')+
+              ' <span style="font-size:11px;font-weight:500;color:#7c8fae">· '+(nPl[id]||0)+' plantel'+((nPl[id]||0)===1?'':'es')+'</span></div>'+
+            '<div style="font-size:11px;color:#94a3b8">'+(l?'Licencia desde '+String(l.inicio).split('-').reverse().join('/')+(l.precio_jugador!=null?' · '+l.moneda+' '+l.precio_jugador:'')+' · reparto socio '+Number(l.reparto_socio_pct)+' %':'<span style="color:#fbbf24">Sin licencia cargada</span>')+'</div></div>'+
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">'+
+            '<label>'+lab('TIPO')+'<select id="cc-tipo-'+id+'" style="'+inp+'">'+opt('club','Club',c.tipo)+opt('particular','Particular',c.tipo)+opt('interno','Interno',c.tipo)+'</select></label>'+
+            '<label>'+lab('CANAL')+'<select id="cc-canal-'+id+'" onchange="ccCanalCambio(\''+id+'\')" style="'+inp+'">'+opt('directo','Directo',l?l.canal:c.canal)+opt('gloouds','GLOOUDS',l?l.canal:c.canal)+'</select></label>'+
+            '<label>'+lab('PRECIO / JUGADOR')+'<input id="cc-precio-'+id+'" type="number" min="0" step="0.5" placeholder="'+PRECIO_JUGADOR_USD+' (ref.)" value="'+(l&&l.precio_jugador!=null?l.precio_jugador:'')+'" style="'+inp+';width:110px"></label>'+
+            '<label>'+lab('MONEDA')+'<select id="cc-moneda-'+id+'" style="'+inp+'">'+opt('USD','USD','USD')+'</select></label>'+
+            '<label>'+lab('% SOCIO')+'<input id="cc-pct-'+id+'" type="number" min="0" max="100" step="1" value="'+(l?Number(l.reparto_socio_pct):(c.canal==='gloouds'?50:0))+'" style="'+inp+';width:70px"></label>'+
+            '<label>'+lab('BASE DEL REPARTO')+'<select id="cc-base-'+id+'" style="'+inp+'">'+opt('a_definir','A definir',l?l.base_reparto:'a_definir')+opt('bruto','Bruto',l?l.base_reparto:'')+opt('neto','Neto',l?l.base_reparto:'')+'</select></label>'+
+            '<label>'+lab('DESDE')+'<input id="cc-desde-'+id+'" type="date" value="'+(l?l.inicio:new Date().toISOString().slice(0,10))+'" style="'+inp+'"></label>'+
+            '<label>'+lab('ID GLOOUDS')+'<input id="cc-gid-'+id+'" placeholder="—" value="'+ccEsc(c.gloouds_id||'')+'" style="'+inp+';width:110px"></label>'+
+            '<label style="display:flex;align-items:center;gap:5px;font-size:12px;color:#e8eff8;padding-bottom:6px"><input type="checkbox" id="cc-activo-'+id+'"'+(c.activo?' checked':'')+' style="accent-color:#22c55e"> Activo</label>'+
+            '<button onclick="guardarClubCanal(\''+id+'\')" style="padding:7px 14px;background:#00c2ff;color:#04101f;border:none;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer">Guardar</button>'+
+            '<span id="cc-msg-'+id+'" style="font-size:11.5px"></span>'+
+          '</div></div>';
+      }).join('')+'</div>';
+    if(CC_MSG){ const m=document.getElementById('cc-msg-'+CC_MSG.id); if(m){ m.textContent=CC_MSG.t; m.style.color='#22c55e'; } CC_MSG=null; }
+  }catch(e){ console.error('Clubes canal:',e); box.innerHTML='<div class="es" style="color:#fca5a5">No se pudo cargar: '+ccEsc(e.message)+'</div>'; }
+}
+function ccCanalCambio(id){
+  const c=document.getElementById('cc-canal-'+id), p=document.getElementById('cc-pct-'+id); if(!c||!p) return;
+  p.value=c.value==='gloouds'?50:0;
+}
+async function guardarClubCanal(id){
+  const v=k=>{ const e=document.getElementById('cc-'+k+'-'+id); return e?e.value:''; };
+  const msg=document.getElementById('cc-msg-'+id); const di=(t,col)=>{ if(msg){ msg.textContent=t; msg.style.color=col; } };
+  const club=CLUBES_CANAL.find(c=>c.id===id); if(!club) return;
+  const canal=v('canal'), precioTxt=String(v('precio')).trim(), pct=Number(v('pct')), base=v('base'), moneda=v('moneda');
+  const desde=v('desde')||new Date().toISOString().slice(0,10), gid=String(v('gid')).trim();
+  const activo=!!(document.getElementById('cc-activo-'+id)||{}).checked, tipo=v('tipo');
+  const precio=precioTxt===''?null:Number(precioTxt);
+  if(precio!=null&&(!isFinite(precio)||precio<0)){ di('Precio inválido','#fca5a5'); return; }
+  if(!isFinite(pct)||pct<0||pct>100){ di('El % del socio va de 0 a 100','#fca5a5'); return; }
+  if(desde>new Date(Date.now()+366*864e5).toISOString().slice(0,10)){ di('Revisá la fecha','#fca5a5'); return; }
+  di('Guardando…','#b4c2d4');
+  const ok=r=>Array.isArray(r)||r===null||r===true;
+  try{
+    // 1) Datos del club
+    const rc=await q('clubes?id=eq.'+id,{m:'PATCH',b:{canal,tipo,activo,gloouds_id:gid||null,canal_desde:canal!==club.canal?desde:(club.canal_desde||null)}});
+    if(!ok(rc)){ di('No se pudo guardar el club'+(rc&&rc.message?': '+rc.message:''),'#fca5a5'); return; }
+    // 2) Licencia: se crea o se renueva solo si cambian las condiciones
+    const l=LIC_ABIERTA[id]||null;
+    const nueva={club_id:id,canal,precio_jugador:precio,moneda,reparto_socio_pct:pct,base_reparto:base,inicio:desde,estado:activo?'activa':'suspendida'};
+    const cambio=!l||l.canal!==canal||Number(l.precio_jugador)!==Number(precio)||(l.precio_jugador==null)!==(precio==null)||Number(l.reparto_socio_pct)!==pct||l.base_reparto!==base||l.moneda!==moneda;
+    if(!l&&precio==null&&canal===club.canal&&pct===(canal==='gloouds'?50:0)){ CC_MSG={id,t:'✓ Guardado (sin licencia: usa el precio de referencia)'}; loadClubesCanal(); return; }
+    if(l&&!cambio){
+      if((l.estado==='activa')!==activo){ await q('licencias?id=eq.'+l.id,{m:'PATCH',b:{estado:activo?'activa':'suspendida'}}); }
+      CC_MSG={id,t:'✓ Guardado'}; loadClubesCanal(); return;
+    }
+    if(l&&desde<=String(l.inicio)){
+      // Misma fecha (o anterior): es una corrección de la licencia vigente
+      const r=await q('licencias?id=eq.'+l.id,{m:'PATCH',b:{canal,precio_jugador:precio,moneda,reparto_socio_pct:pct,base_reparto:base,inicio:desde,estado:nueva.estado}});
+      if(!ok(r)){ di('No se pudo corregir la licencia'+(r&&r.message?': '+r.message:''),'#fca5a5'); return; }
+    } else {
+      if(l){ const ayer=new Date(new Date(desde+'T12:00:00').getTime()-864e5).toISOString().slice(0,10);
+        const r1=await q('licencias?id=eq.'+l.id,{m:'PATCH',b:{fin:ayer}});
+        if(!ok(r1)){ di('No se pudo cerrar la licencia anterior'+(r1&&r1.message?': '+r1.message:''),'#fca5a5'); return; } }
+      const r2=await q('licencias',{m:'POST',b:nueva});
+      if(!ok(r2)){ di('No se pudo crear la licencia'+(r2&&r2.message?': '+r2.message:''),'#fca5a5'); return; }
+    }
+    CC_MSG={id,t:'✓ Guardado'}; loadClubesCanal();
+  }catch(e){ console.error('Guardar club:',e); di('Error: '+e.message,'#fca5a5'); }
 }
 
 async function toggleClub(clubNombre,activo){
@@ -9673,7 +9808,7 @@ async function crearUsuario(){
   // Crear en Supabase Auth via Netlify Function (usa service_role key segura)
   const authResp=await fetch('/.netlify/functions/crear-usuario',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+(USER_ACCESS_TOKEN||'')},
     body:JSON.stringify({email,password:pass})
   });
 
@@ -9692,8 +9827,8 @@ async function crearUsuario(){
     creado_por_id:USUARIO_ACTUAL?.id||null
   }});
 
-  if(!perfil){
-    msg.textContent='Usuario creado en Auth pero hubo un error guardando el perfil.';
+  if(!Array.isArray(perfil)||!perfil.length){
+    msg.textContent='Usuario creado en Auth pero hubo un error guardando el perfil'+(perfil&&perfil.message?': '+perfil.message:'')+'. Avisá al administrador.';
     msg.style.color='#f59e0b';return;
   }
 
@@ -10417,7 +10552,7 @@ async function crearPartido(){
   if(!fecha){alert('Ingresá la fecha del partido.');return;}
   const parts=gv.split('|');
   const gid=parts[0],gcod=parts[1],gnomb=parts[2];
-  const cod='PP'+Date.now().toString(36).toUpperCase();
+  const cod='PP'+Date.now().toString(36).toUpperCase()+codAleatorio(6);
   // Antes: parseInt('0')||null guardaba un 0 como vacío → los partidos sin goles quedaban sin resultado
   const numOVacio=v=>{ const t=(v==null?'':String(v)).trim(); if(t==='') return null; const n=parseInt(t,10); return isNaN(n)?null:n; };
   const golesFavor=numOVacio(document.getElementById('pp-goles-favor')?.value);
@@ -10730,7 +10865,7 @@ async function crearSesionEntreno(){
   if(!gv){alert('Seleccioná un grupo.');return;}
   if(!fecha){alert('Ingresá la fecha.');return;}
   const parts=gv.split('|');
-  const cod='EN'+Date.now().toString(36).toUpperCase();
+  const cod='EN'+Date.now().toString(36).toUpperCase()+codAleatorio(6);
   const payload={grupo_id:parts[0],grupo_codigo:parts[1],grupo_nombre:parts[2],fecha,notas:notas||null,codigo:cod};
   const res=await q('sesiones_entreno',{m:'POST',b:payload});
   if(res){
@@ -15512,7 +15647,8 @@ async function rivalGuardarPrediccion(ai, rival, form, xiSlots){
     const res=await q('predicciones_ia',{m:'POST',b:[{grupo_codigo:rivalGrupoCodigo(),rival:rival.nombre||null,rival_norm:rival.nombre?rivalNorm(rival.nombre):null,
       formacion:form,xi,prediccion:ai,creado_por:(USUARIO_ACTUAL&&(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email))||'',
       tipo:'cancha',club:(gObj&&gObj.club)||null,titulo:((gObj&&gObj.nombre)||'Equipo')+' vs '+(rival.nombre||'rival'),
-      datos:{condicion:rival.condicion||'',grupo:(gObj&&gObj.nombre)||''}}]});
+      datos:{condicion:rival.condicion||'',grupo:(gObj&&gObj.nombre)||'',rival_estilo:rival.estilo||'',rival_notas:rival.notas||'',
+        sc360:CANCHA_SIM.ultimaSC360||null,historial:rival.nombre?rivalHistorial(rival.nombre):null}}]});
     if(rivalEsErrorTabla(res)){ RIVAL_DB_OK=false; return null; }
     if(rival.nombre) rivalUltimaPrediccion(rival.nombre);
     predListaCargar();
@@ -15605,6 +15741,7 @@ rivalTxt+'\n\n'+
 'Máximo 3 jugadores clave y 4 escenarios. por_linea: una entrada por cada línea del equipo.';
 
   box.innerHTML='<div style="background:#0d1b3e;border:1px solid #7c3aed55;border-radius:12px;padding:16px;text-align:center;color:#b4c2d4;font-size:13px">✦ Armando la predicción'+(rival.web&&rival.nombre?' y buscando datos del rival…':'…')+'</div>';
+  const promSC360=predDatosSC360(rivalGrupoCodigo());
 
   async function llamar(conWeb){
     const body={model:'claude-haiku-4-5-20251001',max_tokens:2500,messages:[{role:'user',content:prompt}]};
@@ -15629,6 +15766,7 @@ rivalTxt+'\n\n'+
     return;
   }
   ai=predLimpiarCites(ai);
+  try{ CANCHA_SIM.ultimaSC360=await promSC360; }catch(e){ CANCHA_SIM.ultimaSC360=null; }
   CANCHA_SIM.ultimaIA={ai,rival:rival.nombre,fecha:new Date().toISOString()};
   if(rival.nombre) rivalGuardarAhora(); // las notas usadas quedan guardadas junto con la predicción
   const pid=await rivalGuardarPrediccion(ai, rival, form, xi);
@@ -15642,9 +15780,10 @@ function canchaIaHtml(ai, rival, n, form, avisoWeb, pid){
   const sec=(t,c)=>`<div style="font-size:10px;font-weight:800;color:${c||'#a78bfa'};letter-spacing:0.08em;text-transform:uppercase;margin:14px 0 6px">${t}</div>`;
   let h=`<div style="background:#0d1b3e;border:1px solid #7c3aed55;border-radius:14px;padding:16px 18px">
     <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:baseline">
-      <div style="font-size:11px;font-weight:800;color:#a78bfa;letter-spacing:0.08em">✦ PREDICCIÓN CON IA${rival.nombre?' · VS '+esc(rival.nombre).toUpperCase():''}</div>
+      <div style="font-size:11px;font-weight:800;color:#a78bfa;letter-spacing:0.08em">✦ LECTURA DEL PARTIDO (HIPÓTESIS)${rival.nombre?' · VS '+esc(rival.nombre).toUpperCase():''}</div>
       <div style="font-size:10.5px;color:#94a3b8">${n} jugadores · ${esc(form)} · ${new Date().toLocaleDateString('es-AR',{day:'numeric',month:'short'})}</div></div>`;
   if(avisoWeb) h+=`<div style="font-size:11px;color:#f59e0b;margin-top:6px">${avisoWeb}</div>`;
+  if(pid) h+=`<div style="font-size:11.5px;color:#b4c2d4;margin-top:6px;line-height:1.45">Esto es la lectura (bloque C). Los datos del equipo y del rival, con su fuente, y la comparación después del partido están en el informe: <a href="#" onclick="predVer('${pid}');return false" style="color:#00c2ff;font-weight:700">ver informe completo →</a></div>`;
   if(ai.resumen) h+=`<p style="font-size:14px;color:#e8eff8;line-height:1.6;margin:10px 0 0">${esc(ai.resumen)}</p>`;
   if(Array.isArray(ai.por_linea)&&ai.por_linea.length){
     h+=sec('Por línea')+'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">'+ai.por_linea.map(l=>
@@ -15670,7 +15809,7 @@ function canchaIaHtml(ai, rival, n, form, avisoWeb, pid){
   }
   const fuentes=(ai.fuentes_web||[]).filter(u=>/^https?:\/\//.test(u));
   if(fuentes.length) h+=`<div style="font-size:10.5px;color:#94a3b8;margin-top:10px">Fuentes web: ${fuentes.map(u=>`<a href="${u.replace(/"/g,'')}" target="_blank" rel="noopener" style="color:#00c2ff">${esc(u.replace(/^https?:\/\//,'').slice(0,40))}</a>`).join(' · ')}</div>`;
-  h+=`<div style="font-size:10.5px;color:#4a5a78;margin-top:12px;border-top:1px solid #1a3a6e;padding-top:8px">${ai.limites?esc(ai.limites)+' ':''}Predicción de comportamiento generada con IA a partir de los datos de SC360; es una guía para el cuerpo técnico, no una certeza.</div>
+  h+=`<div style="font-size:10.5px;color:#4a5a78;margin-top:12px;border-top:1px solid #1a3a6e;padding-top:8px">${ai.limites?esc(ai.limites)+' ':''}Lectura generada con IA a partir de los datos de SC360 (modelo experimental): patrones y variables a monitorear, no certezas.</div>
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button onclick="canchaPrediccionIA()" class="bg" style="padding:7px 14px;font-size:12px">↻ Regenerar</button>
     ${pid?`<button onclick="predPDF('${pid}')" class="bg" style="padding:7px 14px;font-size:12px;color:#00c2ff;border-color:#00c2ff66">📄 PDF de esta predicción</button><span style="font-size:11px;color:#22c55e;align-self:center">✓ Guardada en Predicciones guardadas</span>`:''}</div></div>`;
   return h;
@@ -15792,6 +15931,7 @@ function predModalCerrar(){ const m=document.getElementById('pred-modal'); if(m)
 async function predVer(id){
   predModal('<div class="pred-modal-in"><div style="color:#b4c2d4;text-align:center;padding:40px">Abriendo…</div></div>');
   const p=await predObtener(id);
+  if(p&&!p._realBuscado){ p._real=await predResultadoReal(p); p._realBuscado=true; }
   if(!p){ predModal('<div class="pred-modal-in"><div style="color:#ef4444;padding:20px">No se encontró la predicción.</div><button class="bg" onclick="predModalCerrar()">Cerrar</button></div>'); return; }
   predModal(`<div class="pred-modal-in">
     <div class="pred-barra">
@@ -15810,6 +15950,7 @@ async function predBorrar(id){
 // ── PDF: hoja A4 clara, se imprime / guarda como PDF desde el navegador ──
 async function predPDF(id){
   const p=await predObtener(id); if(!p){ alert('No se encontró la predicción.'); return; }
+  if(!p._realBuscado){ p._real=await predResultadoReal(p); p._realBuscado=true; }
   let box=document.getElementById('pred-pdf'); if(!box){ box=document.createElement('div'); box.id='pred-pdf'; document.body.appendChild(box); }
   box.innerHTML='<div class="rp">'+predInformeHtml(p)+'</div>';
   const titulo=document.title;
@@ -15821,6 +15962,115 @@ async function predPDF(id){
   Promise.all(imgs.map(i=>new Promise(res=>{ i.onload=i.onerror=res; }))).then(()=>setTimeout(()=>window.print(),150));
 }
 
+// ═══════════════════════════════════════════════════════════════
+// PREDICCIÓN v2 (29/10/2026) — cuatro bloques bien separados:
+//   A · Nuestro equipo: DATOS medidos en SC360 y cargados por el DT
+//   B · Rival: DATOS solo con fuente (cuerpo técnico, historial, web citada)
+//   C · Lectura del partido: HIPÓTESIS de la IA, con nivel de confianza
+//   D · Después del partido: qué se anticipó y qué pasó
+// Sin porcentajes de resultado: se reemplazan por factores a favor y en
+// contra, cada uno con el dato que lo respalda.
+// ═══════════════════════════════════════════════════════════════
+function predParseDet(p){ let d=p&&p.goles_detalle; if(typeof d==='string'){ try{ d=JSON.parse(d); }catch(e){ d=null; } } return d||{}; }
+function predFechaCorta(f){ const s=String(f||'').slice(0,10); return /^\d{4}-\d{2}-\d{2}$/.test(s)?s.slice(8,10)+'/'+s.slice(5,7):(s||''); }
+
+// Datos propios del plantel en SC360 (se guardan con la predicción, con su fecha)
+async function predDatosSC360(gcod){
+  if(!gcod||/^CLUB-/.test(gcod)) return null;
+  try{
+    const [rs,ps]=await Promise.all([
+      q('resultados?grupo_codigo=eq.'+encodeURIComponent(gcod)+'&select=jugador_nombre,disponibilidad,fecha&order=fecha.desc&limit=2000'),
+      q('partidos?grupo_codigo=eq.'+encodeURIComponent(gcod)+'&select=codigo,rival,fecha,goles_favor,goles_contra,goles_detalle&order=fecha.desc&limit=60')
+    ]);
+    const vistos=new Set(), ult=[];
+    (Array.isArray(rs)?rs:[]).forEach(r=>{ const k=idcNom(r.jugador_nombre); if(!k||vistos.has(k)) return; vistos.add(k); if(Number(r.disponibilidad)>0) ult.push(r); });
+    const conRes=(Array.isArray(ps)?ps:[]).filter(p=>p.goles_favor!=null&&p.goles_contra!=null);
+    const favor=[0,0,0,0,0,0], contra=[0,0,0,0,0,0]; let conDet=0;
+    conRes.slice(0,10).forEach(p=>{ const d=predParseDet(p);
+      if((d.favor||[]).length||(d.contra||[]).length) conDet++;
+      (d.favor||[]).forEach(g=>{ const t=predTramo(g); if(t!=null) favor[t]++; });
+      (d.contra||[]).forEach(g=>{ const t=predTramo(g); if(t!=null) contra[t]++; }); });
+    return {
+      mdc: ult.length?Math.round(predProm(ult.map(r=>Number(r.disponibilidad)))):null,
+      n: ult.length,
+      fecha_test: ult.map(r=>String(r.fecha||'').slice(0,10)).sort().pop()||null,
+      ultimos: conRes.slice(0,5).map(p=>({rival:p.rival||'',fecha:p.fecha||'',gf:p.goles_favor,gc:p.goles_contra})),
+      favor, contra, partidos_tramos: conDet, partidos_total: conRes.length,
+      al: new Date().toISOString().slice(0,10)
+    };
+  }catch(e){ console.warn('Datos SC360 de la predicción:',e); return null; }
+}
+function predDatosSC360Texto(s){
+  if(!s) return 'sin datos de SC360 (equipo no vinculado a un plantel)';
+  const tr=a=>PRED_TRAMOS.map((t,i)=>t+': '+a[i]).join(', ');
+  return [
+    s.mdc!=null?'Disponibilidad MDC promedio del plantel: '+s.mdc+' (0-100; '+s.n+' jugadores, último test '+s.fecha_test+')':'Sin tests MDC del plantel',
+    s.ultimos.length?'Últimos resultados: '+s.ultimos.map(p=>'vs '+p.rival+' '+p.gf+'-'+p.gc+' ('+p.fecha+')').join('; '):'Sin resultados cargados',
+    s.partidos_tramos?'Goles A FAVOR por tramo (últimos '+s.partidos_tramos+' partidos con minuto): '+tr(s.favor):'',
+    s.partidos_tramos?'Goles EN CONTRA por tramo (últimos '+s.partidos_tramos+' partidos con minuto): '+tr(s.contra):''
+  ].filter(Boolean).join('\n');
+}
+
+// Nivel de confianza: depende de cuántos datos reales hay, no de la IA
+function predConfianza(p){
+  const d=p.datos||{}, ai=p.prediccion||{}, s=d.sc360, completo=p.tipo==='completo';
+  const R=d.rival||{}, A=d.propio||{};
+  const tiene=v=>v!=null&&String(v).trim()!=='';
+  const items=[
+    {ok:!!(s&&s.mdc!=null)||(!completo&&(p.xi||[]).length>0), falta:'tests MDC del plantel'},
+    {ok:!!(s&&s.partidos_total>=3)||(completo&&tiene(A.pj)), falta:'resultados de los últimos partidos propios'},
+    {ok:!!(s&&s.partidos_tramos>=3), falta:'minuto de los goles en al menos 3 partidos'},
+    {ok:completo?(tiene(R.pj)||tiene(R.forma)||tiene(R.gf)):tiene(d.rival_notas)||!!(d.historial&&d.historial.partidos), falta:'datos del rival cargados por el cuerpo técnico'},
+    {ok:(ai.fuentes_web||[]).some(u=>/^https?:\/\//.test(u))||(completo&&tiene(R.jugadores)), falta:'jugadores o fuentes del rival'}
+  ];
+  const n=items.filter(x=>x.ok).length;
+  return {nivel:n>=4?'Alta':n>=2?'Media':'Baja', n, total:items.length, faltan:items.filter(x=>!x.ok).map(x=>x.falta)};
+}
+
+// Jugadores del rival: solo con fuente (lo que cargó el DT o una página citada)
+function predJugadoresRivalConFuente(lista, textoDT){
+  const base=rivalNorm(textoDT||'');
+  return (Array.isArray(lista)?lista:[]).filter(j=>{
+    if(!j||!j.nombre) return false;
+    if(/^https?:\/\//.test(String(j.fuente||''))) return true;
+    const partes=rivalNorm(j.nombre).split(/\s+/).filter(t=>t.length>2);
+    return !!base&&partes.length>0&&partes.some(t=>base.includes(t));
+  }).map(j=>Object.assign({},j,{fuente:/^https?:\/\//.test(String(j.fuente||''))?j.fuente:'Cuerpo técnico'}));
+}
+
+// Después del partido: busca el partido real contra ese rival, cargado después de la predicción
+async function predResultadoReal(p){
+  if(!p||!p.grupo_codigo||/^CLUB-/.test(p.grupo_codigo)||!p.rival) return null;
+  try{
+    const desde=String(p.creado_en||'').slice(0,10);
+    const ps=await q('partidos?grupo_codigo=eq.'+encodeURIComponent(p.grupo_codigo)+'&fecha=gte.'+desde+'&select=codigo,rival,fecha,goles_favor,goles_contra,goles_detalle&order=fecha.asc&limit=20',{sinCache:true});
+    const n=rivalNorm(p.rival);
+    return (Array.isArray(ps)?ps:[]).find(x=>{ const r=rivalNorm(x.rival); return r&&n&&(r===n||r.includes(n)||n.includes(r)); })||null;
+  }catch(e){ return null; }
+}
+function predMinutoAbs(g){ let m=parseInt(g&&g.minuto,10); if(isNaN(m)) return null; const st=(g.periodo||'').toUpperCase()==='ST'; return st?(m>45?m:m+45):m; }
+function predDespuesHtml(p,E){
+  if(!p._realBuscado) return '<p class="rp-p" style="color:#64748b">Buscando el resultado del partido…</p>';
+  const m=p._real;
+  if(!m) return '<p class="rp-p" style="color:#64748b">Todavía no hay un partido cargado contra '+E(p.rival||'este rival')+' después de esta predicción. Cuando se cargue el resultado en Post Partido, acá aparece la comparación entre lo anticipado y lo que pasó.</p>';
+  const ai=p.prediccion||{}, d=predParseDet(m);
+  let h='<table class="rp-t"><tbody>'+
+    '<tr><td style="width:38%"><b>Resultado</b></td><td>'+(m.goles_favor!=null&&m.goles_contra!=null?E(m.goles_favor+' - '+m.goles_contra):'Sin marcador cargado')+' · '+E(predFechaCorta(m.fecha))+'</td></tr>';
+  const contra=(d.contra||[]).map(predMinutoAbs).filter(x=>x!=null), favor=(d.favor||[]).map(predMinutoAbs).filter(x=>x!=null);
+  if(contra.length||favor.length) h+='<tr><td><b>Minutos de los goles</b></td><td>'+(favor.length?'A favor: '+favor.map(x=>x+"'").join(', '):'A favor: —')+' · '+(contra.length?'En contra: '+contra.map(x=>x+"'").join(', '):'En contra: —')+'</td></tr>';
+  const ventanas=(Array.isArray(ai.ventanas)?ai.ventanas:[]).map(v=>{ const mm=String(v.minutos||'').match(/(\d+)\s*[-–]\s*(\d+)/); return mm?{a:+mm[1],b:+mm[2],nivel:String(v.nivel||'').toUpperCase(),nombre:v.nombre||''}:null; }).filter(Boolean);
+  if(ventanas.length&&contra.length){
+    const enRiesgo=contra.filter(x=>ventanas.some(v=>(v.nivel==='ALTO'||v.nivel==='MEDIO')&&x>=v.a&&x<=v.b));
+    h+='<tr><td><b>Ventanas de riesgo anticipadas</b></td><td>'+enRiesgo.length+' de '+contra.length+' goles en contra cayeron dentro de una ventana marcada como ALTO o MEDIO.</td></tr>';
+  } else if(ventanas.length&&m.goles_contra===0){
+    h+='<tr><td><b>Ventanas de riesgo anticipadas</b></td><td>No hubo goles en contra.</td></tr>';
+  } else if(ventanas.length){
+    h+='<tr><td><b>Ventanas de riesgo anticipadas</b></td><td>Sin minuto de los goles cargado: no se puede comparar.</td></tr>';
+  }
+  h+='</tbody></table><div class="rp-mini">Comparación automática con el partido cargado en SC360. Sirve para ver, partido a partido, cuánto aciertan las lecturas.</div>';
+  return h;
+}
+
 // ── Informe (mismo HTML para el visor y para el PDF) ──
 function predInformeHtml(p){
   const ai=predLimpiarCites(p.prediccion||{}), d=p.datos||{};
@@ -15828,9 +16078,12 @@ function predInformeHtml(p){
   const logo=(document.querySelector('.topbar img')||{}).src||'';
   const propio=d.propio&&d.propio.nombre?d.propio.nombre:(predNombreGrupo(p.grupo_codigo)||p.club||'Nuestro equipo');
   const rival=p.rival||'Rival';
-  const lista=(arr,cls)=>Array.isArray(arr)&&arr.length?'<ul class="rp-ul">'+arr.map(x=>'<li'+(cls?' class="'+cls+'"':'')+'>'+E(x)+'</li>').join('')+'</ul>':'';
-  let n=0; const H=(t,sub)=>'<div class="rp-h"><span>'+(++n)+'. '+E(t)+'</span>'+(sub?'<small> — '+E(sub)+'</small>':'')+'</div>';
+  const lista=(arr,cls)=>Array.isArray(arr)&&arr.length?'<ul class="rp-ul">'+arr.map(x=>'<li'+(cls?' class="'+cls+'"':'')+'>'+E(typeof x==='object'?(x.factor||''):x)+(typeof x==='object'&&x.base?'<div class="rp-mini">Base: '+E(x.base)+'</div>':'')+'</li>').join('')+'</ul>':'';
+  const BL=(letra,t,sub,col)=>'<div class="rp-h" style="border-bottom-color:'+col+';margin-top:20px"><span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:'+col+';color:#fff;font-size:11px;margin-right:4px">'+letra+'</span><span>'+E(t)+'</span>'+(sub?'<small> — '+E(sub)+'</small>':'')+'</div>';
+  const SUB=(t)=>'<div class="rp-k" style="margin:10px 0 4px">'+E(t)+'</div>';
   const infoPartido=[d.torneo, d.condicion?(d.condicion==='Local'?'Local':d.condicion==='Visitante'?'Visitante':'Cancha neutral'):'', d.fecha||p.fecha_partido, d.estadio].filter(Boolean).join(' · ');
+  const conf=predConfianza(p);
+  const confCol=conf.nivel==='Alta'?'#15803d':conf.nivel==='Media'?'#b45309':'#b91c1c';
 
   let h=`<div class="rp-portada">
     <div style="display:flex;align-items:center;gap:10px">
@@ -15838,17 +16091,34 @@ function predInformeHtml(p){
       <div style="flex:1"><div style="font-size:12px;font-weight:900;letter-spacing:0.08em">SPORT COACHING 360</div><div style="font-size:9.5px;color:#7fd8ff;letter-spacing:0.06em">MODELO MDC · D = T − I</div></div>
       <div style="font-size:9.5px;color:#9fb0c8;text-align:right">${E(predFecha(p.creado_en))}${p.creado_por?'<br>'+E(p.creado_por):''}</div>
     </div>
-    <div style="font-size:10px;font-weight:800;letter-spacing:0.16em;color:#00c2ff;margin-top:14px">${completo?'INFORME DE SCOUTING Y PREDICCIÓN':'PREDICCIÓN DEL PARTIDO'}</div>
+    <div style="font-size:10px;font-weight:800;letter-spacing:0.16em;color:#00c2ff;margin-top:14px">${completo?'INFORME DE PARTIDO · SCOUTING Y LECTURA':'PREDICCIÓN DEL PARTIDO'}</div>
     <div style="font-size:24px;font-weight:900;line-height:1.15;margin-top:4px">${E(propio)} <span style="color:#00c2ff">vs</span> ${E(rival)}</div>
     ${infoPartido?`<div style="font-size:11px;color:#c3cfe0;margin-top:4px">${E(infoPartido)}</div>`:''}
     ${!completo&&p.formacion?`<div style="font-size:11px;color:#c3cfe0;margin-top:2px">${E(predNombreGrupo(p.grupo_codigo))}${predNombreGrupo(p.grupo_codigo)?' · ':''}${E(p.formacion)} · ${(p.xi||[]).length} jugadores</div>`:''}
+    <div style="font-size:10px;color:#c3cfe0;margin-top:8px">A y B son datos con su fuente · C es una lectura (hipótesis) · D compara con lo que pasó</div>
   </div>`;
 
+  // ── A · NUESTRO EQUIPO (datos)
+  h+=BL('A','Nuestro equipo','datos medidos y cargados','#0284c7');
+  const s=d.sc360;
+  if(s){
+    h+='<table class="rp-t"><tbody>'+
+      '<tr><td style="width:38%"><b>Disponibilidad MDC del plantel</b></td><td>'+(s.mdc!=null?E(s.mdc)+' <span class="rp-mini" style="display:inline">('+E(s.n)+' jugadores · último test '+E(predFechaCorta(s.fecha_test))+')</span>':'Sin tests')+'</td></tr>'+
+      '<tr><td><b>Últimos resultados</b></td><td>'+(s.ultimos.length?s.ultimos.map(x=>'vs '+E(x.rival)+' <b>'+E(x.gf+'-'+x.gc)+'</b> <span class="rp-mini" style="display:inline">('+E(predFechaCorta(x.fecha))+')</span>').join(' · '):'Sin resultados cargados')+'</td></tr>'+
+      '</tbody></table>';
+    if(s.partidos_tramos){
+      h+=SUB('Goles por tramo (últimos '+s.partidos_tramos+' partidos con minuto cargado)')+
+        '<table class="rp-t"><thead><tr><th></th>'+PRED_TRAMOS.map(t=>'<th style="text-align:center">'+E(t)+'</th>').join('')+'</tr></thead><tbody>'+
+        '<tr><td><b>A favor</b></td>'+s.favor.map(v=>'<td style="text-align:center">'+v+'</td>').join('')+'</tr>'+
+        '<tr><td><b>En contra</b></td>'+s.contra.map((v,i)=>'<td style="text-align:center;'+(v&&v===Math.max(...s.contra)?'font-weight:800;color:#b91c1c':'')+'">'+v+'</td>').join('')+'</tr></tbody></table>';
+    }
+    h+='<div class="rp-mini">Fuente: SC360 · datos al '+E(predFechaCorta(s.al))+'</div>';
+  }
+  if(!completo&&Array.isArray(p.xi)&&p.xi.length){
+    h+=SUB('Equipo que juega')+`<table class="rp-t"><thead><tr><th>Jugador</th><th>Línea</th><th>Perfil</th><th>D test</th><th>D proyectada</th><th>IDC</th></tr></thead><tbody>${p.xi.map(j=>`<tr><td>${E(j.nombre)}</td><td>${E(j.linea||'')}</td><td>${E(j.disc||'')}</td><td>${E(j.d??'—')}</td><td>${E(j.dp??'—')}</td><td>${E(j.idc??'—')}</td></tr>`).join('')}</tbody></table><div class="rp-mini">D proyectada: experimental (ajusta la D del test por Post Partido, asistencia y recuperación). Fuente: SC360.</div>`;
+  }
+  const A=d.propio||{}, B=d.rival||{};
   if(completo){
-    // 1. Contexto + contraste estadístico (calculado con lo cargado, no por la IA)
-    h+=H('Contexto del partido');
-    if(ai.contexto) h+='<p class="rp-p">'+E(ai.contexto)+'</p>';
-    const A=d.propio||{}, B=d.rival||{};
     const num=v=>v===''||v==null||isNaN(+v)?null:+v;
     const porPJ=(x,pj)=>num(x)!=null&&num(pj)?(num(x)/num(pj)).toFixed(2):null;
     const dif=o=>num(o.gf)!=null&&num(o.gc)!=null?(num(o.gf)-num(o.gc)):null;
@@ -15861,70 +16131,96 @@ function predInformeHtml(p){
       ['Diferencia de gol',dif(A)==null?'':fmtDif(dif(A)),dif(B)==null?'':fmtDif(dif(B))],
       ['Goleador',A.goleador,B.goleador],['Últimos resultados',A.forma,B.forma]
     ].filter(f=>(f[1]!==''&&f[1]!=null)||(f[2]!==''&&f[2]!=null));
-    if(filas.length) h+=`<table class="rp-t"><thead><tr><th>Indicador</th><th>${E(propio)}</th><th>${E(rival)}</th></tr></thead><tbody>${filas.map(f=>`<tr><td>${E(f[0])}</td><td>${E(f[1]||'—')}</td><td>${E(f[2]||'—')}</td></tr>`).join('')}</tbody></table>`;
+    if(filas.length) h+=SUB('Tabla comparativa')+`<table class="rp-t"><thead><tr><th>Indicador</th><th>${E(propio)}</th><th>${E(rival)}</th></tr></thead><tbody>${filas.map(f=>`<tr><td>${E(f[0])}</td><td>${E(f[1]||'—')}</td><td>${E(f[2]||'—')}</td></tr>`).join('')}</tbody></table><div class="rp-mini">Fuente: cargado por el cuerpo técnico.</div>`;
+    if(A.notas) h+='<div class="rp-card" style="margin-top:6px"><b>Notas del cuerpo técnico:</b> '+E(A.notas)+'</div>';
+    if(!s&&!filas.length) h+='<p class="rp-p" style="color:#64748b">Sin datos propios cargados.</p>';
+  } else if(!s&&!(p.xi||[]).length){
+    h+='<p class="rp-p" style="color:#64748b">Sin datos propios guardados en esta predicción.</p>';
+  }
 
-    if(ai.estado_rival||ai.forma_rival){ h+=H('Estado actual de '+rival,'diagnóstico previo'); if(ai.estado_rival) h+='<p class="rp-p">'+E(ai.estado_rival)+'</p>'; if(ai.forma_rival) h+='<div class="rp-card"><b>Forma reciente:</b> '+E(ai.forma_rival)+'</div>'; }
+  // ── B · RIVAL (datos con fuente)
+  h+=BL('B','Rival: '+rival,'solo datos con fuente','#7c3aed');
+  let hayB=false;
+  if(completo){
+    const det=[['Estilo de juego (según el cuerpo técnico)',B.estilo],['Jugadores que conoce el cuerpo técnico',B.jugadores],['Notas del cuerpo técnico',B.notas]].filter(x=>x[1]);
+    if(det.length){ hayB=true; h+='<table class="rp-t"><tbody>'+det.map(x=>'<tr><td style="width:38%"><b>'+E(x[0])+'</b></td><td>'+E(x[1])+'</td></tr>').join('')+'</tbody></table><div class="rp-mini">Fuente: cargado por el cuerpo técnico. La tabla comparativa está en el bloque A.</div>'; }
+  } else {
+    if(d.rival_estilo||d.rival_notas){ hayB=true; h+='<table class="rp-t"><tbody>'+(d.rival_estilo?'<tr><td style="width:38%"><b>Estilo (según el cuerpo técnico)</b></td><td>'+E(d.rival_estilo)+'</td></tr>':'')+(d.rival_notas?'<tr><td><b>Notas del cuerpo técnico</b></td><td>'+E(d.rival_notas)+'</td></tr>':'')+'</tbody></table>'; }
+  }
+  const hi=d.historial;
+  if(hi&&hi.partidos&&hi.partidos.length){
+    hayB=true;
+    h+=SUB('Historial propio contra este rival')+'<table class="rp-t"><tbody><tr><td style="width:38%"><b>Partidos</b></td><td>'+hi.partidos.map(x=>E(x.marcador)+' <span class="rp-mini" style="display:inline">('+E(predFechaCorta(x.fecha))+')</span>').join(' · ')+(hi.g!=null?' · G'+hi.g+' E'+hi.e+' P'+hi.pe:'')+'</td></tr>'+
+      (hi.contra&&hi.contra.some(v=>v)?'<tr><td><b>Goles recibidos por tramo</b></td><td>'+PRED_TRAMOS.map((t,i)=>E(t)+': '+hi.contra[i]).join(' · ')+'</td></tr>':'')+'</tbody></table><div class="rp-mini">Fuente: partidos cargados en SC360.</div>';
+  }
+  const web=(Array.isArray(ai.datos_rival_web)?ai.datos_rival_web:[]).filter(x=>x&&x.dato&&/^https?:\/\//.test(String(x.fuente||'')));
+  if(web.length){
+    hayB=true;
+    h+=SUB('Datos públicos encontrados en internet')+'<table class="rp-t"><tbody>'+web.map(x=>'<tr><td>'+E(x.dato)+'</td><td style="width:34%"><a href="'+E(x.fuente)+'" target="_blank" rel="noopener" style="color:#0369a1">'+E(String(x.fuente).replace(/^https?:\/\//,'').slice(0,48))+'</a></td></tr>').join('')+'</tbody></table>';
+  }
+  const jr=predJugadoresRivalConFuente(ai.jugadores_rival, completo?[B.jugadores,B.notas].join(' '):(d.rival_notas||''));
+  if(jr.length){
+    hayB=true;
+    h+=SUB('Jugadores clave del rival')+`<table class="rp-t"><thead><tr><th>Jugador</th><th>Pos.</th><th>Dato</th><th>Por qué importa</th><th>Fuente</th></tr></thead><tbody>${jr.map(j=>`<tr><td><b>${E(j.nombre)}</b></td><td>${E(j.pos||'')}</td><td>${E(j.dato||'')}</td><td>${E(j.por_que||'')}</td><td>${/^https?:/.test(j.fuente)?'<a href="'+E(j.fuente)+'" target="_blank" rel="noopener" style="color:#0369a1">web</a>':'Cuerpo técnico'}</td></tr>`).join('')}</tbody></table>`;
+  }
+  if(!hayB) h+='<p class="rp-p" style="color:#64748b">No hay datos del rival con fuente. Cargá lo que sabés (resultados, sistema, jugadores) para que el informe sea más preciso.</p>';
+
+  // ── C · LECTURA DEL PARTIDO (hipótesis)
+  h+=BL('C','Lectura del partido','hipótesis con el Modelo MDC','#d97706');
+  h+='<div class="rp-card" style="border-color:'+confCol+'55;margin-bottom:8px"><b style="color:'+confCol+'">Confianza: '+E(conf.nivel)+'</b> <span class="rp-mini" style="display:inline">('+conf.n+' de '+conf.total+' fuentes de datos disponibles)</span>'+(conf.faltan.length?'<div class="rp-mini">Para mejorarla: '+E(conf.faltan.join(' · '))+'.</div>':'')+'<div class="rp-mini">Lectura generada con IA a partir de los bloques A y B. Son patrones y variables a monitorear, no certezas.</div></div>';
+  if(completo){
+    if(ai.contexto) h+=SUB('Contexto')+'<p class="rp-p">'+E(ai.contexto)+'</p>';
+    if(ai.estado_rival||ai.forma_rival){ h+=SUB('Cómo llega '+rival); if(ai.estado_rival) h+='<p class="rp-p">'+E(ai.estado_rival)+'</p>'; if(ai.forma_rival) h+='<p class="rp-p">'+E(ai.forma_rival)+'</p>'; }
     const tac=ai.tactica_rival||{};
     if(tac.estructura||(tac.caracteristicas||[]).length){
-      h+=H('Análisis táctico del rival','sistema y patrones de juego')+'<div class="rp-g2">'+
-        (tac.estructura?'<div class="rp-card"><div class="rp-k">Estructura habitual</div>'+E(tac.estructura)+'</div>':'')+
-        ((tac.caracteristicas||[]).length?'<div class="rp-card"><div class="rp-k">Características</div>'+lista(tac.caracteristicas)+'</div>':'')+'</div>';
-    }
-    if(Array.isArray(ai.jugadores_rival)&&ai.jugadores_rival.length){
-      h+=H('Jugadores clave de '+rival,'referentes a neutralizar')+`<table class="rp-t"><thead><tr><th>Jugador</th><th>Pos.</th><th>Dato</th><th>Por qué importa</th></tr></thead><tbody>${ai.jugadores_rival.map(j=>`<tr><td><b>${E(j.nombre)}</b></td><td>${E(j.pos||'')}</td><td>${E(j.dato||'')}</td><td>${E(j.por_que||'')}</td></tr>`).join('')}</tbody></table>`;
+      h+=SUB('Lectura táctica del rival')+'<div class="rp-g2">'+(tac.estructura?'<div class="rp-card"><div class="rp-k">Estructura probable</div>'+E(tac.estructura)+'</div>':'')+((tac.caracteristicas||[]).length?'<div class="rp-card"><div class="rp-k">Rasgos</div>'+lista(tac.caracteristicas)+'</div>':'')+'</div>';
     }
     if((ai.fortalezas_rival||[]).length||(ai.debilidades_rival||[]).length){
-      h+=H('Fortalezas y debilidades de '+rival)+'<div class="rp-g2"><div class="rp-card rp-verde"><div class="rp-k">✔ Fortalezas (a respetar)</div>'+lista(ai.fortalezas_rival)+'</div><div class="rp-card rp-rojo"><div class="rp-k">✖ Debilidades (a aprovechar)</div>'+lista(ai.debilidades_rival)+'</div></div>';
+      h+=SUB('Fortalezas y debilidades del rival')+'<div class="rp-g2"><div class="rp-card rp-verde"><div class="rp-k">A respetar</div>'+lista(ai.fortalezas_rival)+'</div><div class="rp-card rp-rojo"><div class="rp-k">A aprovechar</div>'+lista(ai.debilidades_rival)+'</div></div>';
     }
     if(Array.isArray(ai.escenarios)&&ai.escenarios.length){
-      h+=H('Escenarios del partido','lectura psico-competitiva MDC')+ai.escenarios.map((e,i)=>`<div class="rp-card" style="margin-bottom:6px">
-        <div class="rp-k">Escenario ${String.fromCharCode(65+i)}: ${E(e.titulo||e.momento||'')}</div>
+      h+=SUB('Escenarios')+ai.escenarios.map((e,i)=>`<div class="rp-card" style="margin-bottom:6px">
+        <div class="rp-k">${String.fromCharCode(65+i)}. ${E(e.titulo||e.momento||'')}</div>
         ${e.que_puede_hacer_rival||e.que_puede_pasar?`<div><b>Qué puede hacer el rival:</b> ${E(e.que_puede_hacer_rival||e.que_puede_pasar)}</div>`:''}
         ${e.riesgo?`<div class="rp-txt-rojo"><b>Riesgo:</b> ${E(e.riesgo)}</div>`:''}
         ${e.oportunidad||e.que_hacer?`<div class="rp-txt-verde"><b>Oportunidad:</b> ${E(e.oportunidad||e.que_hacer)}</div>`:''}</div>`).join('');
     }
     if(Array.isArray(ai.ventanas)&&ai.ventanas.length){
       const col=nv=>/alto/i.test(nv)?'rp-nv-alto':/medio/i.test(nv)?'rp-nv-medio':'rp-nv-bajo';
-      h+=H('Ventanas de riesgo emocional','momentos críticos y cómo contenerlos')+`<table class="rp-t"><thead><tr><th>Momento</th><th>Ventana</th><th>Nivel</th><th>Acción clave</th></tr></thead><tbody>${ai.ventanas.map(v=>`<tr><td><b>${E(v.minutos||'')}</b></td><td>${E(v.nombre||'')}${(v.senales||[]).length?'<div class="rp-mini">Señales: '+E(v.senales.join(' · '))+'</div>':''}</td><td><span class="rp-nv ${col(v.nivel||'')}">${E((v.nivel||'').toUpperCase())}</span></td><td>${E(v.accion||'')}</td></tr>`).join('')}</tbody></table>`;
+      h+=SUB('Ventanas de riesgo')+`<table class="rp-t"><thead><tr><th>Minutos</th><th>Ventana</th><th>Nivel</th><th>Acción clave</th></tr></thead><tbody>${ai.ventanas.map(v=>`<tr><td><b>${E(v.minutos||'')}</b></td><td>${E(v.nombre||'')}${(v.senales||[]).length?'<div class="rp-mini">Señales: '+E(v.senales.join(' · '))+'</div>':''}${v.base?'<div class="rp-mini">Base: '+E(v.base)+'</div>':''}</td><td><span class="rp-nv ${col(v.nivel||'')}">${E((v.nivel||'').toUpperCase())}</span></td><td>${E(v.accion||'')}</td></tr>`).join('')}</tbody></table>`;
     }
-    if(Array.isArray(ai.plan)&&ai.plan.length){
-      h+=H('Plan estratégico para '+propio,'recomendaciones para el cuerpo técnico')+ai.plan.map((x,i)=>`<div class="rp-plan"><div class="rp-num">${i+1}</div><div><b>${E(x.titulo||'')}</b><div>${E(x.detalle||'')}</div></div></div>`).join('');
-    }
-    const pr=ai.probabilidades||{};
-    if(pr.propio!=null||pr.empate!=null||pr.rival!=null){
-      h+=H('Escenario más probable','estimación orientativa, no es una certeza')+`<div class="rp-g3">
-        <div class="rp-prob"><div>${E(propio)} gana</div><b>${E(pr.propio??'—')}%</b></div>
-        <div class="rp-prob"><div>Empate</div><b>${E(pr.empate??'—')}%</b></div>
-        <div class="rp-prob"><div>${E(rival)} gana</div><b>${E(pr.rival??'—')}%</b></div></div>
-        ${pr.fundamento?'<div class="rp-card" style="margin-top:6px"><div class="rp-k">Fundamento — Modelo MDC</div>'+E(pr.fundamento)+'</div>':''}`;
+    const fav=ai.factores_a_favor||ai.fortalezas_propias, con=ai.factores_en_contra||ai.debilidades_propias;
+    if((fav||[]).length||(con||[]).length){
+      h+=SUB('Factores del partido para '+propio)+'<div class="rp-g2"><div class="rp-card rp-verde"><div class="rp-k">A favor</div>'+lista(fav)+'</div><div class="rp-card rp-rojo"><div class="rp-k">En contra</div>'+lista(con)+'</div></div>';
     }
     if(ai.variable_decisiva) h+='<div class="rp-card rp-azul" style="margin-top:6px"><b>Variable decisiva:</b> '+E(ai.variable_decisiva)+'</div>';
-    if((ai.fortalezas_propias||[]).length||(ai.debilidades_propias||[]).length){
-      h+=H('Fortalezas y zonas de riesgo de '+propio)+'<div class="rp-g2"><div class="rp-card rp-verde"><div class="rp-k">✔ Lo que nos favorece</div>'+lista(ai.fortalezas_propias)+'</div><div class="rp-card rp-rojo"><div class="rp-k">✖ Zonas de riesgo propias</div>'+lista(ai.debilidades_propias)+'</div></div>';
+    if(Array.isArray(ai.plan)&&ai.plan.length){
+      h+=SUB('Plan para el cuerpo técnico')+ai.plan.map((x,i)=>`<div class="rp-plan"><div class="rp-num">${i+1}</div><div><b>${E(x.titulo||'')}</b><div>${E(x.detalle||'')}</div></div></div>`).join('');
     }
   } else {
-    // Predicción hecha desde la cancha, con perfiles SC360
-    if(ai.resumen) h+=H('Cómo llega el equipo')+'<p class="rp-p">'+E(ai.resumen)+'</p>';
-    if(Array.isArray(p.xi)&&p.xi.length){
-      h+=H('Equipo')+`<table class="rp-t"><thead><tr><th>Jugador</th><th>Línea</th><th>Perfil</th><th>D proyectada</th><th>IDC</th></tr></thead><tbody>${p.xi.map(j=>`<tr><td>${E(j.nombre)}</td><td>${E(j.linea||'')}</td><td>${E(j.disc||'')}</td><td>${E(j.dp??'—')}</td><td>${E(j.idc??'—')}</td></tr>`).join('')}</tbody></table>`;
-    }
+    if(ai.resumen) h+=SUB('Cómo llega el equipo')+'<p class="rp-p">'+E(ai.resumen)+'</p>';
     if(Array.isArray(ai.por_linea)&&ai.por_linea.length){
-      h+=H('Por línea')+'<div class="rp-g2">'+ai.por_linea.map(l=>`<div class="rp-card"><div class="rp-k">${E(l.linea)}</div>${E(l.prediccion||'')}
+      h+=SUB('Por línea')+'<div class="rp-g2">'+ai.por_linea.map(l=>`<div class="rp-card"><div class="rp-k">${E(l.linea)}</div>${E(l.prediccion||'')}
         ${l.riesgo?`<div class="rp-txt-rojo" style="margin-top:3px"><b>Riesgo:</b> ${E(l.riesgo)}</div>`:''}${l.accion?`<div class="rp-txt-verde" style="margin-top:2px"><b>Acción:</b> ${E(l.accion)}</div>`:''}</div>`).join('')+'</div>';
     }
     if(Array.isArray(ai.escenarios)&&ai.escenarios.length){
-      h+=H('Escenarios del partido')+`<table class="rp-t"><thead><tr><th>Momento</th><th>Qué puede pasar</th><th>Qué hacer</th></tr></thead><tbody>${ai.escenarios.map(e=>`<tr><td><b>${E(e.momento)}</b></td><td>${E(e.que_puede_pasar)}</td><td>${E(e.que_hacer)}</td></tr>`).join('')}</tbody></table>`;
+      h+=SUB('Escenarios')+`<table class="rp-t"><thead><tr><th>Momento</th><th>Qué puede pasar</th><th>Qué hacer</th></tr></thead><tbody>${ai.escenarios.map(e=>`<tr><td><b>${E(e.momento)}</b></td><td>${E(e.que_puede_pasar)}</td><td>${E(e.que_hacer)}</td></tr>`).join('')}</tbody></table>`;
     }
-    if(Array.isArray(ai.jugadores_clave)&&ai.jugadores_clave.length) h+=H('Jugadores clave')+ai.jugadores_clave.map(j=>`<div class="rp-card" style="margin-bottom:5px"><b>${E(j.nombre)}:</b> ${E(j.por_que)}</div>`).join('');
-    if(ai.rival) h+=H('El rival')+'<p class="rp-p">'+E(ai.rival)+'</p>';
-    if(ai.cambios_sugeridos) h+=H('Cambios')+'<p class="rp-p">'+E(ai.cambios_sugeridos)+'</p>';
-    if(Array.isArray(ai.plan_previa)&&ai.plan_previa.length) h+=H('Plan de previa')+ai.plan_previa.map((x,i)=>`<div class="rp-plan"><div class="rp-num">${i+1}</div><div>${E(x)}</div></div>`).join('');
+    if(Array.isArray(ai.jugadores_clave)&&ai.jugadores_clave.length) h+=SUB('Jugadores clave propios')+ai.jugadores_clave.map(j=>`<div class="rp-card" style="margin-bottom:5px"><b>${E(j.nombre)}:</b> ${E(j.por_que)}</div>`).join('');
+    if(ai.rival) h+=SUB('Cómo puede influir el rival')+'<p class="rp-p">'+E(ai.rival)+'</p>';
+    if(ai.cambios_sugeridos) h+=SUB('Cambios')+'<p class="rp-p">'+E(ai.cambios_sugeridos)+'</p>';
+    if(Array.isArray(ai.plan_previa)&&ai.plan_previa.length) h+=SUB('Plan de previa')+ai.plan_previa.map((x,i)=>`<div class="rp-plan"><div class="rp-num">${i+1}</div><div>${E(x)}</div></div>`).join('');
   }
+
+  // ── D · DESPUÉS DEL PARTIDO
+  h+=BL('D','Después del partido','qué se anticipó y qué pasó','#15803d');
+  h+=predDespuesHtml(p,E);
+
   const fuentes=(ai.fuentes_web||[]).filter(u=>/^https?:\/\//.test(u));
   h+=`<div class="rp-pie">
     ${ai.limites?'<div><b>Límites de este informe:</b> '+E(ai.limites)+'</div>':''}
     ${fuentes.length?'<div>Fuentes web: '+fuentes.map(u=>E(u.replace(/^https?:\/\//,'').slice(0,60))).join(' · ')+'</div>':''}
-    <div>Informe generado con IA a partir de los datos de SC360${completo?' y de lo cargado por el cuerpo técnico':''}. Describe patrones y variables a monitorear: es una guía para el cuerpo técnico, no una certeza. No es un diagnóstico clínico.</div>
+    <div>Los bloques A y B muestran datos con su fuente. El bloque C es una lectura generada con IA (hipótesis, no certeza); el modelo de lectura está en etapa experimental y se valida con el bloque D. No es un diagnóstico clínico.</div>
     <div style="margin-top:3px">Sport Coaching 360 · app.sportcoachingpro.com · Medir → Entender → Decidir → Mejorar</div>
   </div>`;
   return h;
@@ -15945,7 +16241,7 @@ function predCompletoForm(){
   predModal(`<div class="pred-modal-in pred-form">
     <div class="pred-barra"><div style="font-size:15px;font-weight:900;color:#e8eff8">📑 Informe completo del rival</div>
       <button class="bg" style="padding:8px 12px;font-size:12px;margin-left:auto" onclick="predModalCerrar()">✕ Cerrar</button></div>
-    <div style="font-size:12.5px;color:#b4c2d4;line-height:1.5;margin-bottom:12px">Para partidos donde no tenés los perfiles de los jugadores cargados (por ejemplo, la Primera). La IA arma el scouting del rival, los escenarios, las ventanas de riesgo y el plan con el Modelo MDC, a partir de las estadísticas que cargues. Cuantos más datos, mejor el informe.</div>
+    <div style="font-size:12.5px;color:#b4c2d4;line-height:1.5;margin-bottom:12px">El informe separa los <b style="color:#e8eff8">datos</b> (lo que medís en SC360 y lo que cargás acá, con su fuente) de la <b style="color:#e8eff8">lectura</b> (escenarios, ventanas de riesgo y plan, como hipótesis con nivel de confianza). Si vinculás una división, suma sola la disponibilidad MDC, los últimos resultados y los goles por tramo. Después del partido, compara lo anticipado con lo que pasó.</div>
 
     <div class="pred-sec">Partido</div>
     <div class="pred-dos">${campo('torneo','Torneo / fecha','Ej: Primera Nacional · Jornada 34')}${campo('fecha','Día y hora','Ej: Sábado 17/10 · 16 hs')}</div>
@@ -15968,7 +16264,7 @@ function predCompletoForm(){
 
     <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px;font-size:12px;color:#b4c2d4;cursor:pointer">
       <input type="checkbox" id="pc-web" ${prev.web===false?'':'checked'} style="accent-color:#7c3aed;margin-top:2px">
-      <span>Completar con información pública del rival en internet. <span style="color:#f59e0b">Solo sirve si el rival juega la misma competencia que figura en internet: para inferiores o ligas locales puede traer datos del primer equipo profesional, que no aplican.</span></span></label>
+      <span>Completar con información pública del rival en internet (cada dato aparece con su enlace). <span style="color:#f59e0b">Solo sirve si el rival juega la misma competencia que figura en internet: para inferiores o ligas locales puede traer datos del primer equipo profesional, que no aplican.</span></span></label>
 
     <div id="pc-estado" style="font-size:12px;margin-top:10px"></div>
     <div style="display:flex;gap:8px;margin-top:12px;position:sticky;bottom:0;background:#0d1b3e;padding:10px 0">
@@ -15994,34 +16290,38 @@ async function predCompletoGenerar(){
     grupo:gObj?gObj.nombre:null};
   const stTxt=(o)=>['posición '+(o.posicion||'—'),'puntos '+(o.pts||'—'),'PJ '+(o.pj||'—'),'G-E-P '+[o.g,o.e,o.p].map(x=>x||'—').join('-'),'GF '+(o.gf||'—'),'GC '+(o.gc||'—'),'goleador: '+(o.goleador||'—'),'últimos resultados: '+(o.forma||'—')].join(' · ');
   const P=datos.propio, R=datos.rival;
+  btn.disabled=true; estado.innerHTML='<span style="color:#b4c2d4">Juntando los datos del plantel…</span>';
+  datos.sc360=gObj?await predDatosSC360(gObj.codigo):null;
   const prompt='Sos analista de rendimiento mental deportivo y trabajás con el Modelo de Disponibilidad Competitiva (MDC: Disponibilidad = Talento − Interferencia) de Eduardo Meljin. '+
-'Escribís un INFORME DE SCOUTING Y PREDICCIÓN para un cuerpo técnico, en español rioplatense (voseo), directo y concreto.\n\n'+
+'Escribís la LECTURA DE UN PARTIDO para un cuerpo técnico profesional, en español rioplatense (voseo), directo, concreto y sin relleno. Cada afirmación tiene que poder apoyarse en un dato de abajo.\n\n'+
 'PARTIDO: '+P.nombre+' vs '+R.nombre+' · '+[datos.torneo,datos.fecha,datos.estadio].filter(Boolean).join(' · ')+' · '+P.nombre+' juega de '+(datos.condicion||'—').toLowerCase()+'.\n\n'+
-'NUESTRO EQUIPO ('+P.nombre+'): '+stTxt(P)+(P.notas?'\nNotas del cuerpo técnico: '+P.notas:'')+'\n\n'+
+'NUESTRO EQUIPO ('+P.nombre+'): '+stTxt(P)+(P.notas?'\nNotas del cuerpo técnico: '+P.notas:'')+'\nDatos medidos en SC360:\n'+predDatosSC360Texto(datos.sc360)+'\n\n'+
 'RIVAL ('+R.nombre+'): '+stTxt(R)+'\nEstilo según el cuerpo técnico: '+(R.estilo||'—')+(R.jugadores?'\nJugadores clave: '+R.jugadores:'')+(R.notas?'\nNotas: '+R.notas:'')+'\n\n'+
 (borr.web?'Podés buscar en internet información pública y reciente de '+R.nombre+(datos.torneo?' en '+datos.torneo:'')+' (tabla, resultados, goleadores, sistema). Usá SOLO datos de esa misma competencia y categoría; si lo que encontrás es de otra categoría o del primer equipo profesional y el partido es de otra liga, no lo uses y aclaralo en "limites". No inventes.\n\n':'No busques en internet: usá solo los datos de arriba.\n\n')+
 'MARCO MDC: la interferencia de un equipo se lee en su contexto (presión por el resultado, racha, localía, urgencia en la tabla); la disponibilidad es lo que el equipo puede mostrar hoy. Aplicalo a los dos equipos.\n\n'+
-'REGLAS DE LENGUAJE: hablá de patrones y probabilidades ("puede", "es probable", "patrón observado", "variable a monitorear"), nunca como certeza ("va a pasar"). No uses términos clínicos (ansiedad, depresión, burnout, trastorno): usá "activación", "tensión", "nerviosismo", "señales de sobrecarga". No inventes estadísticas, lesiones ni nombres que no estén en los datos o en una fuente web confiable; si falta información, decilo en "limites" y dejá la sección más corta.\n\n'+
+'REGLAS DE LENGUAJE: hablá de patrones ("puede", "es probable", "patrón observado", "variable a monitorear"), nunca como certeza ("va a pasar"). No uses términos clínicos (ansiedad, depresión, burnout, trastorno): usá "activación", "tensión", "nerviosismo", "señales de sobrecarga".\n'+
+'REGLAS DE DATOS: no inventes estadísticas, lesiones, resultados ni nombres. NO estimes probabilidades ni porcentajes de resultado. Jugadores del rival: SOLO los que figuran en los datos del cuerpo técnico (fuente "cuerpo técnico") o en una página web que citás (fuente = URL exacta); si no hay, dejá la lista vacía. Cada dato del rival sacado de internet va en "datos_rival_web" con su URL. Las ventanas de riesgo tienen que apoyarse en los goles por tramo o en el contexto (decilo en "base"). Si falta información, decilo en "limites" y dejá la sección más corta.\n\n'+
 'Respondé SOLO con este JSON, sin texto adicional ni markdown:\n'+
 '{\n'+
 '  "contexto": "2-3 oraciones: qué se juega cada equipo en este partido",\n'+
 '  "estado_rival": "párrafo: cómo llega el rival",\n'+
 '  "forma_rival": "1-2 oraciones sobre su forma reciente",\n'+
 '  "tactica_rival": {"estructura": "formación y cómo sale, mediocampo y ataque", "caracteristicas": ["3-4 rasgos"]},\n'+
-'  "jugadores_rival": [{"nombre": "", "pos": "", "dato": "partidos/goles si se conocen", "por_que": "por qué importa y cómo neutralizarlo"}],\n'+
+'  "jugadores_rival": [{"nombre": "", "pos": "", "dato": "partidos/goles si se conocen", "por_que": "por qué importa y cómo neutralizarlo", "fuente": "cuerpo técnico o la URL"}],\n'+
+'  "datos_rival_web": [{"dato": "un dato concreto del rival (resultado, posición, goleador, sistema)", "fuente": "URL exacta"}],\n'+
 '  "fortalezas_rival": ["3-5"], "debilidades_rival": ["3-5"],\n'+
 '  "escenarios": [{"titulo": "ej: Inicio del partido (1-30 min) / Si el rival abre el marcador / Si nosotros abrimos el marcador / Partido trabado al minuto 60", "que_puede_hacer_rival": "", "riesgo": "riesgo para nuestro equipo", "oportunidad": ""}],\n'+
-'  "ventanas": [{"minutos": "ej: 0-15", "nombre": "nombre corto", "nivel": "ALTO|MEDIO|BAJO", "senales": ["2-3 señales de alerta"], "accion": "acción clave concreta"}],\n'+
+'  "ventanas": [{"minutos": "ej: 0-15 (minutos absolutos del partido, 0-90)", "nombre": "nombre corto", "nivel": "ALTO|MEDIO|BAJO", "senales": ["2-3 señales de alerta"], "accion": "acción clave concreta", "base": "qué dato la respalda"}],\n'+
 '  "plan": [{"titulo": "", "detalle": "2-3 oraciones"}],\n'+
-'  "probabilidades": {"propio": 0, "empate": 0, "rival": 0, "fundamento": "2-3 oraciones con el MDC"},\n'+
+'  "factores_a_favor": [{"factor": "1 oración", "base": "el dato que lo respalda"}],\n'+
+'  "factores_en_contra": [{"factor": "1 oración", "base": "el dato que lo respalda"}],\n'+
 '  "variable_decisiva": "1 oración",\n'+
-'  "fortalezas_propias": ["3-5"], "debilidades_propias": ["3-5"],\n'+
 '  "limites": "1-2 oraciones: qué datos faltan y cuánto confiar en el informe",\n'+
 '  "fuentes_web": ["URLs usadas; vacío si no buscaste"]\n'+
 '}\n'+
-'Exactamente 4 escenarios, entre 4 y 6 ventanas, entre 4 y 6 puntos de plan, hasta 6 jugadores del rival. Las probabilidades suman 100.';
+'Exactamente 4 escenarios, entre 3 y 6 ventanas, entre 4 y 6 puntos de plan, entre 3 y 5 factores a favor y en contra, hasta 6 jugadores del rival (solo con fuente). datos_rival_web vacío si no buscaste en internet.';
 
-  btn.disabled=true; btn.textContent='✦ Armando el informe'+(borr.web?' y buscando datos del rival…':'…');
+  btn.disabled=true; btn.textContent='✦ Armando la lectura'+(borr.web?' y buscando datos del rival…':'…');
   estado.innerHTML='<span style="color:#b4c2d4">Puede tardar hasta un minuto.</span>';
   async function llamar(conWeb){
     const body={model:'claude-haiku-4-5-20251001',max_tokens:8000,messages:[{role:'user',content:prompt}]};
@@ -17511,6 +17811,8 @@ async function loadCRM() {
 const PCT_VENDEDOR_SOLO = 0.25;
 const PCT_SUBVENDEDOR   = 0.20;
 const PCT_VENDEDOR_PADRE= 0.15;
+// Clubes del canal GLOOUDS: no generan comisión de vendedor (los vende GLOOUDS).
+let CRM_SIN_COMISION = [];
 
 function mrrActivoDeClub(club){
   const ops = CRM_OPS[club.id] || [];
@@ -17527,7 +17829,9 @@ function calcularComisiones(){
     return porUsuario[u.id];
   }
 
+  CRM_SIN_COMISION = [];
   CRM_DATA.forEach(club => {
+    if(club.canal === 'gloouds'){ const m = mrrActivoDeClub(club); if(m) CRM_SIN_COMISION.push({nombre:club.nombre, mrr:m}); return; }
     if(!club.vendedor_id) return;
     const mrr = mrrActivoDeClub(club);
     if(!mrr) return;
@@ -17564,9 +17868,10 @@ function renderComisiones(){
   if(!el) return;
   const datos = calcularComisiones();
   const filas = Object.values(datos).sort((a,b) => (b.propio+b.comoSubvendedor+b.comoPadre) - (a.propio+a.comoSubvendedor+a.comoPadre));
+  const notaG = CRM_SIN_COMISION.length ? '<div style="font-size:11.5px;color:#a78bfa;background:#a78bfa12;border:1px solid #a78bfa44;border-radius:8px;padding:8px 10px;margin-top:10px">Canal GLOOUDS, sin comisión de vendedor: '+CRM_SIN_COMISION.map(c=>c.nombre).join(', ')+'.</div>' : '';
 
   if(!filas.length){
-    el.innerHTML = '<div class="es">Todavía no hay clubes con estado "Cliente activo" y valor mensual cargado.</div>';
+    el.innerHTML = '<div class="es">Todavía no hay clubes con estado "Cliente activo" y valor mensual cargado.</div>'+notaG;
     return;
   }
 
@@ -17590,7 +17895,7 @@ function renderComisiones(){
       </td>
     </tr>`;
   });
-  html += '</tbody></table>';
+  html += '</tbody></table>'+notaG;
   el.innerHTML = html;
 }
 
@@ -17826,6 +18131,7 @@ function abrirModalNuevoClub() {
   document.getElementById('crm-club-pais').value = 'Argentina';
   document.getElementById('crm-vendedor').value = '';
   document.getElementById('crm-fuente').value = 'manual';
+  if(document.getElementById('crm-canal')) document.getElementById('crm-canal').value = 'directo';
   document.getElementById('mo-crm-club').classList.add('open');
 }
 
@@ -17845,6 +18151,7 @@ function abrirEditarClub(clubId) {
   document.getElementById('crm-contacto-email').value = club.contacto_email || '';
   document.getElementById('crm-vendedor').value = club.vendedor_id || '';
   document.getElementById('crm-fuente').value = club.fuente || 'manual';
+  if(document.getElementById('crm-canal')) document.getElementById('crm-canal').value = club.canal || 'directo';
   document.getElementById('crm-notas').value = club.notas || '';
   document.getElementById('mo-crm-club').classList.add('open');
 }
@@ -17868,6 +18175,7 @@ async function guardarCRMClub() {
     fuente: document.getElementById('crm-fuente').value || 'manual',
     notas: document.getElementById('crm-notas').value.trim() || null,
   };
+  if(document.getElementById('crm-canal')) payload.canal = document.getElementById('crm-canal').value || 'directo';
 
   let resp;
   if(id) {
@@ -18918,7 +19226,7 @@ function idcEstado(v){ return v==null?'Sin datos':v>=80?'Disponible':v>=65?'Prec
 // Fecha de un partido: tabla partidos; si no está, el código PP+base36 es un timestamp
 function idcFechaPartido(codigo, mapaFechas){
   if(mapaFechas&&mapaFechas[codigo]) return new Date(mapaFechas[codigo]+'T12:00:00');
-  const t=parseInt(String(codigo||'').replace(/^PP/i,''),36);
+  const t=parseInt(String(codigo||'').replace(/^PP/i,'').slice(0,8),36);
   return (t&&t>1.5e12&&t<4e12)?new Date(t):null;
 }
 function idcDiasDesde(fecha){ return fecha?Math.floor((Date.now()-fecha.getTime())/86400000):null; }
@@ -19545,7 +19853,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='28/10/2026 · 1';
+const SC360_VERSION='29/10/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -19591,7 +19899,7 @@ async function abrirReporteActivos(){
   m.innerHTML='<div style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:14px;width:min(880px,100%);padding:18px">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'+
       '<div><div style="font-size:17px;font-weight:900;color:#fff">📊 Jugadores activos por club</div>'+
-      '<div style="font-size:11.5px;color:#94a3b8;margin-top:2px">Base de facturación · jugador activo = hizo el test inicial (alta) en un plantel habilitado · USD '+PRECIO_JUGADOR_USD+' por mes · '+Math.round(PARTE_SC360*100)+'% SC360</div></div>'+
+      '<div style="font-size:11.5px;color:#94a3b8;margin-top:2px">Base de facturación · jugador activo = hizo el test inicial (alta) en un plantel habilitado · precio y reparto según la licencia de cada club · canal GLOOUDS: '+Math.round(PARTE_SC360*100)+'% SC360</div></div>'+
       '<div style="display:flex;gap:8px;align-items:center"><input type="month" id="act-mes" value="'+mesDef+'" onchange="calcularActivos()" style="padding:7px 10px;background:#0a1024;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px">'+
       '<button onclick="document.getElementById(\'mo-activos\').remove()" style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer">✕</button></div></div>'+
     '<div id="act-cuerpo" style="margin-top:14px"><div class="es">Calculando…</div></div></div>';
@@ -19605,7 +19913,7 @@ async function calcularActivos(){
     const ini=new Date(y,mm-1,1), fin=new Date(y,mm,1);
     const d1=ini.toISOString().slice(0,10), d2=fin.toISOString().slice(0,10);
     const [gs,rs,pp,en,cg,nu,ra]=await Promise.all([
-      invTodo('grupos','select=codigo,club,nombre,habilitado'),
+      invTodo('grupos','select=codigo,club,nombre,habilitado,club_id'),
       invTodo('resultados','select=id,jugador_uid,jugador_nombre,grupo_codigo,jugador_club,fecha'),
       invTodo('postpartido_jugador','select=jugador_nombre,grupo_codigo,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2),
       invTodo('entreno_jugador','select=jugador_nombre,grupo_codigo,fecha&fecha=gte.'+d1+'&fecha=lt.'+d2),
@@ -19615,7 +19923,19 @@ async function calcularActivos(){
     ]);
     // Bajas: se factura el mes de la baja; desde el mes siguiente, no
     let bajas={}; try{ const fj=await invTodo('jugadores','select=id,baja_desde&baja_desde=not.is.null'); (fj||[]).forEach(x=>{ bajas[x.id]=x.baja_desde; }); }catch(e){}
-    const clubDeGrupo={}, grupoHab={}; gs.forEach(g=>{ if(g.codigo){ clubDeGrupo[g.codigo]=(g.club||'').trim()||'(sin club)'; grupoHab[g.codigo]=g.habilitado!==false; } });
+    // Clubes y licencias: el canal y las condiciones se leen por club (si la tabla todavía no está, se sigue como antes)
+    let clubesT=[], licT=[]; try{ [clubesT,licT]=await Promise.all([invTodo('clubes','select=id,nombre,tipo,canal,activo'),invTodo('licencias','select=club_id,canal,precio_jugador,moneda,reparto_socio_pct,inicio,fin,estado')]); }catch(e){}
+    clubesT=Array.isArray(clubesT)?clubesT:[]; licT=Array.isArray(licT)?licT:[];
+    const clubPorId={}; clubesT.forEach(c=>{ clubPorId[c.id]=c; });
+    const CI={}; // condiciones por nombre de club
+    const condClub=nombre=>{ if(CI[nombre]) return CI[nombre];
+      const c=clubesT.find(x=>activosNorm(x.nombre)===activosNorm(nombre))||null;
+      const lic=c?licT.find(l=>l.club_id===c.id&&l.estado!=='baja'&&String(l.inicio)<d2&&(!l.fin||String(l.fin)>=d1)):null;
+      const canal=lic?lic.canal:(c?c.canal:'directo');
+      return CI[nombre]={canal, tipo:c?c.tipo:'club', activo:c?c.activo!==false:true, conLicencia:!!lic,
+        precio:lic&&lic.precio_jugador!=null?Number(lic.precio_jugador):PRECIO_JUGADOR_USD,
+        socio:lic?Number(lic.reparto_socio_pct||0)/100:(canal==='gloouds'?1-PARTE_SC360:0)}; };
+    const clubDeGrupo={}, grupoHab={}; gs.forEach(g=>{ if(g.codigo){ const cc=g.club_id&&clubPorId[g.club_id]; clubDeGrupo[g.codigo]=(cc?cc.nombre:(g.club||'').trim())||'(sin club)'; grupoHab[g.codigo]=g.habilitado!==false; } });
     // Plantel registrado: jugador = nombre normalizado + club
     const reg={}, porId={}, clubesDeNombre={};
     rs.forEach(r=>{
@@ -19669,24 +19989,31 @@ async function calcularActivos(){
     Object.values(sinFicha).forEach(j=>{ const c=clubes[j.club]=clubes[j.club]||{club:j.club,reg:0,activos:[],sinFicha:[],conUso:0}; c.sinFicha.push(j); });
     Object.keys(clubes).forEach(k=>{ if(!clubes[k].activos.length&&!clubes[k].sinFicha.length) delete clubes[k]; });
     const filas=Object.values(clubes).sort((a,b)=>b.activos.length-a.activos.length||a.club.localeCompare(b.club));
-    const totA=filas.reduce((s,c)=>s+c.activos.length,0), totSF=filas.reduce((s,c)=>s+c.sinFicha.length,0);
-    ACTIVOS_DATOS={mes,filas};
+    filas.forEach(c=>{ const k=condClub(c.club); c.cond=k; c.fact=c.activos.length*k.precio; c.socio=c.fact*k.socio; c.sc=c.fact-c.socio; });
+    const sum=(f,fn)=>f.reduce((s,c)=>s+fn(c),0);
+    const totA=sum(filas,c=>c.activos.length), totSF=sum(filas,c=>c.sinFicha.length);
+    const fG=filas.filter(c=>c.cond.canal==='gloouds'), fD=filas.filter(c=>c.cond.canal!=='gloouds');
+    const T={fact:sum(filas,c=>c.fact), sc:sum(filas,c=>c.sc), socio:sum(filas,c=>c.socio), factD:sum(fD,c=>c.fact), factG:sum(fG,c=>c.fact), aD:sum(fD,c=>c.activos.length), aG:sum(fG,c=>c.activos.length)};
+    const sinLic=filas.filter(c=>c.activos.length&&!c.cond.conLicencia).length;
+    ACTIVOS_DATOS={mes,filas,T};
     const usd=n=>'USD '+(Math.round(n*100)/100).toLocaleString('es-AR');
     const nomMes=ini.toLocaleDateString('es-AR',{month:'long',year:'numeric'});
     box.innerHTML=
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px">'+
-        [['Jugadores activos',totA,'#00c2ff'],['Total facturable',usd(totA*PRECIO_JUGADOR_USD),'#e8eff8'],['Parte SC360',usd(totA*PRECIO_JUGADOR_USD*PARTE_SC360),'#22c55e'],['Parte Gloouds',usd(totA*PRECIO_JUGADOR_USD*(1-PARTE_SC360)),'#a78bfa']]
+        [['Jugadores activos',totA+'<span style="font-size:11px;font-weight:600;color:#94a3b8"> · '+T.aD+' directo · '+T.aG+' GLOOUDS</span>','#00c2ff'],['Total facturable',usd(T.fact),'#e8eff8'],['Parte SC360',usd(T.sc),'#22c55e'],['Parte GLOOUDS',usd(T.socio)+'<span style="font-size:11px;font-weight:600;color:#94a3b8"> · solo canal GLOOUDS</span>','#a78bfa']]
           .map(x=>'<div style="background:#0a1024;border:1px solid #1a3a6e;border-radius:10px;padding:10px 12px"><div style="font-size:10px;font-weight:800;color:#94a3b8;letter-spacing:0.06em;text-transform:uppercase">'+x[0]+'</div><div style="font-size:21px;font-weight:900;color:'+x[2]+';margin-top:3px">'+x[1]+'</div></div>').join('')+'</div>'+
+      (sinLic?'<div style="font-size:12px;color:#b4c2d4;background:#00c2ff0d;border:1px solid #1a3a6e;border-radius:8px;padding:8px 10px;margin-bottom:10px">ℹ '+sinLic+' club'+(sinLic>1?'es':'')+' todavía sin licencia cargada: se usa el precio de referencia de USD '+PRECIO_JUGADOR_USD+' y el canal marcado en el club (directo = 100 % SC360).</div>':'')+
       (totSF?'<div style="font-size:12px;color:#f59e0b;background:#f59e0b12;border:1px solid #f59e0b44;border-radius:8px;padding:8px 10px;margin-bottom:10px">⚠ <b>'+totSF+' jugador'+(totSF>1?'es':'')+' usaron la app este mes sin haber hecho el test inicial</b>. No están dados de alta, así que no se facturan: pedile al club que les envíe el test.</div>':'')+
       '<div style="font-size:11.5px;color:#94a3b8;margin-bottom:8px">'+nomMes.charAt(0).toUpperCase()+nomMes.slice(1)+' · tocá un club para ver sus jugadores dados de alta</div>'+
       '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="color:#94a3b8;font-size:10.5px;text-transform:uppercase">'+
-        '<th style="text-align:left;padding:6px 8px">Club</th><th style="padding:6px 8px" title="Jugadores con actividad en el mes (informativo)">Usaron la app</th><th style="padding:6px 8px">Activos (alta)</th><th style="padding:6px 8px" title="Usaron la app sin haber hecho el test">Sin test</th><th style="padding:6px 8px">Facturable</th><th style="padding:6px 8px">SC360</th></tr></thead><tbody>'+
+        '<th style="text-align:left;padding:6px 8px">Club</th><th style="padding:6px 8px" title="Jugadores con actividad en el mes (informativo)">Usaron la app</th><th style="padding:6px 8px">Activos (alta)</th><th style="padding:6px 8px" title="Usaron la app sin haber hecho el test">Sin test</th><th style="padding:6px 8px">Precio</th><th style="padding:6px 8px">Facturable</th><th style="padding:6px 8px">SC360</th><th style="padding:6px 8px">GLOOUDS</th></tr></thead><tbody>'+
       filas.map((c,i)=>'<tr onclick="var d=document.getElementById(\'act-det-'+i+'\');d.style.display=d.style.display===\'none\'?\'table-row\':\'none\'" style="cursor:pointer;border-top:1px solid #1a3a6e44">'+
-          '<td style="padding:8px;color:#e8eff8;font-weight:700">'+c.club+'</td><td style="padding:8px;text-align:center;color:#b4c2d4">'+(c.conUso||0)+'</td>'+
+          '<td style="padding:8px;color:#e8eff8;font-weight:700">'+c.club+' <span style="font-size:10px;font-weight:800;padding:1px 6px;border-radius:6px;'+(c.cond.canal==='gloouds'?'color:#a78bfa;background:#a78bfa1f">GLOOUDS':'color:#94a3b8;background:#94a3b81a">DIRECTO')+'</span>'+(c.cond.tipo==='particular'?' <span style="font-size:10px;color:#94a3b8">particular</span>':'')+(c.cond.activo?'':' <span style="font-size:10px;color:#f59e0b">inactivo</span>')+'</td><td style="padding:8px;text-align:center;color:#b4c2d4">'+(c.conUso||0)+'</td>'+
           '<td style="padding:8px;text-align:center;font-weight:900;color:'+(c.activos.length?'#00c2ff':'#4a5a78')+'">'+c.activos.length+'</td>'+
           '<td style="padding:8px;text-align:center;color:'+(c.sinFicha.length?'#f59e0b':'#4a5a78')+'">'+(c.sinFicha.length||'—')+'</td>'+
-          '<td style="padding:8px;text-align:center;color:#e8eff8">'+usd(c.activos.length*PRECIO_JUGADOR_USD)+'</td><td style="padding:8px;text-align:center;color:#22c55e;font-weight:700">'+usd(c.activos.length*PRECIO_JUGADOR_USD*PARTE_SC360)+'</td></tr>'+
-        '<tr id="act-det-'+i+'" style="display:none"><td colspan="6" style="padding:6px 8px 12px;background:#0a1024">'+
+          '<td style="padding:8px;text-align:center;color:#b4c2d4" title="'+(c.cond.conLicencia?'Según la licencia del club':'Sin licencia cargada: precio de referencia')+'">'+usd(c.cond.precio)+(c.cond.conLicencia?'':'*')+'</td>'+
+          '<td style="padding:8px;text-align:center;color:#e8eff8">'+usd(c.fact)+'</td><td style="padding:8px;text-align:center;color:#22c55e;font-weight:700">'+usd(c.sc)+'</td><td style="padding:8px;text-align:center;color:'+(c.socio?'#a78bfa':'#4a5a78')+'">'+(c.socio?usd(c.socio):'—')+'</td></tr>'+
+        '<tr id="act-det-'+i+'" style="display:none"><td colspan="9" style="padding:6px 8px 12px;background:#0a1024">'+
           (c.activos.length?c.activos.sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(j=>'<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0;border-bottom:1px solid #1a3a6e33"><span style="color:#e8eff8">'+j.nombre+' <span style="color:#4a5a78">· alta '+String(j.alta).slice(0,10).split('-').reverse().join('/')+'</span></span><span style="color:#94a3b8">'+([...j.act].join(' · ')||'sin uso este mes')+'</span></div>').join(''):'<div style="font-size:12px;color:#4a5a78">Sin jugadores dados de alta.</div>')+
           (c.sinFicha.length?'<div style="font-size:10.5px;font-weight:800;color:#f59e0b;margin-top:8px">SIN TEST (no se facturan todavía)</div>'+c.sinFicha.map(j=>'<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0;color:#f59e0b"><span>'+j.nombre+'</span><span>'+[...j.act].join(' · ')+'</span></div>').join(''):'')+
         '</td></tr>').join('')+
@@ -19702,14 +20029,17 @@ function descargarActivos(){
   const L=[];
   L.push(['Reporte de jugadores activos — Sport Coaching 360'].map(esc).join(';'));
   L.push(['Mes',ACTIVOS_DATOS.mes].map(esc).join(';'));
-  L.push(['Precio por jugador activo (USD)',num(PRECIO_JUGADOR_USD)].map(esc).join(';'));
+  L.push(['Precio de referencia por jugador (USD, clubes sin licencia cargada)',num(PRECIO_JUGADOR_USD)].map(esc).join(';'));
   L.push('');
   L.push(['Criterio','Jugador activo = hizo el test inicial (alta) en un plantel habilitado del club'].map(esc).join(';'));
   L.push('');
-  L.push(['Club','Usaron la app en el mes','Jugadores activos (alta)','Facturable (USD)','SC360 (USD)','Gloouds (USD)'].join(';'));
+  L.push(['Reparto','50/50 solo para clubes del canal GLOOUDS; canal directo = 100 % SC360'].map(esc).join(';'));
+  L.push('');
+  L.push(['Club','Canal','Tipo','Licencia cargada','Usaron la app en el mes','Jugadores activos (alta)','Precio por jugador (USD)','Facturable (USD)','SC360 (USD)','GLOOUDS (USD)'].join(';'));
   let tA=0;
-  ACTIVOS_DATOS.filas.forEach(c=>{ const a=c.activos.length; tA+=a; L.push([esc(c.club),c.conUso||0,a,num(a*PRECIO_JUGADOR_USD),num(a*PRECIO_JUGADOR_USD*PARTE_SC360),num(a*PRECIO_JUGADOR_USD*(1-PARTE_SC360))].join(';')); });
-  L.push(['TOTAL','',tA,num(tA*PRECIO_JUGADOR_USD),num(tA*PRECIO_JUGADOR_USD*PARTE_SC360),num(tA*PRECIO_JUGADOR_USD*(1-PARTE_SC360))].join(';'));
+  ACTIVOS_DATOS.filas.forEach(c=>{ const a=c.activos.length; tA+=a; L.push([esc(c.club),c.cond.canal==='gloouds'?'GLOOUDS':'Directo',esc(c.cond.tipo),c.cond.conLicencia?'Sí':'No (precio de referencia)',c.conUso||0,a,num(c.cond.precio),num(c.fact),num(c.sc),num(c.socio)].join(';')); });
+  const T=ACTIVOS_DATOS.T||{fact:0,sc:0,socio:0};
+  L.push(['TOTAL','','','','',tA,'',num(T.fact),num(T.sc),num(T.socio)].join(';'));
   L.push(''); L.push('Detalle de jugadores activos');
   L.push(['Club','Jugador','Fecha de alta (test inicial)','Actividades del mes'].join(';'));
   ACTIVOS_DATOS.filas.forEach(c=>c.activos.forEach(j=>L.push([esc(c.club),esc(j.nombre),esc(String(j.alta).slice(0,10)),esc([...j.act].join(', ')||'—')].join(';'))));
