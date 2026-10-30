@@ -3284,9 +3284,7 @@ async function cargarUsuario(user){
     // Si es coordinador: sumar los grupos_codigos de los DT/técnicos que él creó
     if(USUARIO_ACTUAL.rol==='coordinador' && USUARIO_ACTUAL.id){
       try{
-        const dtsResp=await fetch(SB_URL+'/rest/v1/usuarios?creado_por_id=eq.'+USUARIO_ACTUAL.id+'&select=grupos_codigos',{
-          headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-        });
+        const dtsResp=await fetch(SB_URL+'/rest/v1/usuarios?creado_por_id=eq.'+USUARIO_ACTUAL.id+'&select=grupos_codigos',H);
         const dts=await dtsResp.json();
         if(Array.isArray(dts)&&dts.length){
           const propios=USUARIO_ACTUAL.grupos_codigos||[];
@@ -5355,11 +5353,11 @@ async function generarAnalisisGrupalIA(){
 
   try{
     const resp=await fetch(PJ_IA_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1200,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:2500,messages:[{role:'user',content:prompt}]})});
     const data=await resp.json();
     const text=(data.content&&data.content[0]&&data.content[0].text)||'';
     const clean=text.replace(/```json|```/g,'').trim();
-    const ai=JSON.parse(clean);
+    const ai=iaJSON(clean);
 
     function sec(titulo,texto){
       if(!texto) return '';
@@ -10769,11 +10767,11 @@ async function generarAnalisisEquipoIA(){
 
   try{
     const resp=await fetch(PJ_IA_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1200,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:2500,messages:[{role:'user',content:prompt}]})});
     const data=await resp.json();
     const text=(data.content&&data.content[0]&&data.content[0].text)||'';
     const clean=text.replace(/```json|```/g,'').trim();
-    const ai=JSON.parse(clean);
+    const ai=iaJSON(clean);
 
     function sec(titulo,texto,em){
       if(!texto) return '';
@@ -11392,11 +11390,11 @@ async function generarAnalisisEvolucionIA(){
 
   try{
     const resp=await fetch(PJ_IA_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1200,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:2500,messages:[{role:'user',content:prompt}]})});
     const data=await resp.json();
     const text=(data.content&&data.content[0]&&data.content[0].text)||'';
     const clean=text.replace(/```json|```/g,'').trim();
-    const ai=JSON.parse(clean);
+    const ai=iaJSON(clean);
 
     function sec(titulo,texto,em){
       if(!texto) return '';
@@ -11660,11 +11658,11 @@ async function generarPDFEvolucion(){
       '}\nRespondé SOLO con el JSON, sin texto adicional, sin markdown.';
 
     const resp=await fetch(PJ_IA_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:900,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1800,messages:[{role:'user',content:prompt}]})});
     const respData=await resp.json();
     const text=(respData.content&&respData.content[0]&&respData.content[0].text)||'';
     const clean=text.replace(/```json|```/g,'').trim();
-    ia=JSON.parse(clean);
+    ia=iaJSON(clean);
   }catch(e){
     console.error('No se pudo generar la narrativa con IA, se usan frases de respaldo:',e);
     ia=null;
@@ -16545,11 +16543,11 @@ async function generarAnalisisEstadisticasIA(){
 
   try{
     const resp=await fetch(PJ_IA_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1200,messages:[{role:'user',content:prompt}]})});
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:2500,messages:[{role:'user',content:prompt}]})});
     const data=await resp.json();
     const text=(data.content&&data.content[0]&&data.content[0].text)||'';
     const clean=text.replace(/```json|```/g,'').trim();
-    const ai=JSON.parse(clean);
+    const ai=iaJSON(clean);
 
     function sec(titulo,texto,em){
       if(!texto) return '';
@@ -19027,7 +19025,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='29/10/2026 · 6';
+const SC360_VERSION='29/10/2026 · 7';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -21248,6 +21246,20 @@ function pjIaHtml(ai, fecha){
   return html;
 }
 
+// Lee el JSON que devuelve la IA. Si la respuesta vino cortada (se quedó
+// sin espacio antes de cerrar), se queda con los campos que sí llegaron
+// completos en vez de fallar todo el análisis.
+function iaJSON(texto){
+  let t=String(texto||'').replace(/```json|```/g,'').trim();
+  const ini=t.indexOf('{'); if(ini>0) t=t.slice(ini);
+  try{ return JSON.parse(t); }catch(e){}
+  const fin=t.lastIndexOf('}'); if(fin>0){ try{ return JSON.parse(t.slice(0,fin+1)); }catch(e){} }
+  for(let corte=t.lastIndexOf('",'); corte>0; corte=t.lastIndexOf('",',corte-1)){
+    try{ const o=JSON.parse(t.slice(0,corte+1)+'}'); if(o&&Object.keys(o).length) return o; }catch(e){}
+  }
+  throw new Error('La respuesta de la IA llegó incompleta');
+}
+
 async function generarAnalisisIAPJ(){
   const r = PJ_ACTUAL;
   const box = document.getElementById('pj-ia');
@@ -21354,14 +21366,14 @@ async function generarAnalisisIAPJ(){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',
-        max_tokens:1500,
+        max_tokens:3000,
         messages:[{role:'user',content:prompt}]
       })
     });
     const data = await resp.json();
     const text = (data.content && data.content[0] && data.content[0].text) || '';
     const clean = text.replace(/```json|```/g,'').trim();
-    const ai = JSON.parse(clean);
+    const ai = iaJSON(clean);
     const fechaIA = new Date().toISOString();
 
     // Actualizar en memoria
