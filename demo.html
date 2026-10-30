@@ -331,6 +331,8 @@ T('predicciones_ia')[0].prediccion=IA.completo('PARTIDO: Club Atlético Ejemplo 
 function iaResponder(body){
   var p=''; try{ var b=JSON.parse(body); p=(b.messages||[]).map(function(m){ return typeof m.content==='string'?m.content:(m.content||[]).map(function(c){return c.text||'';}).join(' '); }).join('\n'); }catch(e){}
   var out;
+  if(/mensaje de WhatsApp para el jugador/.test(p)){ var nm=(p.match(/Hablale a ([^ ]+) en segunda/)||[])[1]||'crack';
+    return {content:[{type:'text',text:'Hola '+nm+'! 👋\n\nTe quería compartir algo de tu evaluación. Tu motivación es un motor enorme: se nota en cada entrenamiento y es lo que más te va a llevar lejos.\n\nEl foco de estas semanas es aprender a soltar rápido un error, para que una jugada que no sale no te saque del partido. Cuando lo logres, vas a jugar más suelto y vas a disfrutar más.\n\nPara esta semana:\n- Después de cada error: una respiración y tu palabra clave, y a la siguiente.\n- En cada partido, enfocate en tu tarea principal y hacela bien.\n- El domingo anotá un momento difícil y cómo lo resolviste.\n\nVamos que vas muy bien 💪'}]}; }
   if(/"estado_rival"/.test(p)) out=IA.completo(p);
   else if(/"por_linea"/.test(p)) out=IA.cancha(p);
   else if(/"disponibilidad_general"/.test(p)) out=IA.perfil(p);
@@ -1042,7 +1044,12 @@ body.es-admin .solo-admin{display:inline!important}
 .rp-prob b{display:block;font-size:24px;color:#0b1b3d;line-height:1.1;margin-top:2px}
 .rp-pie{margin-top:16px;border-top:1px solid #cbd5e1;padding-top:7px;font-size:9.5px;color:#64748b;display:flex;flex-direction:column;gap:3px;break-inside:avoid}
 @page pred{size:A4;margin:12mm 11mm}
+#pjia-pdf{display:none}
 @media print{
+  body.pdf-pjia{background:#fff!important}
+  body.pdf-pjia > *:not(#pjia-pdf){display:none!important}
+  body.pdf-pjia #pjia-pdf{display:block!important;page:pred}
+  body.pdf-pjia #pjia-pdf *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   body.pdf-pred{background:#fff!important}
   body.pdf-pred > *:not(#pred-pdf){display:none!important}
   body.pdf-pred #pred-pdf{display:block!important;page:pred}
@@ -4618,7 +4625,7 @@ let NAV_DESDE_ATRAS=false;
 function navCerrarAbierto(){
   const pm=document.getElementById('pred-modal');
   if(pm&&pm.style.display&&pm.style.display!=='none'&&pm.innerHTML){ try{ predModalCerrar(); }catch(e){ pm.style.display='none'; } return true; }
-  for(const id of ['mo-mpt','mo-fichas']){ const m=document.getElementById(id); if(m){ m.remove(); return true; } }
+  for(const id of ['mo-mpt','mo-fichas','mo-pjia']){ const m=document.getElementById(id); if(m){ m.remove(); return true; } }
   const abiertos=document.querySelectorAll('.mo.open');
   if(abiertos.length){ abiertos[abiertos.length-1].classList.remove('open'); return true; }
   const sb=document.querySelector('.sidebar');
@@ -19937,7 +19944,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='29/10/2026 · 7';
+const SC360_VERSION='29/10/2026 · 8';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -22105,7 +22112,7 @@ function renderAnalisisIAPJ(r){
   const box = document.getElementById('pj-ia');
   if(!box) return;
   if(r.analisis_ia){
-    box.innerHTML = pjIaHtml(r.analisis_ia, r.analisis_ia_fecha) + pjIaBoton('↻ Regenerar análisis');
+    box.innerHTML = pjIaHtml(r.analisis_ia, r.analisis_ia_fecha) + pjIaCompartirBotones() + pjIaBoton('↻ Regenerar análisis');
   } else {
     box.innerHTML =
       '<div style="font-size:12px;color:#b4c2d4;line-height:1.6;margin-bottom:12px">Generá una lectura psico-deportiva completa del perfil MDC de este jugador. El análisis se guarda en su ficha y no hace falta regenerarlo cada vez.</div>' +
@@ -22116,6 +22123,103 @@ function renderAnalisisIAPJ(r){
 function pjIaBoton(txt){
   return '<button id="pj-ia-btn" onclick="generarAnalisisIAPJ()" style="display:block;width:100%;padding:12px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;background:linear-gradient(135deg,#7c3aed,#00c2ff);color:#fff;letter-spacing:0.03em;margin-top:10px">'+txt+'</button>';
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Compartir el análisis IA (29/10/2026)
+//  • PDF para el cuerpo técnico: el informe completo, uso interno.
+//  • Mensaje para el jugador: versión en positivo, sin DISC, sin
+//    "desregulación" ni porcentajes. La IA la redacta a partir del
+//    análisis y el DT la revisa y edita ANTES de enviarla.
+// ═══════════════════════════════════════════════════════════════
+function pjIaCompartirBotones(){
+  const b='flex:1 1 200px;padding:10px 12px;border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;';
+  return '<div class="pj-print-hide" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'+
+    '<button onclick="pjIaPDF()" style="'+b+'background:#0d1b3e;color:#00c2ff;border:1px solid #00c2ff66">📄 PDF para el cuerpo técnico</button>'+
+    '<button onclick="pjIaMensajeJugador()" style="'+b+'background:#0d1b3e;color:#22c55e;border:1px solid #22c55e66">💬 Versión para el jugador</button>'+
+  '</div>';
+}
+
+function pjIaPDF(){
+  const r=PJ_ACTUAL, ai=r&&r.analisis_ia; if(!ai){ alert('Primero generá el análisis.'); return; }
+  const E=predEsc, g=(AG||[]).find(x=>x.codigo===r.grupo_codigo)||{}, logo=g.logo_url||'';
+  const fecha=r.analisis_ia_fecha?new Date(r.analisis_ia_fecha).toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'}):'';
+  const sec=(t,x,em)=>x?'<div class="rp-h">'+E(t)+'</div><p class="rp-p">'+(em?'<em>'+E(x)+'</em>':E(x))+'</p>':'';
+  const datos=[r.jugador_pos,r.jugador_cat,g.nombre].filter(Boolean).map(E).join(' · ');
+  let h='<div class="rp-portada"><div style="display:flex;align-items:center;gap:10px">'+
+      (logo?'<img src="'+E(logo)+'" style="width:34px;height:34px;border-radius:8px;object-fit:cover">':'')+
+      '<div style="flex:1"><div style="font-size:12px;font-weight:900;letter-spacing:0.08em">SPORT COACHING 360</div><div style="font-size:9.5px;color:#7fd8ff;letter-spacing:0.06em">MODELO MDC · D = T − I</div></div>'+
+      '<div style="font-size:9.5px;color:#9fb0c8;text-align:right">'+E(fecha)+'<br>'+E(r.jugador_club||g.club||'')+'</div></div>'+
+    '<div style="font-size:10px;font-weight:800;letter-spacing:0.16em;color:#00c2ff;margin-top:14px">ANÁLISIS DEL JUGADOR · LECTURA PARA EL CUERPO TÉCNICO</div>'+
+    '<div style="font-size:24px;font-weight:900;line-height:1.15;margin-top:4px">'+E(r.jugador_nombre||'')+'</div>'+
+    (datos?'<div style="font-size:11px;color:#c3cfe0;margin-top:4px">'+datos+'</div>':'')+
+    '<div style="font-size:11px;color:#c3cfe0;margin-top:6px">Disponibilidad '+E(r.disponibilidad||0)+'% · Interferencia '+E(r.interferencia||0)+'%'+(r.primary_disc?' · DISC '+E(r.primary_disc):'')+'</div>'+
+  '</div>';
+  h+=sec('Disponibilidad general',ai.disponibilidad_general)+sec('Lectura técnica',ai.lectura_tecnica)+sec('Perfil DISC',ai.perfil_disc)+sec('Estilo de Pensamiento',ai.estilo_pensamiento);
+  if(ai.fortaleza_clave||ai.zona_a_trabajar) h+='<div class="rp-g2" style="margin-top:10px"><div class="rp-card rp-verde"><div class="rp-k">Fortaleza clave</div>'+E(ai.fortaleza_clave||'')+'</div><div class="rp-card" style="border-color:#fcd34d;background:#fffbeb"><div class="rp-k">Zona a trabajar</div>'+E(ai.zona_a_trabajar||'')+'</div></div>';
+  h+=sec('Lectura del coach',ai.lectura_del_coach,true);
+  const acc=[[ai.accion_1_titulo,ai.accion_1_desc],[ai.accion_2_titulo,ai.accion_2_desc],[ai.accion_3_titulo,ai.accion_3_desc]].filter(a=>a[0]);
+  if(acc.length) h+='<div class="rp-h">Acciones para esta semana</div>'+acc.map((a,i)=>'<div class="rp-plan"><div class="rp-num">'+(i+1)+'</div><div><b>'+E(a[0])+'</b><br>'+E(a[1]||'')+'</div></div>').join('');
+  if(ai.sintesis_mdc) h+='<div class="rp-card rp-azul" style="margin-top:12px"><div class="rp-k">Síntesis MDC — D = T − I</div>'+E(ai.sintesis_mdc)+'</div>';
+  h+='<div class="rp-pie"><b>Uso interno del cuerpo técnico.</b> No compartir con el jugador, su familia ni terceros: para el jugador usá la "Versión para el jugador".<span>Análisis generado con IA a partir del test del jugador; son patrones y variables a monitorear, no certezas. SC360 no realiza diagnóstico clínico.</span><span>Sport Coaching 360 · app.sportcoachingpro.com</span></div>';
+  let box=document.getElementById('pjia-pdf'); if(!box){ box=document.createElement('div'); box.id='pjia-pdf'; document.body.appendChild(box); }
+  box.innerHTML='<div class="rp">'+h+'</div>';
+  const titulo=document.title;
+  document.title='Analisis '+(r.jugador_nombre||'jugador')+' - SC360';
+  document.body.classList.add('pdf-pjia');
+  const fin=()=>{ document.body.classList.remove('pdf-pjia'); document.title=titulo; window.removeEventListener('afterprint',fin); };
+  window.addEventListener('afterprint',fin);
+  const imgs=[...box.querySelectorAll('img')].filter(i=>!i.complete);
+  Promise.all(imgs.map(i=>new Promise(res=>{ i.onload=i.onerror=res; }))).then(()=>setTimeout(()=>window.print(),150));
+}
+
+async function pjIaMensajeJugador(regenerar){
+  const r=PJ_ACTUAL, ai=r&&r.analisis_ia; if(!ai){ alert('Primero generá el análisis.'); return; }
+  let m=document.getElementById('mo-pjia'); if(m) m.remove();
+  m=document.createElement('div'); m.id='mo-pjia'; m.style.cssText='position:fixed;inset:0;background:#000b;z-index:400;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:30px 12px';
+  const nom=(r.jugador_nombre||'').split(' ')[0];
+  m.innerHTML='<div style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:14px;width:min(560px,100%);padding:18px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:16px;color:#fff">💬 Mensaje para '+predEsc(nom)+'</b><button onclick="document.getElementById(\'mo-pjia\').remove()" style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer">✕</button></div>'+
+    '<div style="font-size:12px;color:#94a3b8;margin:6px 0 10px">Versión en positivo del análisis: fortaleza, foco de trabajo y qué hacer esta semana. Sin DISC ni términos técnicos. <b style="color:#f59e0b">Leelo y ajustalo antes de enviarlo.</b></div>'+
+    '<textarea id="pjia-msg" rows="12" style="width:100%;padding:10px;background:#0a1024;color:#e8eff8;border:1px solid #1a3a6e;border-radius:8px;font-size:13.5px;line-height:1.5;font-family:inherit;box-sizing:border-box" placeholder="Redactando…" disabled></textarea>'+
+    '<div id="pjia-est" style="font-size:11.5px;color:#94a3b8;margin-top:6px">✦ Redactando con IA…</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
+      '<button onclick="pjIaMsgEnviar()" class="btn-p" style="flex:1 1 180px;padding:10px">📲 Enviar por WhatsApp</button>'+
+      '<button onclick="pjIaMsgCopiar()" class="bg" style="flex:1 1 120px;padding:10px">📋 Copiar</button>'+
+      '<button onclick="pjIaMensajeJugador(true)" class="bg" style="flex:1 1 120px;padding:10px">↻ Rehacer</button>'+
+    '</div></div>';
+  document.body.appendChild(m);
+  const ta=document.getElementById('pjia-msg'), est=document.getElementById('pjia-est');
+  if(ai.mensaje_jugador && !regenerar){ ta.value=ai.mensaje_jugador; ta.disabled=false; est.textContent='Último mensaje guardado. Podés editarlo o rehacerlo.'; return; }
+  const prompt='Sos un especialista en rendimiento deportivo que escribe a un jugador de su equipo. A partir del análisis interno de abajo (que es solo para el cuerpo técnico), escribí un mensaje de WhatsApp para el jugador.\n\n'+
+    'Reglas:\n- Español rioplatense con voseo, cálido, directo y profesional. Hablale a '+(nom||'el jugador')+' en segunda persona.\n'+
+    '- Entre 110 y 170 palabras. Texto plano, sin títulos markdown; podés usar 1 o 2 emojis y una lista corta con guiones.\n'+
+    '- Estructura: saludo con su nombre → una fortaleza concreta que tiene → un foco de trabajo dicho en positivo (qué va a ganar, no qué le falta) → 2 o 3 cosas simples que puede hacer esta semana, escritas para que las haga él → cierre de aliento breve.\n'+
+    '- PROHIBIDO mencionar: DISC, perfil D/I/S/C, desregulación, irritabilidad, intimidación, impulsividad, explosiones, interferencia, porcentajes, semáforo, puntajes, "lectura del coach", diagnósticos o términos clínicos o de salud. No compares con compañeros. No inventes datos.\n'+
+    '- Si una acción del análisis está dirigida al DT, reescribila como algo que el jugador puede hacer por su cuenta o junto al cuerpo técnico.\n\n'+
+    'Análisis interno:\n'+JSON.stringify({fortaleza:ai.fortaleza_clave,zona:ai.zona_a_trabajar,estilo:ai.estilo_pensamiento,acciones:[ai.accion_1_titulo+': '+(ai.accion_1_desc||''),ai.accion_2_titulo+': '+(ai.accion_2_desc||''),ai.accion_3_titulo+': '+(ai.accion_3_desc||'')]})+
+    '\n\nRespondé SOLO con el texto del mensaje.';
+  try{
+    const resp=await fetch(PJ_IA_WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:900,messages:[{role:'user',content:prompt}]})});
+    const data=await resp.json();
+    const txt=((data.content&&data.content[0]&&data.content[0].text)||'').replace(/```/g,'').trim();
+    if(!txt) throw new Error('vacío');
+    if(!document.getElementById('pjia-msg')) return;
+    ta.value=txt; ta.disabled=false; est.innerHTML='Revisalo antes de enviar. <b>Se envía tal como lo dejes en el cuadro.</b>';
+    ai.mensaje_jugador=txt;
+    q('resultados?id=eq.'+r.id,{m:'PATCH',b:{analisis_ia:ai},h:{'Prefer':'return=minimal'}}).catch(()=>{});
+  }catch(e){
+    console.error('Mensaje jugador IA:',e);
+    if(!document.getElementById('pjia-msg')) return;
+    ta.disabled=false; ta.placeholder='Escribí acá el mensaje para el jugador.';
+    est.innerHTML='<span style="color:#ef4444">No se pudo redactar con IA. Podés escribirlo a mano o tocar ↻ Rehacer.</span>';
+  }
+}
+function pjIaMsgTexto(){ const t=document.getElementById('pjia-msg'); const v=t?t.value.trim():''; if(!v) alert('El mensaje está vacío.'); return v; }
+function pjIaMsgGuardar(v){ const r=PJ_ACTUAL; if(!r||!r.analisis_ia||r.analisis_ia.mensaje_jugador===v) return; r.analisis_ia.mensaje_jugador=v; q('resultados?id=eq.'+r.id,{m:'PATCH',b:{analisis_ia:r.analisis_ia},h:{'Prefer':'return=minimal'}}).catch(()=>{}); }
+function pjIaMsgEnviar(){ const v=pjIaMsgTexto(); if(!v) return; pjIaMsgGuardar(v); window.open('https://wa.me/?text='+encodeURIComponent(v),'_blank'); }
+async function pjIaMsgCopiar(){ const v=pjIaMsgTexto(); if(!v) return; pjIaMsgGuardar(v);
+  try{ await navigator.clipboard.writeText(v); }catch(e){ const t=document.getElementById('pjia-msg'); t.select(); document.execCommand('copy'); }
+  const est=document.getElementById('pjia-est'); if(est) est.innerHTML='<span style="color:#22c55e">✓ Copiado.</span>'; }
 
 function pjIaHtml(ai, fecha){
   let html = '<div style="font-size:10px;font-weight:700;color:#7c3aed;letter-spacing:0.08em;margin-bottom:12px">✦ ANÁLISIS GENERADO CON IA — SPORT COACHING PRO' +
@@ -22294,7 +22398,7 @@ async function generarAnalisisIAPJ(){
     PJ_ACTUAL = r;
 
     // Render inmediato
-    box.innerHTML = pjIaHtml(ai, fechaIA) + pjIaBoton('↻ Regenerar análisis');
+    box.innerHTML = pjIaHtml(ai, fechaIA) + pjIaCompartirBotones() + pjIaBoton('↻ Regenerar análisis');
 
     // Persistir en Supabase (no bloquea la vista si falla)
     try {
