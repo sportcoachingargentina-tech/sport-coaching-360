@@ -554,7 +554,7 @@ async function cargarResumenSemana(r){
     const ultimo = ppConFecha[0], anterior = ppConFecha[1];
     const avgU = avgPP(ultimo), avgA = anterior ? avgPP(anterior) : null;
     const vsRival = ultimo.rival ? ' vs ' + ultimo.rival : '';
-    const fechaTxt = ultimo.fecha ? ' (' + new Date(ultimo.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'}) + ')' : '';
+    const fechaTxt = ultimo.fecha ? ' (' + new Date(/^\d{4}-\d{2}-\d{2}$/.test(String(ultimo.fecha))?ultimo.fecha+'T12:00:00':ultimo.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'}) + ')' : '';
     ppHtml = `Cargaste tu autoevaluación${vsRival}${fechaTxt}.`;
     if(avgU!=null && avgA!=null){
       const diff = avgU - avgA;

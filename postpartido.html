@@ -217,7 +217,7 @@ async function init(){
   if(!pd||!pd.codigo){showScreen('s-error');document.getElementById('error-txt').textContent='Partido no encontrado.';return;}
   partidoData=pd;
   const rival=partidoData.rival||'—';
-  const fecha=partidoData.fecha?new Date(partidoData.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'}):'—';
+  const fecha=partidoData.fecha?new Date(/^\d{4}-\d{2}-\d{2}$/.test(String(partidoData.fecha))?partidoData.fecha+'T12:00:00':partidoData.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'}):'—';
   document.getElementById('pi-rival').textContent='vs '+rival;
   document.getElementById('pi-fecha').textContent=fecha;
   document.getElementById('partido-info').style.display='block';
