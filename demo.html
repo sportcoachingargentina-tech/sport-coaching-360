@@ -1044,6 +1044,7 @@ body.es-admin .solo-admin{display:inline!important}
 .rp-prob b{display:block;font-size:24px;color:#0b1b3d;line-height:1.1;margin-top:2px}
 .rp-pie{margin-top:16px;border-top:1px solid #cbd5e1;padding-top:7px;font-size:9.5px;color:#64748b;display:flex;flex-direction:column;gap:3px;break-inside:avoid}
 @page pred{size:A4;margin:12mm 11mm}
+.screen.plan-bloqueada > :not(.plan-lock){display:none!important}
 #pjia-pdf{display:none}
 @media print{
   body.pdf-pjia{background:#fff!important}
@@ -4114,6 +4115,10 @@ const sbAuth=window.supabase.createClient(SB_URL,SB_KEY);
 // usuario logueado (no una clave fija) — se actualiza solo cuando el
 // cliente de Supabase renueva la sesión por dentro. Mientras no haya
 // nadie logueado (pantalla de login), sigue usando la clave general.
+// Fechas sin hora (ej. '2026-11-02', fecha de partido): new Date() las toma
+// como medianoche UTC y en Argentina se ven un día antes. fechaD las lee
+// como mediodía local. Con hora (timestamps) se comportan igual que antes.
+function fechaD(f){ const s=String(f==null?'':f); return /^\d{4}-\d{2}-\d{2}$/.test(s)?new Date(s+'T12:00:00'):new Date(f); }
 let USER_ACCESS_TOKEN=null;
 sbAuth.auth.onAuthStateChange(function(event, session){
   USER_ACCESS_TOKEN = session ? session.access_token : null;
@@ -4650,6 +4655,64 @@ function navHistorial(name){
     else if(st.sc!==name) history.pushState({sc:name},'');
   }catch(e){}
 }
+// ═══════════════════════════════════════════════════════════════
+// PLANES (03/11/2026) — Básico = el análisis · Pro = el seguimiento
+// El plan es por división (grupos.plan). Lo que ya existía quedó en Pro.
+// Básico: test, perfil, carta, análisis IA, informe grupal, roles,
+// Inicio, grupos. Pro suma: Post Partido, check-in, acciones,
+// evolución, predicción/cancha, decisiones y entrenamiento cognitivo.
+// Las secciones Pro se ven pero bloqueadas; la base impide que un
+// usuario que no es admin cambie el plan.
+// ═══════════════════════════════════════════════════════════════
+const PLAN_PRO_SCREENS={postpartido:'Post Partido',estadisticas:'Estadísticas de partidos',checkin:'Check-in diario',recuperacion:'Recuperación',evolucion:'Evolución',plantel:'Predicción y cancha',decisiones:'Decisiones',cognitivo:'Entrenamiento cognitivo',entreno:'Post entreno',racha:'Racha',tracking:'Tracking mental'};
+function planMarcarMenu(){ const bloq=!planTienePro(); Object.keys(PLAN_PRO_SCREENS).forEach(k=>{ document.querySelectorAll('.nav-item[data-nav="'+k+'"]').forEach(n=>{ let b=n.querySelector('.plan-candado'); if(bloq&&!b){ b=document.createElement('span'); b.className='plan-candado'; b.textContent='🔒'; b.title='Plan Pro'; b.style.cssText='font-size:11px;margin-left:6px;opacity:0.8'; n.appendChild(b); } if(!bloq&&b) b.remove(); }); }); }
+function planEsAdmin(){ return !!(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin'); }
+function planDeGrupo(g){ return (g&&g.plan)==='basico'?'basico':'pro'; }
+function planGrupoPorValor(v){
+  const ps=String(v||'').split('|'); if(!ps[0]) return null;
+  return (AG||[]).find(g=>ps.includes(String(g.id))||ps.includes(String(g.codigo)))||null;
+}
+function planTienePro(){ if(planEsAdmin()) return true; const gs=AG||[]; return !gs.length||gs.some(g=>planDeGrupo(g)==='pro'); }
+function planGate(name){
+  setTimeout(planMarcarMenu,name==='dashboard'?3000:0);
+  const sc=document.getElementById('screen-'+name); if(!sc) return false;
+  let lk=sc.querySelector(':scope > .plan-lock');
+  const bloquear=!!PLAN_PRO_SCREENS[name]&&!planTienePro();
+  sc.classList.toggle('plan-bloqueada',bloquear);
+  if(!bloquear){ if(lk) lk.remove(); if(PLAN_PRO_SCREENS[name]) [400,1500,3500].forEach(t=>setTimeout(()=>planMarcarSelects(sc),t)); return false; }
+  if(!lk){ lk=document.createElement('div'); lk.className='plan-lock'; sc.prepend(lk); }
+  lk.innerHTML='<div style="max-width:560px;margin:40px auto;text-align:center;background:#0d1b3e;border:1px solid #1a3a6e;border-radius:16px;padding:32px 24px">'+
+    '<div style="font-size:40px">🔒</div>'+
+    '<div style="font-size:20px;font-weight:800;color:#fff;margin-top:8px">'+PLAN_PRO_SCREENS[name]+' es parte del Plan Pro</div>'+
+    '<div style="font-size:13.5px;color:#b4c2d4;line-height:1.6;margin-top:10px">Tu club tiene el <b style="color:#fbbf24">Plan Básico</b>: evaluación, perfiles, carta, análisis IA e informe grupal.<br>El <b style="color:#22c55e">Plan Pro</b> suma el seguimiento: Post Partido de jugadores y DT, check-in, registro de acciones, evolución, preparación de partidos y entrenamiento cognitivo.</div>'+
+    '<a href="https://wa.me/5492612502454?text='+encodeURIComponent('Hola! Quiero consultar por el Plan Pro de Sport Coaching 360.')+'" target="_blank" style="display:inline-block;margin-top:18px;padding:11px 20px;background:#22c55e;color:#04101f;border-radius:10px;font-weight:800;font-size:13.5px;text-decoration:none">Consultar por el Plan Pro</a></div>';
+  return true;
+}
+// En clubes con divisiones de los dos planes, las divisiones Básico quedan
+// visibles pero no se pueden elegir en las secciones Pro.
+function planMarcarSelects(sc){
+  if(planEsAdmin()||!sc) return;
+  sc.querySelectorAll('select').forEach(sel=>{
+    [...sel.options].forEach(o=>{
+      const g=planGrupoPorValor(o.value);
+      if(g&&planDeGrupo(g)==='basico'&&!o.disabled){ o.disabled=true; if(!/Plan Básico/.test(o.textContent)) o.textContent+=' · 🔒 Plan Básico'; if(o.selected){ const ok=[...sel.options].find(x=>!x.disabled&&x.value); if(ok){ sel.value=ok.value; sel.dispatchEvent(new Event('change')); } } }
+    });
+  });
+}
+function planChipGrupo(g){
+  const pl=planDeGrupo(g), col=pl==='pro'?'#22c55e':'#fbbf24', txt=pl==='pro'?'PRO':'BÁSICO';
+  const est='font-size:10.5px;font-weight:800;letter-spacing:0.04em;color:'+col+';background:'+col+'18;border:1px solid '+col+'55;padding:2px 8px;border-radius:8px;white-space:nowrap';
+  if(!planEsAdmin()) return '<span title="Plan de esta división" style="'+est+'">'+txt+'</span>';
+  return '<button class="cb" onclick="planCambiarGrupo(\''+g.id+'\',\''+(pl==='pro'?'basico':'pro')+'\')" title="Tocar para pasar a Plan '+(pl==='pro'?'Básico':'Pro')+'" style="'+est+';cursor:pointer">'+txt+'</button>';
+}
+async function planCambiarGrupo(id,plan){
+  const g=(AG||[]).find(x=>String(x.id)===String(id));
+  if(!confirm('¿Pasar '+(g?g.nombre:'esta división')+' a Plan '+(plan==='pro'?'Pro':'Básico')+'?')) return;
+  const r=await q('grupos?id=eq.'+id,{m:'PATCH',b:{plan}});
+  if(r&&r.code){ alert('No se pudo cambiar el plan: '+(r.message||r.code)); return; }
+  if(g) g.plan=plan; qLimpiarCache&&qLimpiarCache(); loadG();
+}
+
 function go(name){
   navHistorial(name);
   registrarNavegacion(name);
@@ -4668,6 +4731,7 @@ function go(name){
   if(mn)mn.classList.add('active');
   // Scroll mobile nav so active item is visible
   if(mn&&window.innerWidth<=768){mn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}
+  if(planGate(name)) return;
   if(name==='dashboard'){loadD();setTimeout(loadAlertas,800);}
   if(name==='grupos')loadG();
   if(name==='resultados')loadR();
@@ -4780,6 +4844,7 @@ async function loadG(){
       </div>
       <div class="grp-acciones" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;flex-shrink:0">
         <span style="font-size:11px;font-weight:700;color:${c>0?'#22c55e':'#94a3b8'};background:${c>0?'#22c55e15':'#1a3a6e'};border:1px solid ${c>0?'#22c55e30':'#1a3a6e'};padding:2px 8px;border-radius:8px;white-space:nowrap">${c} resp.</span>
+        ${planChipGrupo(g)}
         <button class="cb" onclick="enviarLinkGrupo('${lk}','${nomJs}')" title="Enviar el link del test por WhatsApp u otra app" style="padding:4px 8px;font-size:11px;color:#22c55e;border-color:#22c55e55">📲 Enviar</button>
         <button class="cb" onclick="cop('${lk}')" title="Copiar link" style="padding:4px 8px;font-size:11px">Copiar</button>
         <button class="cb" onclick="cop('${lkEstilo}')" title="Copiar link grupal de Estilo de Pensamiento" style="padding:4px 8px;font-size:11px">🧠 Estilo</button>
@@ -5165,7 +5230,7 @@ function renderR(rs, yaAgrupado){
         <div style="font-size:10px;font-weight:800;color:#a78bfa;letter-spacing:0.08em;margin-bottom:6px">HISTORIAL DE EVALUACIONES — ${r.jugador_nombre}</div>
         ${f.evs.map((e,i)=>{ const d=e.disponibilidad, c=d==null?'#94a3b8':d>=80?'#22c55e':d>=65?'#f59e0b':'#ef4444';
           return `<div style="display:flex;align-items:center;gap:14px;padding:5px 0;border-top:${i?'1px solid #1a3a6e44':'none'};font-size:12px">
-            <span style="width:90px;color:#b4c2d4">${e.fecha?new Date(e.fecha).toLocaleDateString('es-AR'):'—'}</span>
+            <span style="width:90px;color:#b4c2d4">${e.fecha?fechaD(e.fecha).toLocaleDateString('es-AR'):'—'}</span>
             <strong style="color:${c};width:50px">${d==null?'—':d+'%'}</strong>
             <span style="color:${R_DISC_COL[(e.primary_disc||'').charAt(0)]||'#94a3b8'};width:40px">${e.primary_disc||'—'}</span>
             <span style="flex:1">${i===0?'<span style="font-size:10px;color:#22c55e">ACTUAL</span>':''}</span>
@@ -5240,7 +5305,7 @@ function edadActualJugador(r){
   const e0=parseInt(r.jugador_edad,10);
   if(isNaN(e0)) return null;
   if(!r.fecha) return e0;
-  const anios=Math.floor((Date.now()-new Date(r.fecha).getTime())/(365.25*86400000));
+  const anios=Math.floor((Date.now()-fechaD(r.fecha).getTime())/(365.25*86400000));
   return e0+Math.max(0,isNaN(anios)?0:anios);
 }
 // Próximo cumpleaños (solo con fecha de nacimiento cargada): días que faltan
@@ -5658,7 +5723,7 @@ async function loadD(){
         const k=normClub((r.jugador_club||'').split('—')[0].trim()); const c=cuentas[k]; if(!c) return;
         const nj=normClub(r.jugador_nombre||''); if(!nj) return;
         if(!c.jug[nj]||(r.fecha||'')>(c.jug[nj].fecha||'')) c.jug[nj]=r;
-        const f=r.fecha?new Date(r.fecha):null; if(f&&(!c.ultTest||f>c.ultTest)) c.ultTest=f;
+        const f=r.fecha?fechaD(r.fecha):null; if(f&&(!c.ultTest||f>c.ultTest)) c.ultTest=f;
       });
       ppAct.forEach(p=>{ const c=cuentas[clubDeGrupo[p.grupo_codigo]]; if(!c) return; const f=fechaCod(p.partido_codigo); if(!f) return;
         if(!c.ultPP||f>c.ultPP) c.ultPP=f; if(diasDesde(f)<=30) c.ppJug30.add(normClub(p.jugador_nombre||'')); });
@@ -5735,7 +5800,7 @@ async function loadD(){
         const stCol={'nuevo':'#f59e0b','contactado':'#00c2ff','convertido':'#22c55e'};
         boxLeads.innerHTML=leadsData.slice(0,5).map(function(l){
           const col=stCol[l.estado]||'#b4c2d4';
-          const f=l.fecha?new Date(l.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'}):'—';
+          const f=l.fecha?fechaD(l.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'}):'—';
           return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #1a3a6e22;cursor:pointer" onclick="go(\'leads\')">'+
             '<div style="width:6px;height:6px;border-radius:50%;background:'+col+';flex-shrink:0"></div>'+
             '<div style="flex:1;min-width:0">'+
@@ -5908,14 +5973,14 @@ async function loadD(){
     })();
 
     // Tendencia últimos diagnósticos
-    const recientes=[...rL].sort((a,b)=>new Date(b.fecha)-new Date(a.fecha)).slice(0,10);
+    const recientes=[...rL].sort((a,b)=>fechaD(b.fecha)-fechaD(a.fecha)).slice(0,10);
     if(recientes.length){
       let th='<div style="overflow-x:auto"><div style="display:flex;gap:6px;padding:4px 2px;min-width:0">';
       recientes.reverse().forEach(r=>{
         const disp=r.disponibilidad||0;
         const col=disp>=80?'#22c55e':disp>=65?'#f59e0b':'#ef4444';
         const h=Math.max(12,Math.round(disp*0.6));
-        const f=r.fecha?new Date(r.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'}):'';
+        const f=r.fecha?fechaD(r.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'}):'';
         th+=`<div style="flex:1;min-width:60px;display:flex;flex-direction:column;align-items:center;gap:4px">
           <div style="font-size:9px;color:${col};font-weight:700">${disp}%</div>
           <div style="width:100%;background:${col}22;border-radius:6px;overflow:hidden;height:60px;display:flex;align-items:flex-end">
@@ -5941,7 +6006,7 @@ async function loadD(){
       const sc=r.semaforo_color||'';
       const col=sc.includes('ef4444')?'#ef4444':sc.includes('f59e0b')?'#f59e0b':'#22c55e';
       const label=sc.includes('ef4444')?'RIESGO':sc.includes('f59e0b')?'PRECAUCIÓN':'DISPONIBLE';
-      const f=r.fecha?new Date(r.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'}):'—';
+      const f=r.fecha?fechaD(r.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'}):'—';
       const disp=r.disponibilidad||0;
       h+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;margin-bottom:4px;background:#0d1b3e;border:1px solid #1a3a6e22;cursor:pointer" onclick="go('resultados')">
         <div style="width:3px;height:36px;background:${col};border-radius:2px;flex-shrink:0"></div>
@@ -6077,7 +6142,7 @@ function renderGrupal(f){
     document.getElementById('ig-a').textContent=am;
     document.getElementById('ig-v').textContent=ve;
   }
-  const diasEv=r=>r.fecha?Math.floor((Date.now()-new Date(r.fecha).getTime())/86400000):null;
+  const diasEv=r=>r.fecha?Math.floor((Date.now()-fechaD(r.fecha).getTime())/86400000):null;
   const nReeval=f.filter(r=>{const d=diasEv(r);return d!=null&&d>90;}).length;
   const nProm=f.filter(r=>r.modo_motivacional==='promocion').length, nPrev=f.filter(r=>r.modo_motivacional==='prevencion').length;
   const ultima=f.map(diasEv).filter(d=>d!=null).sort((a,b)=>a-b)[0];
@@ -9189,7 +9254,7 @@ async function cargarResumenGestionClub(){
   const nombres = Object.keys(porNombre);
   const primera = {}, ultima = {};
   nombres.forEach(function(n){
-    const evals = porNombre[n].slice().sort(function(a,b){ return new Date(a.fecha)-new Date(b.fecha); });
+    const evals = porNombre[n].slice().sort(function(a,b){ return fechaD(a.fecha)-fechaD(b.fecha); });
     primera[n] = evals[0];
     ultima[n] = evals[evals.length-1];
   });
@@ -9336,7 +9401,7 @@ async function loadRecuperacion(){
   selP.innerHTML = '<option value="">Todos los partidos</option>';
   codigos.forEach(p => {
     const pt=window.REC_PARTIDOS[p];
-    const label=pt?`vs ${pt.rival} · ${new Date(pt.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'})}`:p;
+    const label=pt?`vs ${pt.rival} · ${fechaD(pt.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'})}`:p;
     selP.innerHTML += `<option value="${p}" ${p===valP?'selected':''}>${label}</option>`;
   });
 
@@ -9438,7 +9503,7 @@ function recRenderizar(){
     const cCal   = recSemColor(j.fisio_calidad_sueno,'calidad');
     const cFat   = recSemColor(j.fatiga_post,'fatiga');
     const ptInfo=window.REC_PARTIDOS&&window.REC_PARTIDOS[j.partido_codigo];
-    const fecha=ptInfo?`vs ${ptInfo.rival} · ${new Date(ptInfo.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'})}`:j.partido_codigo||'—';
+    const fecha=ptInfo?`vs ${ptInfo.rival} · ${fechaD(ptInfo.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'})}`:j.partido_codigo||'—';
 
     h += `<tr>
       <td><strong>${j.jugador_nombre}</strong></td>
@@ -9699,6 +9764,7 @@ async function loadClubesCanal(){
               ' <span style="font-size:11px;font-weight:500;color:#7c8fae">· '+(nPl[id]||0)+' plantel'+((nPl[id]||0)===1?'':'es')+'</span></div>'+
             '<div style="font-size:11px;color:#94a3b8">'+(l?'Licencia desde '+String(l.inicio).split('-').reverse().join('/')+(l.precio_jugador!=null?' · '+l.moneda+' '+l.precio_jugador:'')+' · reparto socio '+Number(l.reparto_socio_pct)+' %':'<span style="color:#fbbf24">Sin licencia cargada</span>')+'</div></div>'+
           '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">'+
+            '<label>'+lab('PLAN')+'<select id="cc-plan-'+id+'" style="'+inp+';color:'+(c.plan==='basico'?'#fbbf24':'#22c55e')+'">'+opt('pro','Pro',c.plan||'pro')+opt('basico','Básico',c.plan||'pro')+'</select></label>'+
             '<label>'+lab('TIPO')+'<select id="cc-tipo-'+id+'" style="'+inp+'">'+opt('club','Club',c.tipo)+opt('particular','Particular',c.tipo)+opt('interno','Interno',c.tipo)+'</select></label>'+
             '<label>'+lab('CANAL')+'<select id="cc-canal-'+id+'" onchange="ccCanalCambio(\''+id+'\')" style="'+inp+'">'+opt('directo','Directo',l?l.canal:c.canal)+opt('gloouds','GLOOUDS',l?l.canal:c.canal)+'</select></label>'+
             '<label>'+lab('PRECIO / JUGADOR')+'<input id="cc-precio-'+id+'" type="number" min="0" step="0.5" placeholder="'+PRECIO_JUGADOR_USD+' (ref.)" value="'+(l&&l.precio_jugador!=null?l.precio_jugador:'')+'" style="'+inp+';width:110px"></label>'+
@@ -9734,8 +9800,14 @@ async function guardarClubCanal(id){
   const ok=r=>Array.isArray(r)||r===null||r===true;
   try{
     // 1) Datos del club
-    const rc=await q('clubes?id=eq.'+id,{m:'PATCH',b:{canal,tipo,activo,gloouds_id:gid||null,canal_desde:canal!==club.canal?desde:(club.canal_desde||null)}});
+    const plan=v('plan')||club.plan||'pro';
+    const rc=await q('clubes?id=eq.'+id,{m:'PATCH',b:{canal,tipo,activo,plan,gloouds_id:gid||null,canal_desde:canal!==club.canal?desde:(club.canal_desde||null)}});
     if(!ok(rc)){ di('No se pudo guardar el club'+(rc&&rc.message?': '+rc.message:''),'#fca5a5'); return; }
+    // Plan: el del club lo toman las divisiones nuevas; a las existentes se aplica solo si el admin confirma
+    if(plan!==(club.plan||'pro')&&confirm('¿Pasar también todas las divisiones de '+club.nombre+' a Plan '+(plan==='pro'?'Pro':'Básico')+'?\n\n(Cancelá para cambiar solo el plan de las divisiones nuevas.)')){
+      await q('grupos?club_id=eq.'+id,{m:'PATCH',b:{plan},h:{'Prefer':'return=minimal'}});
+      qLimpiarCache&&qLimpiarCache();
+    }
     // 2) Licencia: se crea o se renueva solo si cambian las condiciones
     const l=LIC_ABIERTA[id]||null;
     const nueva={club_id:id,canal,precio_jugador:precio,moneda,reparto_socio_pct:pct,base_reparto:base,inicio:desde,estado:activo?'activa':'suspendida'};
@@ -10120,7 +10192,7 @@ async function generarAlertasReevaluacion(){
   const porClub={};
   Object.values(ultimaPorNombre).forEach(function(r){
     if(!r.fecha) return;
-    const dias=Math.floor((hoy-new Date(r.fecha))/86400000);
+    const dias=Math.floor((hoy-fechaD(r.fecha))/86400000);
     if(dias<UMBRAL_DIAS) return;
     const club=(r.jugador_club||'Sin club').trim();
     if(!porClub[club]) porClub[club]={jugadores:[], grupoCodigo:null};
@@ -10191,7 +10263,7 @@ async function generarAlertasAusentismo(){
 
   const porClub={};
   Object.keys(porJugador).forEach(function(jugId){
-    const registros=porJugador[jugId].slice().sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);});
+    const registros=porJugador[jugId].slice().sort(function(a,b){return fechaD(b.fecha)-fechaD(a.fecha);});
     // Racha de faltas consecutivas A ENTRENAMIENTOS (ausente, sin contar
     // justificado — eso ya tiene un motivo conocido y aceptado por el
     // club). Los partidos quedan afuera a propósito: no venir a entrenar
@@ -10473,7 +10545,7 @@ async function abrirResolucionAusentismo(alertaId, club){
   const candidatos=[];
   Object.keys(porJugador).forEach(function(jugId){
     if((clubPorId[jugId]||'').trim()!==club.trim()) return;
-    const registros=porJugador[jugId].slice().sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);});
+    const registros=porJugador[jugId].slice().sort(function(a,b){return fechaD(b.fecha)-fechaD(a.fecha);});
     const idsRacha=[];
     for(const r of registros){ if(r.estado==='ausente'){ idsRacha.push(r.id); } else break; }
     if(idsRacha.length>=3) candidatos.push({jugId:jugId,nombre:nombrePorId[jugId]||'—',idsRacha:idsRacha});
@@ -10538,7 +10610,7 @@ async function loadPP(){
   if(!psFilt.length){lista.innerHTML='<div class="es">No hay partidos registrados aún</div>';return;}
 
   const renderFilaPartido=function(p){
-    const f=p.fecha?new Date(p.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'}):'—';
+    const f=p.fecha?fechaD(p.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'}):'—';
     const linkJ=PPU+'?partido='+p.codigo;
     const linkDT=DTU+'?partido='+p.codigo;
     const tieneResultado=p.goles_favor!=null||p.goles_contra!=null;
@@ -10923,7 +10995,7 @@ async function loadEntreno(){
     return '<div class="form-card" style="margin-bottom:10px">'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">'+
         '<div><div style="font-weight:700;color:#fff;font-size:14px">'+(s.grupo_nombre||s.grupo_codigo)+'</div>'+
-        '<div style="font-size:11px;color:#b4c2d4">'+(s.fecha?new Date(s.fecha).toLocaleDateString('es-AR'):'—')+(s.notas?' · '+s.notas:'')+' · '+n+' respuesta'+(n===1?'':'s')+'</div></div>'+
+        '<div style="font-size:11px;color:#b4c2d4">'+(s.fecha?fechaD(s.fecha).toLocaleDateString('es-AR'):'—')+(s.notas?' · '+s.notas:'')+' · '+n+' respuesta'+(n===1?'':'s')+'</div></div>'+
         '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
           '<button class="cb" onclick="navigator.clipboard.writeText(\''+link+'\').then(()=>this.textContent=\'✓ Copiado!\')" style="font-size:11px;padding:4px 10px">📋 Copiar link</button>'+
           '<button class="bg" onclick="abrirResultadosEntreno(\''+s.codigo+'\',\''+(s.grupo_nombre||'').replace(/'/g,"\\'")+'\',\''+(s.fecha||'')+'\')" style="font-size:11px;padding:4px 10px">📊 Ver resultados</button>'+
@@ -11074,14 +11146,14 @@ async function loadRiesgoAbandono(gsFilt){
   const hoy=new Date();
   const lista=Object.keys(porJugador).map(nombre=>{
     const d=porJugador[nombre];
-    const asis=d.asis.slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+    const asis=d.asis.slice().sort((a,b)=>fechaD(b.fecha)-fechaD(a.fecha));
     const checkins=d.checkins.slice().sort((a,b)=>new Date(b.fecha||0)-new Date(a.fecha||0));
 
     // Componente 1 — asistencia (peso hasta 60)
     let scoreAsis=0, motivoAsis=null;
     const ultimaPresente=asis.find(a=>a.estado==='presente'||a.estado==='tarde');
     if(ultimaPresente){
-      const dias=Math.floor((hoy-new Date(ultimaPresente.fecha))/86400000);
+      const dias=Math.floor((hoy-fechaD(ultimaPresente.fecha))/86400000);
       if(dias>=21){ scoreAsis=60; motivoAsis=`No viene hace ${dias} días`; }
       else if(dias>=10){ scoreAsis=35; motivoAsis=`No viene hace ${dias} días`; }
     } else if(asis.length){
@@ -11406,7 +11478,7 @@ async function evEquipoCargar(){
   if(EVEQ_CH){EVEQ_CH.destroy();EVEQ_CH=null;}
   const el=document.getElementById('eveq-chart');
   if(el&&typeof Chart!=='undefined'){
-    const labels=porPartido.map(p=>'vs '+p.rival+(p.fecha?' ('+new Date(p.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+')':''));
+    const labels=porPartido.map(p=>'vs '+p.rival+(p.fecha?' ('+fechaD(p.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+')':''));
     EVEQ_CH=new Chart(el,{type:'line',data:{labels,datasets:[
       {label:'Mental',data:porPartido.map(p=>p.mental),borderColor:'#00c2ff',backgroundColor:'rgba(0,194,255,0.07)',tension:0.35,pointRadius:5,pointBackgroundColor:'#00c2ff',fill:true},
       {label:'MDC DT',data:porPartido.map(p=>p.mdc),borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,0.05)',tension:0.35,borderDash:[5,3],pointRadius:5,pointBackgroundColor:'#7c3aed'},
@@ -11421,7 +11493,7 @@ async function evEquipoCargar(){
   document.getElementById('eveq-fort').innerHTML=dimAvgs.slice(0,3).map(d=>`<div class="pp-dim-row"><div class="pp-dim-label">${d.lbl}</div><div class="pp-bar-wrap"><div class="pp-bar-fill" style="width:${Math.round(d.avg/10*100)}%;background:#22c55e"></div></div><div class="pp-dim-val" style="color:#22c55e">${evFmt(d.avg)}</div></div>`).join('');
   document.getElementById('eveq-deb').innerHTML=[...dimAvgs].reverse().slice(0,3).map(d=>`<div class="pp-dim-row"><div class="pp-dim-label">${d.lbl}</div><div class="pp-bar-wrap"><div class="pp-bar-fill" style="width:${Math.round(d.avg/10*100)}%;background:#ef4444"></div></div><div class="pp-dim-val" style="color:#ef4444">${evFmt(d.avg)}</div></div>`).join('');
   let th='<table><thead><tr><th>Partido</th><th>Fecha</th><th>Evaluados</th><th>Mental prom.</th><th>MDC DT</th><th>Fatiga</th></tr></thead><tbody>';
-  porPartido.forEach(p=>{const f=p.fecha?new Date(p.fecha).toLocaleDateString('es-AR'):'—';const mc=p.mental!=null?(p.mental>=7?'#22c55e':p.mental>=5?'#f59e0b':'#ef4444'):'#b4c2d4';th+=`<tr><td><strong>vs ${p.rival}</strong></td><td style="font-size:11px;color:#b4c2d4">${f}</td><td style="color:#b4c2d4">${p.njugs}</td><td><strong style="color:${mc}">${evFmt(p.mental)}</strong></td><td style="color:#7c3aed;font-weight:700">${evFmt(p.mdc)}</td><td style="color:#f59e0b;font-weight:700">${evFmt(p.fatiga)}</td></tr>`;});
+  porPartido.forEach(p=>{const f=p.fecha?fechaD(p.fecha).toLocaleDateString('es-AR'):'—';const mc=p.mental!=null?(p.mental>=7?'#22c55e':p.mental>=5?'#f59e0b':'#ef4444'):'#b4c2d4';th+=`<tr><td><strong>vs ${p.rival}</strong></td><td style="font-size:11px;color:#b4c2d4">${f}</td><td style="color:#b4c2d4">${p.njugs}</td><td><strong style="color:${mc}">${evFmt(p.mental)}</strong></td><td style="color:#7c3aed;font-weight:700">${evFmt(p.mdc)}</td><td style="color:#f59e0b;font-weight:700">${evFmt(p.fatiga)}</td></tr>`;});
   document.getElementById('eveq-tabla').innerHTML=th+'</tbody></table>';
 }
 
@@ -11572,7 +11644,7 @@ async function evCargarObjetivosEquipoExistentes(grupoCod){
     return;
   }
   const data=EVEQ_DATA||[];
-  const partidosDesde=data.filter(function(p){return p.fecha&&new Date(p.fecha)>new Date(ultimo.creado_en);}).length;
+  const partidosDesde=data.filter(function(p){return p.fecha&&fechaD(p.fecha)>new Date(ultimo.creado_en);}).length;
   if(partidosDesde<3){
     box.style.display='block';
     if(btn)btn.style.display='none';
@@ -11637,7 +11709,7 @@ async function generarAnalisisEquipoIA(){
     '✦ Leyendo la tendencia de '+EVEQ_DATA.length+' partidos del plantel...</div>';
 
   const serie=EVEQ_DATA.map(function(p){
-    const f=p.fecha?new Date(p.fecha).toLocaleDateString('es-AR'):'?';
+    const f=p.fecha?fechaD(p.fecha).toLocaleDateString('es-AR'):'?';
     return f+' vs '+p.rival+': '+p.njugs+' evaluados, mental '+(p.mental!=null?p.mental.toFixed(1):'—')+
       (p.mdc!=null?', MDC DT '+p.mdc.toFixed(1):'')+
       (p.fatiga!=null?', fatiga '+p.fatiga.toFixed(1):'');
@@ -11795,7 +11867,7 @@ function evRenderCards(nombre,data){
   const subEl=document.getElementById('ev-jugador-sub');
   if(subEl){
     const rSub=(AR||[]).filter(function(r){return (r.jugador_nombre||'').trim().toLowerCase()===(nombre||'').trim().toLowerCase();})
-      .sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);})[0];
+      .sort(function(a,b){return fechaD(b.fecha)-fechaD(a.fecha);})[0];
     subEl.textContent=rSub?[rSub.jugador_pos,rSub.jugador_club].filter(Boolean).join(' · '):'';
   }
 
@@ -11805,7 +11877,7 @@ function evRenderCards(nombre,data){
   const refBox=document.getElementById('ev-ficha-ref');
   if(refBox){
     const rBase=(AR||[]).filter(function(r){return (r.jugador_nombre||'').trim().toLowerCase()===(nombre||'').trim().toLowerCase();})
-      .sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);})[0];
+      .sort(function(a,b){return fechaD(b.fecha)-fechaD(a.fecha);})[0];
     if(rBase){
       const semCol=rBase.semaforo_color||'#94a3b8';
       const dInfo=rBase.primary_disc?PJ_DISC_INFO[rBase.primary_disc]:null;
@@ -11823,7 +11895,7 @@ function evRenderCards(nombre,data){
         '</div>'+
         '<div style="padding-left:16px">'+
           '<div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px">'+[rBase.jugador_pos,rBase.jugador_club,rBase.jugador_cat?'Cat. '+rBase.jugador_cat:null].filter(Boolean).join(' · ')+'</div>'+
-          '<div style="font-size:11.5px;color:#e8eff8">Diagnóstico de referencia'+(rBase.fecha?(' — última evaluación del '+new Date(rBase.fecha).toLocaleDateString('es-AR')):'')+'</div>'+
+          '<div style="font-size:11.5px;color:#e8eff8">Diagnóstico de referencia'+(rBase.fecha?(' — última evaluación del '+fechaD(rBase.fecha).toLocaleDateString('es-AR')):'')+'</div>'+
         '</div>'+
         '</div>'+
         // Fila 2 — lo que suma a la estrategia de mejora: riesgo bajo
@@ -11867,7 +11939,7 @@ function evRenderCards(nombre,data){
     <div class="stat" style="padding:0.65rem 0.9rem"><div class="stat-v" style="font-size:20px;color:${tCol}">${tStr}</div><div class="stat-l" style="font-size:9.5px">Tendencia</div></div>`;
 }
 
-function evLabels(data){return data.map(d=>'vs '+d.rival_nombre+(d.fecha?' ('+new Date(d.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+')':''));}
+function evLabels(data){return data.map(d=>'vs '+d.rival_nombre+(d.fecha?' ('+fechaD(d.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'})+')':''));}
 
 function evRenderMental(data){
   evKill('m');
@@ -11951,7 +12023,7 @@ async function evGenerarObjetivosNucleo(nombre,data){
   }
 
   const rBase=(AR||[]).filter(function(r){return (r.jugador_nombre||'').trim().toLowerCase()===(nombre||'').trim().toLowerCase();})
-    .sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);})[0];
+    .sort(function(a,b){return fechaD(b.fecha)-fechaD(a.fecha);})[0];
   const dInfoBase=(rBase&&rBase.primary_disc)?PJ_DISC_INFO[rBase.primary_disc]:null;
 
   const prompt='Actuás como un Experto en Psicología Deportiva de Alto Rendimiento y Sport Coaching. Tu tarea es generar "Objetivos de Realización" (Metas de Proceso basadas en el Control de Zona) para mostrarle a un deportista antes de su próximo partido.\n\n'+
@@ -12159,7 +12231,7 @@ async function evCargarObjetivosExistentes(nombre,data){
     EV_OBJETIVOS_ACTUAL=null;
     return;
   }
-  const partidosDesde=(data||[]).filter(function(d){return d.fecha&&new Date(d.fecha)>new Date(ultimo.creado_en);}).length;
+  const partidosDesde=(data||[]).filter(function(d){return d.fecha&&fechaD(d.fecha)>new Date(ultimo.creado_en);}).length;
   if(partidosDesde<3){
     // Todavía vigente — se muestra tal cual, sin botón (no se genera de nuevo antes de tiempo)
     box.style.display='block';
@@ -12237,7 +12309,7 @@ async function generarAnalisisEvolucionIA(){
   // Serie partido a partido (fecha, rival, mental, MDC DT, fatiga)
   const serie=EV_DATA.map(function(d){
     const m=evAvg([d.q1,d.q2,d.q3,d.q4,d.q5,d.q6,d.q7,d.q8,d.q9,d.q10,d.q11,d.q12,d.q13,d.q14,d.q15]);
-    const f=d.fecha?new Date(d.fecha).toLocaleDateString('es-AR'):'?';
+    const f=d.fecha?fechaD(d.fecha).toLocaleDateString('es-AR'):'?';
     return f+' vs '+d.rival_nombre+': mental '+(m!=null?m.toFixed(1):'—')+
       (d.mdc_dt!=null?', MDC DT '+d.mdc_dt:'')+
       (d.fatiga_post!=null?', fatiga '+d.fatiga_post:'')+
@@ -12260,7 +12332,7 @@ async function generarAnalisisEvolucionIA(){
   // presión) — para que la lectura de tendencia se conecte con su
   // perfil real, no solo con la serie de partidos aislada.
   const rBaseIA=(AR||[]).filter(function(r){return (r.jugador_nombre||'').trim().toLowerCase()===(nombre||'').trim().toLowerCase();})
-    .sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);})[0];
+    .sort(function(a,b){return fechaD(b.fecha)-fechaD(a.fecha);})[0];
   const dInfoBaseIA=(rBaseIA&&rBaseIA.primary_disc)?PJ_DISC_INFO[rBaseIA.primary_disc]:null;
   const diagnosticoTxt=[
     rBaseIA&&rBaseIA.disponibilidad!=null?('Disponibilidad Competitiva (test inicial): '+rBaseIA.disponibilidad+'%'):null,
@@ -12323,7 +12395,7 @@ async function generarAnalisisEvolucionIA(){
 function evRenderHistorial(data){
   document.getElementById('ev-historial').innerHTML=[...data].reverse().map(d=>{
     const m=evAvg([d.q1,d.q2,d.q3,d.q4,d.q5,d.q6,d.q7,d.q8,d.q9,d.q10,d.q11,d.q12,d.q13,d.q14,d.q15]);
-    const f=d.fecha?new Date(d.fecha).toLocaleDateString('es-AR'):'—';
+    const f=d.fecha?fechaD(d.fecha).toLocaleDateString('es-AR'):'—';
     return`<div style="padding:10px 14px;border-bottom:1px solid rgba(26,58,110,0.15);display:flex;align-items:center;justify-content:space-between;gap:10px">
       <div><div style="font-size:13px;font-weight:700;color:#fff">vs ${d.rival_nombre}</div>
       <div style="font-size:11px;color:#b4c2d4;margin-top:2px">${f} · ${d.tiempo_jugado!=null?d.tiempo_jugado:'?'} min</div>
@@ -12396,7 +12468,7 @@ async function generarPDFEquipo(){
     const rows=await q('objetivos_equipo?'+gq+'&order=creado_en.desc&limit=1');
     obj=Array.isArray(rows)&&rows[0]?rows[0]:null;
   }catch(e){}
-  const partidosDesdeObj=obj?data.filter(p=>p.fecha&&new Date(p.fecha)>new Date(obj.creado_en)).length:0;
+  const partidosDesdeObj=obj?data.filter(p=>p.fecha&&fechaD(p.fecha)>new Date(obj.creado_en)).length:0;
 
   // ── Encabezado
   doc.setFillColor(...AZ); doc.rect(0,0,W,34,'F');
@@ -12521,7 +12593,7 @@ async function generarPDFEvolucion(){
   // suma al prompt de IA para que la narrativa conecte la tendencia de
   // partidos con su perfil real, no solo con números sueltos.
   const rBase=(AR||[]).filter(function(r){return (r.jugador_nombre||'').trim().toLowerCase()===(nombre||'').trim().toLowerCase();})
-    .sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);})[0];
+    .sort(function(a,b){return fechaD(b.fecha)-fechaD(a.fecha);})[0];
   const dInfoBase=(rBase&&rBase.primary_disc)?PJ_DISC_INFO[rBase.primary_disc]:null;
 
   // ── Narrativa con IA — para que el informe suene a un mensaje real de
@@ -12535,7 +12607,7 @@ async function generarPDFEvolucion(){
   let ia=null;
   try{
     const serie=data.map(function(d,i){
-      const f=d.fecha?new Date(d.fecha).toLocaleDateString('es-AR'):'?';
+      const f=d.fecha?fechaD(d.fecha).toLocaleDateString('es-AR'):'?';
       return f+' vs '+d.rival_nombre+': '+(ments[i]!=null?ments[i].toFixed(1):'—')+'/10';
     }).join('\n');
     const prompt='Sos un preparador mental deportivo experimentado, cálido pero directo, que le escribe un informe corto a un deportista después de varios partidos.\n'+
@@ -12650,7 +12722,7 @@ async function generarPDFEvolucion(){
   data.forEach(function(d,idx){
     if(y>270){doc.addPage();y=15;}
     const m=ments[idx];
-    const fecha=d.fecha?new Date(d.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
+    const fecha=d.fecha?fechaD(d.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
     let tendStr='—';let tendCol=C.txt3;
     if(idx>0&&m!=null&&ments[idx-1]!=null){
       const diff=m-ments[idx-1];
@@ -12923,7 +12995,7 @@ function renderLegajo(r, ppJugs, ppDTs, partidos, histEvals){
       tec_video:dt?.tec_video_link||null,
       tec_obs:dt?.tec_obs||null
     };
-  }).sort((a,b)=>new Date(a.fecha)-new Date(b.fecha));
+  }).sort((a,b)=>fechaD(a.fecha)-fechaD(b.fecha));
   LEGAJO_HISTORIAL=historial;
 
   // Contexto
@@ -13114,7 +13186,7 @@ function renderLegajo(r, ppJugs, ppDTs, partidos, histEvals){
         ${evalOrden.map((e,i)=>{
           const disp=e.disponibilidad||0;
           const col=disp>=80?'#22c55e':disp>=65?'#f59e0b':'#ef4444';
-          const fecha=e.fecha?new Date(e.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'2-digit'}):'';
+          const fecha=e.fecha?fechaD(e.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'2-digit'}):'';
           return `<div style="flex:1;background:#0d1b3e;border:1px solid ${col}40;border-radius:10px;padding:10px;text-align:center">
             <div style="font-size:9px;color:#94a3b8;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em">Eval. ${e.evaluacion_num||i+1}</div>
             <div style="font-size:22px;font-weight:900;color:${col}">${disp}%</div>
@@ -13272,7 +13344,7 @@ function renderLegajo(r, ppJugs, ppDTs, partidos, histEvals){
   if(historial.length){
     h+=`<div style="font-size:10px;font-weight:700;color:#b4c2d4;letter-spacing:0.05em;margin-bottom:8px">HISTORIAL DE PARTIDOS</div>`;
     historial.forEach((p,idx)=>{
-      const fecha=p.fecha?new Date(p.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}):'—';
+      const fecha=p.fecha?fechaD(p.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}):'—';
       const mc=p.mental!=null?(p.mental>=7?'#22c55e':p.mental>=5?'#f59e0b':'#ef4444'):'#b4c2d4';
       const fc=p.fisio!=null?(p.fisio>=7?'#22c55e':p.fisio>=5?'#f59e0b':'#ef4444'):'#b4c2d4';
       const hasTec=p.tec_nota||p.tec_pases_ok||p.tec_video;
@@ -13354,7 +13426,7 @@ async function exportarLegajoPDF(){
     LEGAJO_HISTORIAL.forEach((p,idx)=>{
       if(y>260){doc.addPage();y=20;}
       const mc=p.mental!=null?(p.mental>=7?[34,197,94]:p.mental>=5?[245,158,11]:[239,68,68]):[140,163,191];
-      const fecha=p.fecha?new Date(p.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}):'—';
+      const fecha=p.fecha?fechaD(p.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',year:'numeric'}):'—';
       // Fila partido
       doc.setFillColor(idx%2===0?20:16,idx%2===0?31:25,idx%2===0?58:50);
       doc.rect(14,y,182,10,'F');
@@ -14418,7 +14490,7 @@ function renderSelectivoLista(elId,items,color){
     const disp=s.disponibilidad||0;
     const dispCol=disp>=80?'#22c55e':disp>=65?'#f59e0b':'#ef4444';
     const semLabel=(s.semaforo_label||'').includes('Rojo')?'🔴':(s.semaforo_label||'').includes('Amarillo')?'🟡':'🟢';
-    const fecha=s.fecha?new Date(s.fecha).toLocaleDateString('es-AR'):'—';
+    const fecha=s.fecha?fechaD(s.fecha).toLocaleDateString('es-AR'):'—';
     const initials=(s.jugador_nombre||'?').split(' ').map(function(w){return w[0];}).join('').toUpperCase().slice(0,2);
     const faseInfo=getFaseDesarrollo(disp);
     return '<div style="background:#0d1b3e;border:1px solid '+color+'22;border-left:3px solid '+color+';border-radius:12px;padding:1rem 1.25rem;margin-bottom:8px;display:flex;align-items:flex-start;gap:14px">'+
@@ -14600,7 +14672,7 @@ async function loadNutricionResultados() {
   const porJugador = {};
   data.forEach(function(r){
     const key = (r.jugador_nombre||'').toLowerCase().trim()+'|'+(r.jugador_club||'').toLowerCase().trim();
-    if(!porJugador[key] || new Date(r.fecha) > new Date(porJugador[key].fecha)) porJugador[key] = r;
+    if(!porJugador[key] || fechaD(r.fecha) > new Date(porJugador[key].fecha)) porJugador[key] = r;
   });
   let todos = Object.values(porJugador);
 
@@ -14767,7 +14839,7 @@ function aplicarFiltroNutricion(){
     lista.map(function(r){
       const pct = r.idn_pct||0;
       const col = pct>=90?'#22c55e':pct>=80?'#16a34a':pct>=65?'#f59e0b':pct>=45?'#ea580c':'#ef4444';
-      const fecha = r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR') : '—';
+      const fecha = r.fecha ? fechaD(r.fecha).toLocaleDateString('es-AR') : '—';
       return '<tr style="cursor:pointer" onclick="abrirDetalleNutricion(\''+String(r.id)+'\')">' +
         '<td style="font-weight:600;color:#fff">'+(r.jugador_nombre||'—')+'</td>' +
         '<td>'+(r.jugador_club||'—')+'</td>' +
@@ -14808,7 +14880,7 @@ async function loadRacha(){
   cont.innerHTML = '<table><thead><tr><th>Jugador</th><th>Club</th><th>Nivel</th><th>Riesgo</th><th>Fecha</th></tr></thead><tbody>' +
     datos.map(function(r){
       const col = colorRiesgo[r.senal_riesgo_abandono] || '#b4c2d4';
-      const fecha = r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR') : '—';
+      const fecha = r.fecha ? fechaD(r.fecha).toLocaleDateString('es-AR') : '—';
       return '<tr style="cursor:pointer" onclick="abrirDetalleRacha(\''+r.id+'\')">' +
         '<td style="font-weight:600;color:#fff">'+(r.jugador_nombre||'—')+'</td>' +
         '<td>'+(r.jugador_club||'—')+'</td>' +
@@ -14824,7 +14896,7 @@ function abrirDetalleRacha(id){
   if(!r) return;
 
   document.getElementById('ra-titulo').textContent = r.jugador_nombre||'—';
-  document.getElementById('ra-sub').textContent = (r.jugador_club||'—') + (r.fecha ? ' · '+new Date(r.fecha).toLocaleDateString('es-AR') : '');
+  document.getElementById('ra-sub').textContent = (r.jugador_club||'—') + (r.fecha ? ' · '+fechaD(r.fecha).toLocaleDateString('es-AR') : '');
 
   const riesgoTxt = {
     alto: '⚠ Paró en el primer momento difícil, sin insistir ninguna vez.',
@@ -14853,7 +14925,7 @@ function abrirDetalleNutricion(id){
   const col = pct>=90?'#22c55e':pct>=80?'#16a34a':pct>=65?'#f59e0b':pct>=45?'#ea580c':'#ef4444';
 
   document.getElementById('mo-nutri-titulo').textContent = r.jugador_nombre||'—';
-  document.getElementById('mo-nutri-sub').textContent = (r.jugador_club||'—') + (r.fecha ? ' · '+new Date(r.fecha).toLocaleDateString('es-AR') : '');
+  document.getElementById('mo-nutri-sub').textContent = (r.jugador_club||'—') + (r.fecha ? ' · '+fechaD(r.fecha).toLocaleDateString('es-AR') : '');
   const elPct = document.getElementById('mo-nutri-pct');
   elPct.textContent = pct+'%';
   elPct.style.color = col;
@@ -15032,7 +15104,7 @@ function renderLeadsTabla(data) {
 
   let h = '<table><thead><tr><th>Club</th><th>Servicio</th><th>Quién pidió</th><th>Jugadores</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead><tbody>';
   data.forEach(l => {
-    const fecha = l.fecha ? new Date(l.fecha).toLocaleDateString('es-AR') : '—';
+    const fecha = l.fecha ? fechaD(l.fecha).toLocaleDateString('es-AR') : '—';
     const col = estadoCol[l.estado] || '#b4c2d4';
     const esJugador = l.origen === 'jugador';
     const nombreWa = esJugador ? (l.jugador_nombre || '') : (l.coordinador_nombre || '');
@@ -17195,7 +17267,7 @@ async function abrirSelectorPartidos(ctx){
   } else {
     lista.innerHTML = partidosSel.map(function(p){
       const checked = !PARTIDOS_EXCLUIDOS.has(p.codigo);
-      const fecha = p.fecha ? new Date(p.fecha).toLocaleDateString('es-AR') : '?';
+      const fecha = p.fecha ? fechaD(p.fecha).toLocaleDateString('es-AR') : '?';
       return '<label style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid #1a3a6e22;cursor:pointer">'+
         '<input type="checkbox" data-cod="'+p.codigo+'" '+(checked?'checked':'')+' style="width:16px;height:16px;flex-shrink:0;accent-color:#00c2ff">'+
         '<span style="flex:1;font-size:13px;color:#e8eff8">vs '+(p.rival||'—')+'</span>'+
@@ -17339,7 +17411,7 @@ async function generarAnalisisEstadisticasIA(){
   const serie=conResultado.slice(0,20).map(function(p){
     const res=p.goles_favor>p.goles_contra?'V':p.goles_favor===p.goles_contra?'E':'D';
     const mdc=mdcProm(p.codigo);
-    const f=p.fecha?new Date(p.fecha).toLocaleDateString('es-AR'):'?';
+    const f=p.fecha?fechaD(p.fecha).toLocaleDateString('es-AR'):'?';
     return f+' vs '+p.rival+': '+res+' '+p.goles_favor+'-'+p.goles_contra+(mdc!=null?', MDC promedio '+mdc.toFixed(0)+'%':', sin MDC cargado');
   }).join('\n');
 
@@ -17498,7 +17570,7 @@ function renderEstTablaPartidos(ps) {
 
   let h = '<table><thead><tr><th>Partido</th><th>Grupo</th><th>Fecha</th><th>Resultado</th><th></th></tr></thead><tbody>';
   conRes.forEach(function(p) {
-    const f = p.fecha ? new Date(p.fecha).toLocaleDateString('es-AR', {day:'2-digit', month:'short'}) : '—';
+    const f = p.fecha ? fechaD(p.fecha).toLocaleDateString('es-AR', {day:'2-digit', month:'short'}) : '—';
     const gf = p.goles_favor ?? '?';
     const gc = p.goles_contra ?? '?';
     const col = gf > gc ? '#22c55e' : gf < gc ? '#ef4444' : '#f59e0b';
@@ -17733,7 +17805,7 @@ function renderEstMDCPartidos(ps, pp) {
     const vals = mdcPorPartido[p.codigo];
     const avg = Math.round(vals.reduce(function(a,b){ return a+b; }, 0) / vals.length);
     const col = avg >= 80 ? '#22c55e' : avg >= 65 ? '#f59e0b' : '#ef4444';
-    const f = p.fecha ? new Date(p.fecha).toLocaleDateString('es-AR', {day:'2-digit', month:'short'}) : '—';
+    const f = p.fecha ? fechaD(p.fecha).toLocaleDateString('es-AR', {day:'2-digit', month:'short'}) : '—';
     const gf = p.goles_favor; const gc = p.goles_contra;
     const resLabel = gf != null ? ' · ' + gf + '—' + gc : '';
     return '<div style="margin-bottom:10px">' +
@@ -18142,7 +18214,7 @@ async function abrirDetalle(clubId) {
     else {
       const tipoIcon = {whatsapp:'💬',llamada:'📞',email:'📧',reunion:'🤝',demo:'🖥',nota:'📝'};
       hEl.innerHTML = historial.map(h => {
-        const f = new Date(h.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+        const f = fechaD(h.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
         return `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #1a3a6e22">
           <div style="font-size:16px;flex-shrink:0">${tipoIcon[h.tipo]||'📝'}</div>
           <div style="flex:1"><div style="font-size:11px;color:#e8eff8">${h.nota||'—'}</div><div style="font-size:10px;color:#94a3b8">${f}</div></div>
@@ -18983,7 +19055,7 @@ function cargarPerfilJugador() {
   const pm=document.getElementById('pj-momento');
   if(pm){
     const mv=r.momentos_vida, ev=mv&&Array.isArray(mv.eventos)?mv.eventos:[];
-    const dias=mv&&mv.fecha?Math.floor((Date.now()-new Date(mv.fecha).getTime())/86400000):null;
+    const dias=mv&&mv.fecha?Math.floor((Date.now()-fechaD(mv.fecha).getTime())/86400000):null;
     if(ev.length&&(dias==null||dias<=183)){
       const L={paternidad:['👶','Paternidad / maternidad','Cuidar el sueño y la recuperación; revisar horarios de concentración y viajes.'],
         mudanza:['🏠','Mudanza','Acompañar la adaptación: rutinas, vivienda y red de apoyo nueva.'],
@@ -19044,7 +19116,7 @@ function cargarPerfilJugador() {
     r.peso_kg ? '<div style="text-align:center"><div style="font-size:15px;font-weight:800;color:#fff">'+r.peso_kg+'kg</div><div style="font-size:9px;color:#b4c2d4">PESO</div></div>' : '',
     r.pie_habil ? '<div style="text-align:center"><div style="font-size:15px;font-weight:800;color:#fff">'+(pieLabel[r.pie_habil]||r.pie_habil)+'</div><div style="font-size:9px;color:#b4c2d4">PIE HÁBIL</div></div>' : '',
   ].filter(Boolean);
-  const fechaEval = r.fecha ? new Date(r.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '—';
+  const fechaEval = r.fecha ? fechaD(r.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit'}) : '—';
   const evalChip = '<div style="text-align:center"><div style="font-size:15px;font-weight:800;color:#fff">'+fechaEval+'</div><div style="font-size:9px;color:#b4c2d4">ÚLT. EVALUACIÓN</div></div>';
   const fisicosHtml = fisicosParts.join('') + evalChip + '<div id="pj-asistencia-chip" style="text-align:center"></div>';
   document.getElementById('pj-fisicos').innerHTML = fisicosHtml;
@@ -19389,7 +19461,7 @@ function idcCalcularJugador(r, D){
   mod.entorno=ctx.length?{val:Math.min(100,idcProm(ctx)*10), det:'6 variables de contexto'}:{val:null, det:'Entorno sin cargar'};
 
   // Nutrición — IDN más reciente
-  const n=(D.nutri[nom]||[]).find(x=>{ const d=x.fecha?idcDiasDesde(new Date(x.fecha)):null; return x.idn_total!=null&&(d==null||d<=IDC_VENTANAS.nutricion_dias); });
+  const n=(D.nutri[nom]||[]).find(x=>{ const d=x.fecha?idcDiasDesde(fechaD(x.fecha)):null; return x.idn_total!=null&&(d==null||d<=IDC_VENTANAS.nutricion_dias); });
   mod.nutricion=n?{val:Math.min(100,n.idn_total/80*100), det:'IDN '+n.idn_total+'/80'}:{val:null, det:'Sin test nutricional'};
 
   // Índice ponderado sobre los módulos con datos (Mental es obligatorio)
@@ -19579,7 +19651,7 @@ async function dashAvisosUso(rL, codigos){
     const P=Array.isArray(pp)?pp:[], T=Array.isArray(dt)?dt:[];
     const dias=f=>f?Math.floor((Date.now()-f.getTime())/86400000):null;
     const fPP=P.map(x=>idcFechaPartido(x.partido_codigo,null)).filter(Boolean);
-    const fTest=jug.map(r=>r.fecha?new Date(r.fecha):null).filter(Boolean);
+    const fTest=jug.map(r=>r.fecha?fechaD(r.fecha):null).filter(Boolean);
     const ult=[...fPP,...fTest].sort((a,b)=>b-a)[0]||null;
     const dAct=dias(ult);
     const activos30=new Set(P.filter(x=>{ const d=dias(idcFechaPartido(x.partido_codigo,null)); return d!=null&&d<=30; }).map(x=>idcNom(x.jugador_nombre)));
@@ -19944,7 +20016,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='29/10/2026 · 8';
+const SC360_VERSION='03/11/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -22556,7 +22628,7 @@ async function cargarEvolucionPerfilJugador(r){
     PJ_EVOL_CH=new Chart(canvas,{
       type:'line',
       data:{
-        labels:historial.map(h=>new Date(h.fecha).toLocaleDateString('es-AR',{month:'short',day:'numeric'})),
+        labels:historial.map(h=>fechaD(h.fecha).toLocaleDateString('es-AR',{month:'short',day:'numeric'})),
         datasets:[{
           data:historial.map(h=>h.disponibilidad||0),
           borderColor:'#00c2ff',

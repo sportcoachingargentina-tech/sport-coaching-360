@@ -150,6 +150,7 @@ body.es-admin .solo-admin{display:inline!important}
 .rp-prob b{display:block;font-size:24px;color:#0b1b3d;line-height:1.1;margin-top:2px}
 .rp-pie{margin-top:16px;border-top:1px solid #cbd5e1;padding-top:7px;font-size:9.5px;color:#64748b;display:flex;flex-direction:column;gap:3px;break-inside:avoid}
 @page pred{size:A4;margin:12mm 11mm}
+.screen.plan-bloqueada > :not(.plan-lock){display:none!important}
 #pjia-pdf{display:none}
 @media print{
   body.pdf-pjia{background:#fff!important}
@@ -3760,6 +3761,64 @@ function navHistorial(name){
     else if(st.sc!==name) history.pushState({sc:name},'');
   }catch(e){}
 }
+// ═══════════════════════════════════════════════════════════════
+// PLANES (03/11/2026) — Básico = el análisis · Pro = el seguimiento
+// El plan es por división (grupos.plan). Lo que ya existía quedó en Pro.
+// Básico: test, perfil, carta, análisis IA, informe grupal, roles,
+// Inicio, grupos. Pro suma: Post Partido, check-in, acciones,
+// evolución, predicción/cancha, decisiones y entrenamiento cognitivo.
+// Las secciones Pro se ven pero bloqueadas; la base impide que un
+// usuario que no es admin cambie el plan.
+// ═══════════════════════════════════════════════════════════════
+const PLAN_PRO_SCREENS={postpartido:'Post Partido',estadisticas:'Estadísticas de partidos',checkin:'Check-in diario',recuperacion:'Recuperación',evolucion:'Evolución',plantel:'Predicción y cancha',decisiones:'Decisiones',cognitivo:'Entrenamiento cognitivo',entreno:'Post entreno',racha:'Racha',tracking:'Tracking mental'};
+function planMarcarMenu(){ const bloq=!planTienePro(); Object.keys(PLAN_PRO_SCREENS).forEach(k=>{ document.querySelectorAll('.nav-item[data-nav="'+k+'"]').forEach(n=>{ let b=n.querySelector('.plan-candado'); if(bloq&&!b){ b=document.createElement('span'); b.className='plan-candado'; b.textContent='🔒'; b.title='Plan Pro'; b.style.cssText='font-size:11px;margin-left:6px;opacity:0.8'; n.appendChild(b); } if(!bloq&&b) b.remove(); }); }); }
+function planEsAdmin(){ return !!(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin'); }
+function planDeGrupo(g){ return (g&&g.plan)==='basico'?'basico':'pro'; }
+function planGrupoPorValor(v){
+  const ps=String(v||'').split('|'); if(!ps[0]) return null;
+  return (AG||[]).find(g=>ps.includes(String(g.id))||ps.includes(String(g.codigo)))||null;
+}
+function planTienePro(){ if(planEsAdmin()) return true; const gs=AG||[]; return !gs.length||gs.some(g=>planDeGrupo(g)==='pro'); }
+function planGate(name){
+  setTimeout(planMarcarMenu,name==='dashboard'?3000:0);
+  const sc=document.getElementById('screen-'+name); if(!sc) return false;
+  let lk=sc.querySelector(':scope > .plan-lock');
+  const bloquear=!!PLAN_PRO_SCREENS[name]&&!planTienePro();
+  sc.classList.toggle('plan-bloqueada',bloquear);
+  if(!bloquear){ if(lk) lk.remove(); if(PLAN_PRO_SCREENS[name]) [400,1500,3500].forEach(t=>setTimeout(()=>planMarcarSelects(sc),t)); return false; }
+  if(!lk){ lk=document.createElement('div'); lk.className='plan-lock'; sc.prepend(lk); }
+  lk.innerHTML='<div style="max-width:560px;margin:40px auto;text-align:center;background:#0d1b3e;border:1px solid #1a3a6e;border-radius:16px;padding:32px 24px">'+
+    '<div style="font-size:40px">🔒</div>'+
+    '<div style="font-size:20px;font-weight:800;color:#fff;margin-top:8px">'+PLAN_PRO_SCREENS[name]+' es parte del Plan Pro</div>'+
+    '<div style="font-size:13.5px;color:#b4c2d4;line-height:1.6;margin-top:10px">Tu club tiene el <b style="color:#fbbf24">Plan Básico</b>: evaluación, perfiles, carta, análisis IA e informe grupal.<br>El <b style="color:#22c55e">Plan Pro</b> suma el seguimiento: Post Partido de jugadores y DT, check-in, registro de acciones, evolución, preparación de partidos y entrenamiento cognitivo.</div>'+
+    '<a href="https://wa.me/5492612502454?text='+encodeURIComponent('Hola! Quiero consultar por el Plan Pro de Sport Coaching 360.')+'" target="_blank" style="display:inline-block;margin-top:18px;padding:11px 20px;background:#22c55e;color:#04101f;border-radius:10px;font-weight:800;font-size:13.5px;text-decoration:none">Consultar por el Plan Pro</a></div>';
+  return true;
+}
+// En clubes con divisiones de los dos planes, las divisiones Básico quedan
+// visibles pero no se pueden elegir en las secciones Pro.
+function planMarcarSelects(sc){
+  if(planEsAdmin()||!sc) return;
+  sc.querySelectorAll('select').forEach(sel=>{
+    [...sel.options].forEach(o=>{
+      const g=planGrupoPorValor(o.value);
+      if(g&&planDeGrupo(g)==='basico'&&!o.disabled){ o.disabled=true; if(!/Plan Básico/.test(o.textContent)) o.textContent+=' · 🔒 Plan Básico'; if(o.selected){ const ok=[...sel.options].find(x=>!x.disabled&&x.value); if(ok){ sel.value=ok.value; sel.dispatchEvent(new Event('change')); } } }
+    });
+  });
+}
+function planChipGrupo(g){
+  const pl=planDeGrupo(g), col=pl==='pro'?'#22c55e':'#fbbf24', txt=pl==='pro'?'PRO':'BÁSICO';
+  const est='font-size:10.5px;font-weight:800;letter-spacing:0.04em;color:'+col+';background:'+col+'18;border:1px solid '+col+'55;padding:2px 8px;border-radius:8px;white-space:nowrap';
+  if(!planEsAdmin()) return '<span title="Plan de esta división" style="'+est+'">'+txt+'</span>';
+  return '<button class="cb" onclick="planCambiarGrupo(\''+g.id+'\',\''+(pl==='pro'?'basico':'pro')+'\')" title="Tocar para pasar a Plan '+(pl==='pro'?'Básico':'Pro')+'" style="'+est+';cursor:pointer">'+txt+'</button>';
+}
+async function planCambiarGrupo(id,plan){
+  const g=(AG||[]).find(x=>String(x.id)===String(id));
+  if(!confirm('¿Pasar '+(g?g.nombre:'esta división')+' a Plan '+(plan==='pro'?'Pro':'Básico')+'?')) return;
+  const r=await q('grupos?id=eq.'+id,{m:'PATCH',b:{plan}});
+  if(r&&r.code){ alert('No se pudo cambiar el plan: '+(r.message||r.code)); return; }
+  if(g) g.plan=plan; qLimpiarCache&&qLimpiarCache(); loadG();
+}
+
 function go(name){
   navHistorial(name);
   registrarNavegacion(name);
@@ -3778,6 +3837,7 @@ function go(name){
   if(mn)mn.classList.add('active');
   // Scroll mobile nav so active item is visible
   if(mn&&window.innerWidth<=768){mn.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});}
+  if(planGate(name)) return;
   if(name==='dashboard'){loadD();setTimeout(loadAlertas,800);}
   if(name==='grupos')loadG();
   if(name==='resultados')loadR();
@@ -3890,6 +3950,7 @@ async function loadG(){
       </div>
       <div class="grp-acciones" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;flex-shrink:0">
         <span style="font-size:11px;font-weight:700;color:${c>0?'#22c55e':'#94a3b8'};background:${c>0?'#22c55e15':'#1a3a6e'};border:1px solid ${c>0?'#22c55e30':'#1a3a6e'};padding:2px 8px;border-radius:8px;white-space:nowrap">${c} resp.</span>
+        ${planChipGrupo(g)}
         <button class="cb" onclick="enviarLinkGrupo('${lk}','${nomJs}')" title="Enviar el link del test por WhatsApp u otra app" style="padding:4px 8px;font-size:11px;color:#22c55e;border-color:#22c55e55">📲 Enviar</button>
         <button class="cb" onclick="cop('${lk}')" title="Copiar link" style="padding:4px 8px;font-size:11px">Copiar</button>
         <button class="cb" onclick="cop('${lkEstilo}')" title="Copiar link grupal de Estilo de Pensamiento" style="padding:4px 8px;font-size:11px">🧠 Estilo</button>
@@ -8809,6 +8870,7 @@ async function loadClubesCanal(){
               ' <span style="font-size:11px;font-weight:500;color:#7c8fae">· '+(nPl[id]||0)+' plantel'+((nPl[id]||0)===1?'':'es')+'</span></div>'+
             '<div style="font-size:11px;color:#94a3b8">'+(l?'Licencia desde '+String(l.inicio).split('-').reverse().join('/')+(l.precio_jugador!=null?' · '+l.moneda+' '+l.precio_jugador:'')+' · reparto socio '+Number(l.reparto_socio_pct)+' %':'<span style="color:#fbbf24">Sin licencia cargada</span>')+'</div></div>'+
           '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">'+
+            '<label>'+lab('PLAN')+'<select id="cc-plan-'+id+'" style="'+inp+';color:'+(c.plan==='basico'?'#fbbf24':'#22c55e')+'">'+opt('pro','Pro',c.plan||'pro')+opt('basico','Básico',c.plan||'pro')+'</select></label>'+
             '<label>'+lab('TIPO')+'<select id="cc-tipo-'+id+'" style="'+inp+'">'+opt('club','Club',c.tipo)+opt('particular','Particular',c.tipo)+opt('interno','Interno',c.tipo)+'</select></label>'+
             '<label>'+lab('CANAL')+'<select id="cc-canal-'+id+'" onchange="ccCanalCambio(\''+id+'\')" style="'+inp+'">'+opt('directo','Directo',l?l.canal:c.canal)+opt('gloouds','GLOOUDS',l?l.canal:c.canal)+'</select></label>'+
             '<label>'+lab('PRECIO / JUGADOR')+'<input id="cc-precio-'+id+'" type="number" min="0" step="0.5" placeholder="'+PRECIO_JUGADOR_USD+' (ref.)" value="'+(l&&l.precio_jugador!=null?l.precio_jugador:'')+'" style="'+inp+';width:110px"></label>'+
@@ -8844,8 +8906,14 @@ async function guardarClubCanal(id){
   const ok=r=>Array.isArray(r)||r===null||r===true;
   try{
     // 1) Datos del club
-    const rc=await q('clubes?id=eq.'+id,{m:'PATCH',b:{canal,tipo,activo,gloouds_id:gid||null,canal_desde:canal!==club.canal?desde:(club.canal_desde||null)}});
+    const plan=v('plan')||club.plan||'pro';
+    const rc=await q('clubes?id=eq.'+id,{m:'PATCH',b:{canal,tipo,activo,plan,gloouds_id:gid||null,canal_desde:canal!==club.canal?desde:(club.canal_desde||null)}});
     if(!ok(rc)){ di('No se pudo guardar el club'+(rc&&rc.message?': '+rc.message:''),'#fca5a5'); return; }
+    // Plan: el del club lo toman las divisiones nuevas; a las existentes se aplica solo si el admin confirma
+    if(plan!==(club.plan||'pro')&&confirm('¿Pasar también todas las divisiones de '+club.nombre+' a Plan '+(plan==='pro'?'Pro':'Básico')+'?\n\n(Cancelá para cambiar solo el plan de las divisiones nuevas.)')){
+      await q('grupos?club_id=eq.'+id,{m:'PATCH',b:{plan},h:{'Prefer':'return=minimal'}});
+      qLimpiarCache&&qLimpiarCache();
+    }
     // 2) Licencia: se crea o se renueva solo si cambian las condiciones
     const l=LIC_ABIERTA[id]||null;
     const nueva={club_id:id,canal,precio_jugador:precio,moneda,reparto_socio_pct:pct,base_reparto:base,inicio:desde,estado:activo?'activa':'suspendida'};
@@ -19034,7 +19102,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='03/11/2026 · 1';
+const SC360_VERSION='03/11/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
