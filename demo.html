@@ -1611,6 +1611,19 @@ tr:hover td{background:#0d1b3e40}
         <!-- Avisos de uso del club (los mismos de "Cuentas a atender" del admin, solo con sus datos) -->
         <!-- ¿Cómo está mi equipo? + Centro de decisiones (lo primero que ve el cuerpo técnico) -->
         <div id="dash-30s"></div>
+        <!-- Acción recomendada — traduce los números en una sola conclusión
+             accionable, para que el DT no tenga que interpretar 8 módulos
+             de datos por su cuenta antes de saber qué hacer. -->
+        <div id="dash-accion-recomendada" style="display:none;background:#0d1b3e;border:1px solid #00c2ff44;border-radius:12px;padding:14px 18px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:16px">🧭</span>
+            <span style="font-size:11px;font-weight:700;color:#00c2ff;letter-spacing:0.06em;text-transform:uppercase">Qué está afectando al equipo y qué trabajar esta semana</span>
+          </div>
+          <div id="dash-accion-titulo" style="font-size:15px;font-weight:700;color:#fff;margin-bottom:3px">—</div>
+          <div id="dash-accion-sub" style="font-size:12px;color:#b4c2d4;margin-bottom:10px">—</div>
+          <button onclick="go('evolucion');evSwitchTab('equipo')" style="padding:7px 14px;background:#00c2ff;color:#0a0f1e;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Ver evolución →</button>
+        </div>
+
         <div id="dash-centro"></div>
         <div id="dash-avisos-uso" style="display:none;margin-bottom:1rem"></div>
         <div id="dash-onboarding" style="display:none;margin-bottom:1rem;background:linear-gradient(135deg,#0d1b3e,#0a1530);border:1px solid #00c2ff33;border-radius:12px;padding:12px 14px">
@@ -1631,19 +1644,6 @@ tr:hover td{background:#0d1b3e40}
         </button>
         <div id="dash-detalle" style="display:none">
         <div id="dash-graficos"></div>
-
-        <!-- Acción recomendada — traduce los números en una sola conclusión
-             accionable, para que el DT no tenga que interpretar 8 módulos
-             de datos por su cuenta antes de saber qué hacer. -->
-        <div id="dash-accion-recomendada" style="display:none;background:#0d1b3e;border:1px solid #00c2ff44;border-radius:12px;padding:14px 18px;margin-bottom:1.5rem">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span style="font-size:16px">💡</span>
-            <span style="font-size:11px;font-weight:700;color:#00c2ff;letter-spacing:0.06em;text-transform:uppercase">Acción recomendada esta semana</span>
-          </div>
-          <div id="dash-accion-titulo" style="font-size:15px;font-weight:700;color:#fff;margin-bottom:3px">—</div>
-          <div id="dash-accion-sub" style="font-size:12px;color:#b4c2d4;margin-bottom:10px">—</div>
-          <button onclick="go('evolucion');evSwitchTab('equipo')" style="padding:7px 14px;background:#00c2ff;color:#0a0f1e;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Ver evolución →</button>
-        </div>
 
         <!-- IDC — Módulos disponibles y griseados -->
         <div style="margin-bottom:1.5rem">
@@ -4471,8 +4471,49 @@ function qLimpiarCache(){ Q_CACHE.clear(); }
 (function(){ const f0=window.fetch; if(!f0||window.__qCacheFetch) return; window.__qCacheFetch=true;
   window.fetch=function(u,o){ try{ const m=String(o&&o.method||'GET').toUpperCase(); if(m!=='GET'&&m!=='HEAD'&&String(u&&u.url||u).indexOf('/rest/v1/')>=0) qLimpiarCache(); }catch(e){} return f0.apply(this,arguments); };
 })();
+// ── Cruce de jugadores por ID (auditoría 04/11/2026) ─────────────
+// Los módulos cruzan post partido con la evaluación por nombre; si el
+// jugador escribió su nombre distinto ("Juan Perez" / "Juan Pérez") el
+// cruce se perdía (70% de coincidencia). Cada respuesta trae jugador_uid:
+// al leerla se le pone el nombre de su evaluación (89%). El nombre
+// escrito queda en jugador_nombre_escrito. No cambia nada en la base.
+const Q_PP_TABLAS=/^(postpartido_jugador|postpartido_dt)\b/;
+let Q_UID_NOMBRES=null, Q_UID_VUELO=null;
+async function qUidNombres(){
+  if(Q_UID_NOMBRES) return Q_UID_NOMBRES;
+  if(!Q_UID_VUELO) Q_UID_VUELO=(async()=>{
+    const mapa={};
+    try{
+      const rs=await q('resultados?select=jugador_uid,jugador_nombre,fecha&jugador_uid=not.is.null&order=fecha.desc&limit=20000');
+      (Array.isArray(rs)?rs:[]).forEach(r=>{ if(r.jugador_uid&&r.jugador_nombre&&!mapa[r.jugador_uid]) mapa[r.jugador_uid]=r.jugador_nombre; });
+    }catch(e){}
+    Q_UID_NOMBRES=mapa; setTimeout(()=>{ Q_UID_NOMBRES=null; Q_UID_VUELO=null; },5*60*1000);
+    return mapa;
+  })();
+  return Q_UID_VUELO;
+}
+// Filtro de post partido de UN jugador: por su ID o por su nombre
+function ppFiltroJugador(uid,nombre,comodin){
+  const n=String(nombre||'').trim(), pat=comodin?'*'+n+'*':n;
+  if(!uid) return 'jugador_nombre=ilike.'+encodeURIComponent(pat);
+  return 'or='+encodeURIComponent('(jugador_uid.eq.'+uid+',jugador_nombre.ilike."'+pat.replace(/"/g,'')+'")');
+}
+function qConUid(path){
+  // Si el pedido elige columnas, sumar jugador_uid para poder cruzar
+  return path.replace(/([?&]select=)([^&]*)/,(t,a,cols)=>(/jugador_nombre/.test(cols)&&!/jugador_uid|\*/.test(cols))?a+cols+',jugador_uid':t);
+}
+async function qNormalizarJugadores(txt){
+  try{
+    const filas=JSON.parse(txt); if(!Array.isArray(filas)||!filas.some(f=>f&&f.jugador_uid)) return txt;
+    const mapa=await qUidNombres();
+    filas.forEach(f=>{ const n=f&&f.jugador_uid&&mapa[f.jugador_uid]; if(n&&f.jugador_nombre!==n){ f.jugador_nombre_escrito=f.jugador_nombre; f.jugador_nombre=n; } });
+    return JSON.stringify(filas);
+  }catch(e){ return txt; }
+}
+
 async function q(path,o){
   const m=(o&&o.m)||'GET';
+  if(m==='GET'&&Q_PP_TABLAS.test(path)) path=qConUid(path);
   const cacheable=m==='GET'&&!(o&&o.sinCache)&&!Q_SIN_CACHE.test(path);
   if(cacheable){
     const c=Q_CACHE.get(path);
@@ -4514,6 +4555,7 @@ async function q(path,o){
         }catch(e){ qAvisoTope(path); }
       }
     }
+    if(m==='GET'&&r.ok&&Q_PP_TABLAS.test(path)) txt=await qNormalizarJugadores(txt);
     if(m==='GET'&&/^grupos\b/.test(path)&&r.ok){ try{ (JSON.parse(txt)||[]).forEach(g=>{ if(g&&g.codigo&&g.club!==undefined) GRUPO_CLUB[g.codigo]=g.club||''; }); }catch(e){} }
     if(m!=='GET') qLimpiarCache();
     else if(cacheable&&r.ok) Q_CACHE.set(path,{t:Date.now(),txt});
@@ -12945,8 +12987,8 @@ async function abrirLegajo(){
 
   const nombre=CI.jugador_nombre;
   const [ppJugs,ppDTs,partidos,histEvals]=await Promise.all([
-    q('postpartido_jugador?jugador_nombre=ilike.'+encodeURIComponent('*'+nombre.trim()+'*')+'&order=partido_codigo.asc'),
-    q('postpartido_dt?jugador_nombre=ilike.'+encodeURIComponent('*'+nombre.trim()+'*')+'&order=partido_codigo.asc'),
+    q('postpartido_jugador?'+ppFiltroJugador(CI.jugador_uid,nombre,true)+'&order=partido_codigo.asc'),
+    q('postpartido_dt?'+ppFiltroJugador(CI.jugador_uid,nombre,true)+'&order=partido_codigo.asc'),
     q('partidos?order=fecha.asc'),
     q('resultados?grupo_id=eq.'+CI.grupo_id+'&jugador_nombre=ilike.'+encodeURIComponent('*'+nombre.trim()+'*')+'&order=evaluacion_num.asc')
   ]);
@@ -19897,7 +19939,7 @@ async function cargarResetPJ(r){
   box.innerHTML='';
   try{
     const nom=(r.jugador_nombre||'').trim(); if(!nom) return;
-    const rows=await q('postpartido_jugador?jugador_nombre=ilike.'+encodeURIComponent(nom)+'&select=partido_codigo,q1,q7,q13&order=partido_codigo.asc&limit=200');
+    const rows=await q('postpartido_jugador?'+ppFiltroJugador(r.jugador_uid,nom,false)+'&select=partido_codigo,q1,q7,q13&order=partido_codigo.asc&limit=200');
     if(PJ_ACTUAL!==r||!Array.isArray(rows)) return;
     const x=resetIndice(rows);
     if(!x){ box.innerHTML='<div style="border-top:1px solid #1a3a6e55;padding-top:8px;font-size:11px;color:#4a5a78">↺ Resincronización post-error: se calcula con los Post Partido.</div>'; return; }
@@ -20016,7 +20058,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='03/11/2026 · 2';
+const SC360_VERSION='04/11/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -21051,7 +21093,34 @@ function decBotonAccion(it,estilo){
   if(!it.rid) return '';
   const a=decAccionDe(it);
   if(a&&a.activa) return '<button onclick="decRevisarAccion(\''+it.rid+'\',\''+a.i.id+'\')" title="Cargar cómo le fue a la acción en curso" style="'+estilo+';color:#c4b5fd;border:1px solid #7c3aed66">✓ Revisar acción</button>';
-  return it.accion?'<button onclick="decRegistrarAccionN('+decRegAcc(it)+')" title="Registrar qué se va a hacer, quién y hasta cuándo" style="'+estilo+';color:#c4b5fd;border:1px solid #7c3aed66">＋ Registrar acción</button>':'';
+  if(!it.accion) return '';
+  const n=decRegAcc(it);
+  return '<button onclick="decAccionRapida('+n+',this)" title="Registra la acción sugerida, con vos como responsable y revisión en 14 días" style="'+estilo+';color:#04101f;background:#a78bfa;border:1px solid #a78bfa;font-weight:800">✓ Lo hacemos esta semana</button>'+
+    '<button onclick="decRegistrarAccionN('+n+')" title="Registrar la acción eligiendo tipo, responsable, variables y fecha" style="'+estilo+';color:#c4b5fd;border:1px solid #7c3aed66">✎ Editar y registrar</button>';
+}
+// Registro en un toque (auditoría 04/11/2026): la acción sugerida queda
+// registrada con el usuario como responsable y revisión a 14 días. Así el
+// ciclo decidir → medir ("Qué hicimos y qué pasó") empieza a tener datos.
+async function decAccionRapida(n,btn){
+  const a=DEC_ACC[n], C=DEC_CACHE; if(!a||!C) return;
+  const r=(C.jugs||[]).find(x=>String(x.id)===String(a.id)); if(!r){ alert('No se encontró el jugador.'); return; }
+  const es=i=>(r.jugador_uid&&i.jugador_uid===r.jugador_uid)||idcNom(i.jugador_nombre)===idcNom(r.jugador_nombre);
+  const act=(C.ints||[]).find(i=>i.estado==='activa'&&es(i));
+  if(act&&!confirm(r.jugador_nombre+' ya tiene una acción en curso ("'+(act.objetivo||act.tipo)+'"). ¿La cerramos y empezamos esta?')) return;
+  if(btn){ btn.disabled=true; btn.textContent='Guardando…'; }
+  const hoy=segFechaMas(0);
+  const body={jugador_uid:r.jugador_uid||null,jugador_nombre:r.jugador_nombre,grupo_codigo:r.grupo_codigo||null,tipo:'Acción del cuerpo técnico',externa:false,
+    profesional:USUARIO_ACTUAL?(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email):null,objetivo:a.accion,variables:[],fecha_inicio:hoy,observaciones:null,
+    creado_por:USUARIO_ACTUAL?(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email):null,estado:'activa',fecha_revision:segFechaMas(14),origen:a.origen||'Decisiones de hoy'};
+  try{
+    if(act) await q('intervenciones?id=eq.'+act.id,{m:'PATCH',b:{estado:'finalizada',fecha_fin:hoy},h:{Prefer:'return=minimal'}});
+    const res=await q('intervenciones',{m:'POST',b:body});
+    if(!Array.isArray(res)||!res.length) throw new Error((res&&res.message)||'sin respuesta');
+    if(act) act.estado='finalizada';
+    C.ints=[res[0]].concat(C.ints||[]);
+    if(btn){ btn.textContent='✓ Registrada · revisar el '+mptFecha(body.fecha_revision); btn.style.background='#22c55e'; btn.style.borderColor='#22c55e'; const ed=btn.nextElementSibling; if(ed&&/Editar y registrar/.test(ed.textContent)) ed.remove(); }
+    qLimpiarCache();
+  }catch(e){ if(btn){ btn.disabled=false; btn.textContent='✓ Lo hacemos esta semana'; } alert('No se pudo registrar la acción: '+e.message); }
 }
 async function decRevisarAccion(rid,iid){
   await irAPerfilJugador(rid);
@@ -21235,10 +21304,35 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
       '<div style="padding:0.3rem 0.95rem 0.7rem">'+priHtml+
         '<div id="dash-pri-alertas">'+dashPriAlertasHtml()+'</div>'+
         '<div style="font-size:10.5px;color:#4a5a78;margin-top:8px">Basado en los datos cargados. Son señales para decidir qué mirar primero, no certezas ni diagnósticos. La decisión final es del cuerpo técnico.</div></div></div>'+
-      '<div id="dash-acciones"></div>'+proxHtml;
+      '<div id="dash-dt-pend"></div><div id="dash-acciones"></div>'+proxHtml;
     dashAccionesRevisar(cods,jugs);
     dashProximoRival(cods);
+    dashDTPendiente(cods);
   }catch(e){ console.warn('Centro de decisiones:',e); }
+}
+// Evaluación del DT pendiente (auditoría 04/11/2026): partidos de los
+// últimos 10 días sin evaluación del cuerpo técnico. Sin ella, el IDC de
+// Rendimiento queda solo con la autoevaluación del jugador.
+async function dashDTPendiente(cods){
+  const box=document.getElementById('dash-dt-pend'); if(!box||!cods||!cods.length) return;
+  try{
+    const pro=cods.filter(c=>{ const g=(AG||[]).find(x=>x.codigo===c); return !g||planDeGrupo(g)==='pro'; }); if(!pro.length){ box.innerHTML=''; return; }
+    const enc=pro.map(encodeURIComponent).join(',');
+    const ps=await q('partidos?grupo_codigo=in.('+enc+')&fecha=gte.'+segFechaMas(-10)+'&fecha=lte.'+segFechaMas(0)+'&select=codigo,rival,fecha,grupo_nombre,grupo_codigo&order=fecha.desc&limit=20',{sinCache:true});
+    if(!Array.isArray(ps)||!ps.length){ box.innerHTML=''; return; }
+    const dt=await q('postpartido_dt?partido_codigo=in.('+ps.map(p=>encodeURIComponent(p.codigo)).join(',')+')&select=partido_codigo&limit=2000',{sinCache:true});
+    const con=new Set((Array.isArray(dt)?dt:[]).map(d=>d.partido_codigo));
+    const falta=ps.filter(p=>!con.has(p.codigo)); if(!falta.length){ box.innerHTML=''; return; }
+    const btn='white-space:nowrap;font-size:11.5px;padding:5px 10px;border-radius:7px;cursor:pointer;background:transparent';
+    box.innerHTML='<div style="margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#f59e0b10;border:1px solid #f59e0b44">'+
+      '<div style="font-size:12px;font-weight:800;color:#fbbf24;letter-spacing:0.04em">📝 FALTA LA EVALUACIÓN DEL CUERPO TÉCNICO · '+falta.length+'</div>'+
+      '<div style="font-size:11.5px;color:#b4c2d4;margin:3px 0 4px">Sin ella, el rendimiento del jugador se calcula solo con su autoevaluación.</div>'+
+      falta.slice(0,4).map(p=>{ const lk=DTU+'?partido='+p.codigo;
+        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid #1a3a6e55">'+
+          '<span style="font-size:13px;color:#e8eff8"><b>vs '+decEsc(p.rival||'')+'</b> <span style="font-size:11.5px;color:#7c8fae">· '+decEsc(p.grupo_nombre||'')+' · '+mptFecha(p.fecha)+'</span></span>'+
+          '<span style="display:flex;gap:6px"><button onclick="window.open(\''+lk+'\',\'_blank\')" style="'+btn+';color:#04101f;background:#fbbf24;border:1px solid #fbbf24;font-weight:800">Evaluar ahora</button>'+
+          '<button onclick="cop(\''+lk+'\')" style="'+btn+';color:#fbbf24;border:1px solid #f59e0b66">Copiar link</button></span></div>'; }).join('')+'</div>';
+  }catch(e){ box.innerHTML=''; }
 }
 // Próximo partido: el rival que el cuerpo técnico dejó cargado en Predicción
 // (el más reciente de cada plantel, en los últimos 21 días) y su última predicción
@@ -21612,7 +21706,7 @@ async function cargarObjetivosPJ(r){
     const rows=await q('objetivos_jugador?jugador_nombre=ilike.'+encodeURIComponent(nombre)+'&order=creado_en.desc&limit=1');
     ultimo=Array.isArray(rows)&&rows[0]?rows[0]:null;
     if(ultimo&&ultimo.creado_en){
-      const pp=await q('postpartido_jugador?jugador_nombre=ilike.'+encodeURIComponent('*'+nombre+'*')+'&fecha=gt.'+ultimo.creado_en.slice(0,10)+'&select=fecha');
+      const pp=await q('postpartido_jugador?'+ppFiltroJugador(PJ_ACTUAL&&PJ_ACTUAL.jugador_nombre===nombre?PJ_ACTUAL.jugador_uid:null,nombre,true)+'&fecha=gt.'+ultimo.creado_en.slice(0,10)+'&select=fecha');
       partidosDesde=Array.isArray(pp)?pp.length:0;
     }
   }catch(e){ console.error('Error cargando objetivos en el perfil:',e); }
