@@ -1586,6 +1586,7 @@ tr:hover td{background:#0d1b3e40}
             <div style="font-size:10px;font-weight:800;color:#00c2ff;letter-spacing:0.14em;text-transform:uppercase">Sport Coaching 360</div>
             <div id="dash-club-nombre" style="font-size:21px;font-weight:900;color:#fff;line-height:1.15;margin-top:2px;overflow-wrap:anywhere">—</div>
             <div id="dash-club-sub" style="font-size:11.5px;color:#94a3b8;margin-top:3px">Medir → Entender → Decidir → Mejorar</div>
+            <div id="dash-plan" style="margin-top:7px"></div>
             <!-- Selector de plantel: un club de primera ve Primera, Reserva y juveniles por separado -->
             <select id="dash-plantel" onchange="dashCambiarPlantel(this.value)" style="display:none;margin-top:8px;max-width:100%;padding:7px 12px;border:1px solid #1a3a6e;border-radius:8px;font-size:13px;font-weight:700;background:#0a1024;color:#e8eff8;cursor:pointer"></select>
           </div>
@@ -4176,7 +4177,7 @@ async function cargarUsuario(user){
   // Si el mail se cargó con mayúsculas, se busca sin distinguir mayúsculas
   if(!(Array.isArray(data)&&data.length)){ try{ resp=await fetch(SB_URL+'/rest/v1/usuarios?email=ilike.'+encodeURIComponent(em)+'&limit=1',H); data=await resp.json(); }catch(e){} }
   if(data&&data.length){
-    USUARIO_ACTUAL=data[0];
+    USUARIO_ACTUAL=data[0]; PLAN_GRUPOS=null;
     if(USUARIO_ACTUAL.habilitado===false){
       await sbAuth.auth.signOut();
       document.getElementById('l-err').textContent='Tu acceso fue deshabilitado. Contactá al administrador.';
@@ -4731,11 +4732,24 @@ function planEsAdmin(){ return !!(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin');
 function planDeGrupo(g){ return (g&&g.plan)==='basico'?'basico':'pro'; }
 function planGrupoPorValor(v){
   const ps=String(v||'').split('|'); if(!ps[0]) return null;
-  return (AG||[]).find(g=>ps.includes(String(g.id))||ps.includes(String(g.codigo)))||null;
+  const g=(AG||[]).find(g=>ps.includes(String(g.id))||ps.includes(String(g.codigo)));
+  if(g) return PLAN_GRUPOS?Object.assign({},g,{plan:planDeCodigo(g.codigo)}):g;
+  return (PLAN_GRUPOS||[]).find(x=>ps.includes(String(x.codigo)))||null;
 }
-function planTienePro(){ if(planEsAdmin()) return true; const gs=AG||[]; return !gs.length||gs.some(g=>planDeGrupo(g)==='pro'); }
+// Plan de cada división visible para el usuario: se carga al entrar (no depende
+// de que otra pantalla haya cargado la lista de grupos).
+let PLAN_GRUPOS=null, PLAN_VUELO=null;
+function planCargar(){
+  if(PLAN_GRUPOS) return Promise.resolve(PLAN_GRUPOS);
+  if(!PLAN_VUELO) PLAN_VUELO=q('grupos?select=codigo,plan,habilitado,club',{sinCache:true}).then(r=>{ PLAN_GRUPOS=Array.isArray(r)?r:null; PLAN_VUELO=null; return PLAN_GRUPOS; }).catch(()=>{ PLAN_VUELO=null; return null; });
+  return PLAN_VUELO;
+}
+function planLista(){ return (PLAN_GRUPOS&&PLAN_GRUPOS.length)?PLAN_GRUPOS:(AG||[]); }
+function planDeCodigo(c){ const g=planLista().find(x=>x.codigo===c); return g?planDeGrupo(g):'pro'; }
+function planTienePro(){ if(planEsAdmin()) return true; const gs=planLista(); return !gs.length||gs.some(g=>planDeGrupo(g)==='pro'); }
 function planGate(name){
   setTimeout(planMarcarMenu,name==='dashboard'?3000:0);
+  if(!PLAN_GRUPOS&&!planEsAdmin()&&USUARIO_ACTUAL){ planCargar().then(l=>{ if(l){ planMarcarMenu(); const sc0=document.getElementById('screen-'+name); if(sc0&&sc0.classList.contains('active')) planGate(name); } }); }
   const sc=document.getElementById('screen-'+name); if(!sc) return false;
   let lk=sc.querySelector(':scope > .plan-lock');
   const bloquear=!!PLAN_PRO_SCREENS[name]&&!planTienePro();
@@ -4771,7 +4785,7 @@ async function planCambiarGrupo(id,plan){
   if(!confirm('¿Pasar '+(g?g.nombre:'esta división')+' a Plan '+(plan==='pro'?'Pro':'Básico')+'?')) return;
   const r=await q('grupos?id=eq.'+id,{m:'PATCH',b:{plan}});
   if(r&&r.code){ alert('No se pudo cambiar el plan: '+(r.message||r.code)); return; }
-  if(g) g.plan=plan; qLimpiarCache&&qLimpiarCache(); loadG();
+  if(g) g.plan=plan; PLAN_GRUPOS=null; qLimpiarCache&&qLimpiarCache(); loadG();
 }
 
 function go(name){
@@ -9876,6 +9890,7 @@ async function guardarClubCanal(id){
     const rc=await q('clubes?id=eq.'+id,{m:'PATCH',b:{canal,tipo,activo,plan,gloouds_id:gid||null,canal_desde:canal!==club.canal?desde:(club.canal_desde||null)}});
     if(!ok(rc)){ di('No se pudo guardar el club'+(rc&&rc.message?': '+rc.message:''),'#fca5a5'); return; }
     // Plan: el del club lo toman las divisiones nuevas; a las existentes se aplica solo si el admin confirma
+    PLAN_GRUPOS=null;
     if(plan!==(club.plan||'pro')&&confirm('¿Pasar también todas las divisiones de '+club.nombre+' a Plan '+(plan==='pro'?'Pro':'Básico')+'?\n\n(Cancelá para cambiar solo el plan de las divisiones nuevas.)')){
       await q('grupos?club_id=eq.'+id,{m:'PATCH',b:{plan},h:{'Prefer':'return=minimal'}});
       qLimpiarCache&&qLimpiarCache();
@@ -20093,7 +20108,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='04/11/2026 · 4';
+const SC360_VERSION='04/11/2026 · 5';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -21343,6 +21358,7 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
     dashAccionesRevisar(cods,jugs);
     dashProximoRival(cods);
     dashDTPendiente(cods);
+    dashPlanInicio(cods);
     dashReevaluar(jugs);
   }catch(e){ console.warn('Centro de decisiones:',e); }
 }
@@ -21352,7 +21368,8 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
 async function dashDTPendiente(cods){
   const box=document.getElementById('dash-dt-pend'); if(!box||!cods||!cods.length) return;
   try{
-    const pro=cods.filter(c=>{ const g=(AG||[]).find(x=>x.codigo===c); return !g||planDeGrupo(g)==='pro'; }); if(!pro.length){ box.innerHTML=''; return; }
+    await planCargar();
+    const pro=cods.filter(c=>planDeCodigo(c)==='pro'); if(!pro.length){ box.innerHTML=''; return; }
     const enc=pro.map(encodeURIComponent).join(',');
     const ps=await q('partidos?grupo_codigo=in.('+enc+')&fecha=gte.'+segFechaMas(-10)+'&fecha=lte.'+segFechaMas(0)+'&select=codigo,rival,fecha,grupo_nombre,grupo_codigo&order=fecha.desc&limit=20',{sinCache:true});
     if(!Array.isArray(ps)||!ps.length){ box.innerHTML=''; return; }
@@ -21372,6 +21389,28 @@ async function dashDTPendiente(cods){
 }
 // Re-evaluación (04/11/2026): en divisiones Pro, jugadores cuyo último test
 // tiene más de 8 semanas. Sin un segundo test no hay evolución MDC real.
+// Plan en el Inicio (04/11/2026): el plan actual de lo que se está viendo
+// y, si hay divisiones en Básico, el pase a Pro.
+async function dashPlanInicio(cods){
+  const box=document.getElementById('dash-plan'); if(!box) return;
+  await planCargar();
+  let gs=(cods||[]).map(c=>planLista().find(g=>g.codigo===c)).filter(Boolean);
+  if(!gs.length){ box.innerHTML=''; return; }
+  const nPro=gs.filter(g=>planDeGrupo(g)==='pro').length, nBas=gs.length-nPro;
+  const chip=(txt,col)=>'<span style="display:inline-block;font-size:11px;font-weight:800;letter-spacing:0.04em;color:'+col+';background:'+col+'18;border:1px solid '+col+'66;border-radius:20px;padding:3px 10px;white-space:nowrap">'+txt+'</span>';
+  let h=nBas===0?chip('⭐ PLAN PRO','#22c55e')
+       :nPro===0?chip('PLAN BÁSICO','#fbbf24')
+       :chip('⭐ PRO · '+nPro+(nPro===1?' división':' divisiones'),'#22c55e')+' '+chip('BÁSICO · '+nBas+(nBas===1?' división':' divisiones'),'#fbbf24');
+  if(nBas){
+    const club=((USUARIO_ACTUAL&&USUARIO_ACTUAL.club_nombre)||gs[0].club||'').split('—')[0].trim();
+    const msg='Hola! Somos '+club+' y queremos pasar a Plan Pro de Sport Coaching 360'+(nPro?' las divisiones que están en Básico':'')+'.';
+    h+=planEsAdmin()
+      ?' <button onclick="go(\'grupos\')" style="font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;cursor:pointer;color:#04101f;background:#22c55e;border:none;white-space:nowrap">Cambiar plan →</button>'
+      :' <a href="https://wa.me/5492612502454?text='+encodeURIComponent(msg)+'" target="_blank" style="display:inline-block;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;color:#04101f;background:#22c55e;text-decoration:none;white-space:nowrap">Pasar a Pro →</a>';
+    h+='<div style="font-size:10.5px;color:#7c8fae;margin-top:4px">Básico: evaluación, perfiles e informe grupal. Pro suma el seguimiento: Post Partido, check-in, acciones, evolución y preparación de partidos.</div>';
+  }
+  box.innerHTML=h;
+}
 let DASH_REEVAL=[];
 async function dashHabilitarReeval(btn){
   const L=DASH_REEVAL.slice(); if(!L.length) return;
@@ -21382,10 +21421,11 @@ async function dashHabilitarReeval(btn){
   alert('✓ Re-evaluación habilitada para '+ok+' jugador'+(ok===1?'':'es')+'.\nAhora mandales el link del test desde Grupos (📲 Enviar).');
   go('grupos');
 }
-function dashReevaluar(jugs){
+async function dashReevaluar(jugs){
   const box=document.getElementById('dash-reeval'); if(!box) return;
   try{
-    const pro=c=>{ const g=(AG||[]).find(x=>x.codigo===c); return !g||planDeGrupo(g)==='pro'; };
+    await planCargar();
+    const pro=c=>planDeCodigo(c)==='pro';
     const viejos=(jugs||[]).filter(r=>r&&r.fecha&&pro(r.grupo_codigo)).map(r=>({r,d:Math.floor((Date.now()-fechaD(r.fecha).getTime())/86400000)})).filter(x=>x.d>56).sort((a,b)=>b.d-a.d);
     if(!viejos.length){ box.innerHTML=''; return; }
     DASH_REEVAL=viejos.map(x=>x.r).filter(r=>r.id&&!r.nueva_eval_habilitada);
