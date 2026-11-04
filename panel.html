@@ -19179,7 +19179,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='04/11/2026 · 3';
+const SC360_VERSION='04/11/2026 · 4';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -20425,10 +20425,11 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
       '<div style="padding:0.3rem 0.95rem 0.7rem">'+priHtml+
         '<div id="dash-pri-alertas">'+dashPriAlertasHtml()+'</div>'+
         '<div style="font-size:10.5px;color:#4a5a78;margin-top:8px">Basado en los datos cargados. Son señales para decidir qué mirar primero, no certezas ni diagnósticos. La decisión final es del cuerpo técnico.</div></div></div>'+
-      '<div id="dash-dt-pend"></div><div id="dash-acciones"></div>'+proxHtml;
+      '<div id="dash-dt-pend"></div><div id="dash-reeval"></div><div id="dash-acciones"></div>'+proxHtml;
     dashAccionesRevisar(cods,jugs);
     dashProximoRival(cods);
     dashDTPendiente(cods);
+    dashReevaluar(jugs);
   }catch(e){ console.warn('Centro de decisiones:',e); }
 }
 // Evaluación del DT pendiente (auditoría 04/11/2026): partidos de los
@@ -20453,6 +20454,33 @@ async function dashDTPendiente(cods){
           '<span style="font-size:13px;color:#e8eff8"><b>vs '+decEsc(p.rival||'')+'</b> <span style="font-size:11.5px;color:#7c8fae">· '+decEsc(p.grupo_nombre||'')+' · '+mptFecha(p.fecha)+'</span></span>'+
           '<span style="display:flex;gap:6px"><button onclick="window.open(\''+lk+'\',\'_blank\')" style="'+btn+';color:#04101f;background:#fbbf24;border:1px solid #fbbf24;font-weight:800">Evaluar ahora</button>'+
           '<button onclick="cop(\''+lk+'\')" style="'+btn+';color:#fbbf24;border:1px solid #f59e0b66">Copiar link</button></span></div>'; }).join('')+'</div>';
+  }catch(e){ box.innerHTML=''; }
+}
+// Re-evaluación (04/11/2026): en divisiones Pro, jugadores cuyo último test
+// tiene más de 8 semanas. Sin un segundo test no hay evolución MDC real.
+let DASH_REEVAL=[];
+async function dashHabilitarReeval(btn){
+  const L=DASH_REEVAL.slice(); if(!L.length) return;
+  if(!confirm('¿Habilitar una nueva evaluación para '+L.length+' jugador'+(L.length===1?'':'es')+'?\n\nCuando la completen, el test anterior queda como historial. Después mandá el link del test desde Grupos.')) return;
+  if(btn){ btn.disabled=true; btn.textContent='Habilitando…'; }
+  let ok=0;
+  for(const r of L){ const res=await q('resultados?id=eq.'+r.id,{m:'PATCH',b:{nueva_eval_habilitada:true},h:{'Prefer':'return=minimal'}}); if(res===null||Array.isArray(res)){ ok++; r.nueva_eval_habilitada=true; } }
+  alert('✓ Re-evaluación habilitada para '+ok+' jugador'+(ok===1?'':'es')+'.\nAhora mandales el link del test desde Grupos (📲 Enviar).');
+  go('grupos');
+}
+function dashReevaluar(jugs){
+  const box=document.getElementById('dash-reeval'); if(!box) return;
+  try{
+    const pro=c=>{ const g=(AG||[]).find(x=>x.codigo===c); return !g||planDeGrupo(g)==='pro'; };
+    const viejos=(jugs||[]).filter(r=>r&&r.fecha&&pro(r.grupo_codigo)).map(r=>({r,d:Math.floor((Date.now()-fechaD(r.fecha).getTime())/86400000)})).filter(x=>x.d>56).sort((a,b)=>b.d-a.d);
+    if(!viejos.length){ box.innerHTML=''; return; }
+    DASH_REEVAL=viejos.map(x=>x.r).filter(r=>r.id&&!r.nueva_eval_habilitada);
+    const nombres=viejos.slice(0,4).map(x=>decEsc((x.r.jugador_nombre||'').split(' ').slice(0,2).join(' '))+' ('+Math.round(x.d/7)+' sem.)').join(', ');
+    box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#00c2ff0d;border:1px solid #00c2ff44">'+
+      '<div style="min-width:0"><div style="font-size:12px;font-weight:800;color:#7fd8ff;letter-spacing:0.04em">🔁 TOCA RE-EVALUAR · '+viejos.length+' JUGADOR'+(viejos.length===1?'':'ES')+'</div>'+
+      '<div style="font-size:12px;color:#b4c2d4;margin-top:2px">Su último test tiene más de 8 semanas: '+nombres+(viejos.length>4?' y '+(viejos.length-4)+' más':'')+'. Con un segundo test se ve si su perfil cambió.</div></div>'+
+      (DASH_REEVAL.length?'<button onclick="dashHabilitarReeval(this)" title="Habilita el test de nuevo para estos jugadores; después mandá el link desde Grupos" style="white-space:nowrap;font-size:11.5px;font-weight:800;padding:6px 11px;border-radius:7px;cursor:pointer;color:#04101f;background:#00c2ff;border:none">Habilitar re-evaluación ('+DASH_REEVAL.length+') →</button>'
+        :'<button onclick="go(\'grupos\')" style="white-space:nowrap;font-size:11.5px;font-weight:800;padding:6px 11px;border-radius:7px;cursor:pointer;color:#00c2ff;background:transparent;border:1px solid #00c2ff66">Ya habilitada · enviar el link →</button>')+'</div>';
   }catch(e){ box.innerHTML=''; }
 }
 // Próximo partido: el rival que el cuerpo técnico dejó cargado en Predicción
@@ -20528,9 +20556,20 @@ async function evAccionesCargar(){
   const gs=filtrarGrupos((await q('grupos?select=codigo,nombre,club,habilitado'))||[]); const cods=gs.map(g=>g.codigo).filter(Boolean);
   if(!cods.length){ box.innerHTML='<div class="es">No hay divisiones para mostrar.</div>'; return; }
   const enc=cods.map(encodeURIComponent).join(',');
-  const [ints,res]=await Promise.all([
+  const [ints,res,ppr]=await Promise.all([
     q('intervenciones?grupo_codigo=in.('+enc+')&order=fecha_inicio.desc&limit=300',{sinCache:true}),
-    q('resultados?grupo_codigo=in.('+enc+')&select=id,jugador_uid,jugador_nombre,fecha,disponibilidad&order=fecha.asc&limit=3000')]);
+    q('resultados?grupo_codigo=in.('+enc+')&select=id,jugador_uid,jugador_nombre,fecha,disponibilidad&order=fecha.asc&limit=3000'),
+    q('postpartido_jugador?grupo_codigo=in.('+enc+')&select=jugador_uid,jugador_nombre,fecha,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10,q11,q12,q13,q14,q15&order=fecha.asc&limit=10000')]);
+  const PPR=Array.isArray(ppr)?ppr:[];
+  // Cambio en partidos (04/11/2026): estado mental de los últimos 3 Post Partido
+  // antes de empezar la acción contra los primeros 3 después. Así hay resultado
+  // aunque no se haya repetido el test.
+  const cambioPP=i=>{ const xs=PPR.filter(r=>(i.jugador_uid&&r.jugador_uid===i.jugador_uid)||idcNom(r.jugador_nombre)===idcNom(i.jugador_nombre)).map(r=>({f:String(r.fecha||'').slice(0,10),m:ppMental(r)})).filter(x=>x.m!=null);
+    const hasta=i.fecha_fin||'9999';
+    const a=xs.filter(x=>x.f<String(i.fecha_inicio)).slice(-3), d=xs.filter(x=>x.f>=String(i.fecha_inicio)&&x.f<=hasta).slice(0,3);
+    if(!a.length||!d.length) return null;
+    const pa=Math.round(a.reduce((s,x)=>s+x.m,0)/a.length), pd=Math.round(d.reduce((s,x)=>s+x.m,0)/d.length);
+    return {a:pa,d:pd,dif:pd-pa,na:a.length,nd:d.length}; };
   if(!Array.isArray(ints)){ box.innerHTML='<div class="es">No se pudieron cargar las acciones.</div>'; return; }
   if(!ints.length){ box.innerHTML='<div class="tw" style="padding:1.25rem;font-size:13px;color:#b4c2d4;line-height:1.55">Todavía no hay acciones registradas.<br>Desde el Inicio o desde Decisiones de hoy, tocá <b style="color:#c4b5fd">＋ Registrar acción</b>: queda con responsable, fecha de revisión y, cuando la revisen, su resultado. Acá se ve qué se hizo y qué pasó después.</div>'; return; }
   const R=Array.isArray(res)?res:[];
@@ -20540,7 +20579,7 @@ async function evAccionesCargar(){
   const fin=ints.filter(i=>i.estado!=='activa'), act=ints.filter(i=>i.estado==='activa');
   const cnt={}; fin.forEach(i=>{ const k=i.resultado||'Sin resultado cargado'; cnt[k]=(cnt[k]||0)+1; });
   const tile=(t,v,col)=>'<div class="dsh-tile" style="border-color:'+col+'55"><div class="dsh-tile-t">'+t+'</div><div class="dsh-tile-v" style="color:'+col+'">'+v+'</div></div>';
-  const fila=i=>{ const c=cambio(i);
+  const fila=i=>{ const c=cambio(i), cp=cambioPP(i);
     return '<div class="dec-item"><span style="width:9px;height:9px;border-radius:50%;background:'+(i.estado==='activa'?'#7c3aed':segColRes(i.resultado))+';margin-top:6px;flex-shrink:0"></span><div style="flex:1;min-width:0">'+
       '<div style="font-size:13.5px;font-weight:800;color:#fff">'+decEsc(i.jugador_nombre)+' <span style="font-size:11px;font-weight:600;color:#7c8fae">· '+decEsc(i.tipo)+' · '+mptFecha(i.fecha_inicio)+(i.fecha_fin?' → '+mptFecha(i.fecha_fin):' · en curso')+'</span></div>'+
       '<div style="font-size:12.5px;color:#c0d0e8;line-height:1.45">'+(i.objetivo?decEsc(i.objetivo):'Sin objetivo cargado')+(i.profesional?' <span style="color:#7c8fae">· '+decEsc(i.profesional)+'</span>':'')+'</div>'+
@@ -20548,11 +20587,12 @@ async function evAccionesCargar(){
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">'+
         (i.resultado?'<span style="font-size:11.5px;font-weight:800;color:'+segColRes(i.resultado)+';border:1px solid '+segColRes(i.resultado)+'55;border-radius:12px;padding:2px 9px">'+decEsc(i.resultado)+'</span>':(i.estado==='activa'?'<span style="font-size:11.5px;color:#c4b5fd">Revisar el '+mptFecha(i.fecha_revision)+'</span>':'<span style="font-size:11.5px;color:#94a3b8">Sin resultado cargado</span>'))+
         (c?'<span style="font-size:11.5px;color:#e8eff8;background:#0a1024;border:1px solid #1a3a6e;border-radius:12px;padding:2px 9px">Disponibilidad '+c.a+' → '+c.d+' <b style="color:'+(c.dif>0?'#22c55e':c.dif<0?'#ef4444':'#94a3b8')+'">'+(c.dif>0?'+':'')+c.dif+'</b></span>':'<span style="font-size:11px;color:#7c8fae">Sin test posterior para comparar</span>')+
+        (cp?'<span title="Estado mental en Post Partido: últimos '+cp.na+' partidos antes de empezar vs. primeros '+cp.nd+' después" style="font-size:11.5px;color:#e8eff8;background:#0a1024;border:1px solid #1a3a6e;border-radius:12px;padding:2px 9px">En partidos '+cp.a+' → '+cp.d+' <b style="color:'+(cp.dif>0?'#22c55e':cp.dif<0?'#ef4444':'#94a3b8')+'">'+(cp.dif>0?'+':'')+cp.dif+'</b> <span style="color:#7c8fae">('+cp.na+' vs '+cp.nd+' partidos)</span></span>':'')+
       '</div>'+(i.observaciones?'<div style="font-size:11.5px;color:#94a3b8;white-space:pre-line;margin-top:3px">'+decEsc(i.observaciones)+'</div>':'')+'</div></div>'; };
   box.innerHTML='<div class="dsh-tiles" style="margin-bottom:10px">'+tile('En curso',act.length,'#7c3aed')+tile('Funcionó',(cnt['Funcionó']||0)+(cnt['Funcionó en parte']?' <span style="font-size:13px;color:#f59e0b">+'+cnt['Funcionó en parte']+' en parte</span>':''),'#22c55e')+tile('No funcionó',cnt['No funcionó']||0,'#ef4444')+tile('Sin resultado',cnt['Sin resultado cargado']||0,'#94a3b8')+'</div>'+
     (act.length?'<div class="dsh-card" style="margin-bottom:10px"><div class="dsh-card-t">🔁 En curso · '+act.length+'</div>'+act.map(fila).join('')+'</div>':'')+
     (fin.length?'<div class="dsh-card"><div class="dsh-card-t">✓ Cerradas · '+fin.length+'</div>'+fin.map(fila).join('')+'</div>':'')+
-    '<div style="font-size:10.5px;color:#4a5a78;margin-top:10px">El cambio de disponibilidad compara el último test antes de empezar con el último test después. Que mejore no prueba que fue por la acción: es una referencia para conversar, no una conclusión.</div>';
+    '<div style="font-size:10.5px;color:#4a5a78;margin-top:10px">El cambio de disponibilidad compara el último test antes de empezar con el último test después; el cambio en partidos, el estado mental de los últimos 3 Post Partido antes con los primeros 3 después. Que mejore no prueba que fue por la acción: es una referencia para conversar, no una conclusión.</div>';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -20573,6 +20613,8 @@ function renderTableroPJ(){
   const serie=st?st.pp.map(ppMental).filter(v=>v!=null).map(v=>Math.round(v)):[];
   const ult3=serie.slice(-3), mentalPP=ult3.length?Math.round(ult3.reduce((a,b)=>a+b,0)/ult3.length):null;
   const idc=PJ_TAB.idc&&PJ_TAB.idc.idc!=null?PJ_TAB.idc.idc:null;
+  const idcCob=PJ_TAB.idc&&PJ_TAB.idc.cobertura!=null?PJ_TAB.idc.cobertura:null;
+  const testDias=r.fecha?Math.floor((Date.now()-fechaD(r.fecha).getTime())/86400000):0;
   // Capas MDC
   const dd=r.dims||{};
   const capas=CAPAS_DEF_PJ.map(c=>{ const v=c.dims.map(k=>dd[k]).filter(x=>x>0); return {c,v:v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length/5*100):null}; });
@@ -20601,8 +20643,8 @@ function renderTableroPJ(){
   box.innerHTML='<div class="pj-tab">'+
     '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 2px 8px"><div style="font-size:16px;font-weight:900;color:#fff">¿Cómo está '+nom+'?</div><div style="font-size:10px;color:#7c8fae;letter-spacing:0.08em">'+(r.jugador_pos||'').toUpperCase()+'</div></div>'+
     '<div class="dsh-tiles">'+
-      tile('Disponibilidad',D||'—','<b style="color:'+colD(D)+'">'+est+'</b>',colD(D))+
-      tile('IDC',idc==null?(PJ_TAB.idc?'—':cargando):idc,'índice competitivo',idc==null?'#94a3b8':colD(idc))+
+      tile('Disponibilidad',D||'—','<b style="color:'+colD(D)+'">'+est+'</b>'+(r.fecha?'<br><span style="color:'+(testDias>56?'#fbbf24':'#7c8fae')+'">test del '+mptFecha(r.fecha)+(testDias>56?' · re-evaluar':'')+'</span>':''),colD(D))+
+      tile('IDC',idc==null?(PJ_TAB.idc?'—':cargando):idc,idcCob==null?'índice competitivo':(idcCob<=1?'<span style="color:#fbbf24">solo con el test (1 de 6 módulos)</span>':'índice competitivo · '+idcCob+' de 6 módulos'),idc==null?'#94a3b8':colD(idc))+
       tile('Evolución',evol==null?(st?'—':cargando):(evol>0?'▲ +':evol<0?'▼ ':'')+evol,evol==null?'necesita 2 evaluaciones':'vs. evaluación anterior',evol==null?'#94a3b8':evol>0?'#22c55e':evol<0?'#ef4444':'#e8eff8')+
       tile('En partidos',mentalPP==null?(st?'—':cargando):mentalPP,mentalPP==null?'sin Post Partido':'estado mental · últimos '+ult3.length,mentalPP==null?'#94a3b8':colD(mentalPP))+
     '</div>'+
