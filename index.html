@@ -345,7 +345,7 @@ var DISC_QS=[
 
 var SCALE=[{l:'Siempre',v:5},{l:'Casi siempre',v:4},{l:'A veces',v:3},{l:'Casi nunca',v:2},{l:'Nunca',v:1}];
 var DISC_INFO={
-  D:{name:'Dominante',color:'#ef4444',desc:'Decidido, competitivo, orientado al resultado. Bajo presión va al frente y toma la iniciativa. Riesgo: puede volverse impulsivo.'},
+  D:{name:'Dominante',color:'#e879f9',desc:'Decidido, competitivo, orientado al resultado. Bajo presión va al frente y toma la iniciativa. Riesgo: puede volverse impulsivo.'},
   I:{name:'Influyente',color:'#f59e0b',desc:'Entusiasta, comunicativo, motor del grupo. Bajo presión busca cohesión y activa al equipo. Riesgo: puede dispersarse.'},
   S:{name:'Estable',color:'#22c55e',desc:'Consistente, confiable, sostiene al equipo. Bajo presión mantiene la calma y ejecuta. Riesgo: puede ser pasivo.'},
   C:{name:'Concienzudo',color:'#8b5cf6',desc:'Analítico, preciso, orientado al proceso. Bajo presión evalúa antes de actuar. Riesgo: puede paralizarse analizando.'},
@@ -620,9 +620,11 @@ function calcEntorno(){
 }
 
 function semaforo(avg){
-  var pct=Math.round(((5-avg)/4)*100);
-  if(pct>=45)return{color:'#ef4444',emoji:'🔴',label:'Rojo — Intervención prioritaria',desc:'Interferencia alta ('+pct+'%). Hay bloqueos mentales importantes que atender de inmediato.'};
-  if(pct>=22)return{color:'#f59e0b',emoji:'🟡',label:'Amarillo — Perfeccionamiento dirigido',desc:'Interferencia moderada ('+pct+'%). Perfil sólido con vulnerabilidades específicas a trabajar.'};
+  // 04/11/2026: corte único del sistema (D ≥ 80 verde · 65–79 amarillo · < 65 rojo)
+  // y la interferencia que se muestra es la misma del panel: I = 100 − D
+  var d=Math.round(avg*20), pct=100-d;
+  if(d<65)return{color:'#ef4444',emoji:'🔴',label:'Rojo — Intervención prioritaria',desc:'Interferencia alta ('+pct+'%). Hay bloqueos mentales importantes que atender de inmediato.'};
+  if(d<80)return{color:'#f59e0b',emoji:'🟡',label:'Amarillo — Perfeccionamiento dirigido',desc:'Interferencia moderada ('+pct+'%). Perfil sólido con vulnerabilidades específicas a trabajar.'};
   return{color:'#22c55e',emoji:'🟢',label:'Verde — Mantenimiento y liderazgo',desc:'Interferencia baja ('+pct+'%). Perfil mental saludable. Tu talento está disponible.'};
 }
 

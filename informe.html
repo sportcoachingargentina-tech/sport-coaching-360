@@ -155,7 +155,7 @@ var DIMS=[
 ];
 
 var DISC_INFO={
-  D:{name:'Dominante',color:'#ef4444',desc:'Decidido, competitivo, orientado al resultado. Bajo presión va al frente y toma la iniciativa. Riesgo: puede volverse impulsivo.'},
+  D:{name:'Dominante',color:'#e879f9',desc:'Decidido, competitivo, orientado al resultado. Bajo presión va al frente y toma la iniciativa. Riesgo: puede volverse impulsivo.'},
   I:{name:'Influyente',color:'#f59e0b',desc:'Entusiasta, comunicativo, motor del grupo. Bajo presión busca cohesión y activa al equipo. Riesgo: puede dispersarse.'},
   S:{name:'Estable',color:'#22c55e',desc:'Consistente, confiable, sostiene al equipo. Bajo presión mantiene la calma y ejecuta. Riesgo: puede ser pasivo.'},
   C:{name:'Concienzudo',color:'#8b5cf6',desc:'Analítico, preciso, orientado al proceso. Bajo presión evalúa antes de actuar. Riesgo: puede paralizarse analizando.'},
@@ -652,7 +652,7 @@ if(supaId) {
     var informe = {
       jugador: { nombre: r.jugador_nombre, edad: r.jugador_edad, pos: r.jugador_pos, club: r.jugador_club, cat: r.jugador_cat },
       fecha: r.fecha,
-      semaforo: { color: r.semaforo_color, label: r.semaforo_label, desc: r.semaforo_label },
+      semaforo: (function(d){ var x=d==null?{c:r.semaforo_color,l:r.semaforo_label}:d>=80?{c:'#22c55e',l:'Verde — Mantenimiento y liderazgo'}:d>=65?{c:'#f59e0b',l:'Amarillo — Perfeccionamiento dirigido'}:{c:'#ef4444',l:'Rojo — Intervención prioritaria'}; return { color: x.c, label: x.l, desc: x.l }; })(r.disponibilidad),
       disponibilidad: r.disponibilidad,
       interferencia: r.interferencia,
       scores: r.scores,

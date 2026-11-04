@@ -4498,6 +4498,24 @@ function ppFiltroJugador(uid,nombre,comodin){
   if(!uid) return 'jugador_nombre=ilike.'+encodeURIComponent(pat);
   return 'or='+encodeURIComponent('(jugador_uid.eq.'+uid+',jugador_nombre.ilike."'+pat.replace(/"/g,'')+'")');
 }
+// Semáforo único (04/11/2026, definido por Eduardo): verde desde D 80,
+// amarillo 65–79, rojo menos de 65. El test viejo guardaba otro corte
+// (verde desde ~83): al leer evaluaciones se recalcula desde la D, que no
+// cambia. La base no se toca.
+const SEM_UMBRAL={verde:80,amarillo:65};
+function semDeD(d){
+  if(d==null||d==='') return null; d=Number(d);
+  if(d>=SEM_UMBRAL.verde) return {color:'#22c55e',label:'Verde — Mantenimiento y liderazgo'};
+  if(d>=SEM_UMBRAL.amarillo) return {color:'#f59e0b',label:'Amarillo — Perfeccionamiento dirigido'};
+  return {color:'#ef4444',label:'Rojo — Intervención prioritaria'};
+}
+function qSemaforoUnico(txt){
+  try{ const filas=JSON.parse(txt); if(!Array.isArray(filas)) return txt;
+    let cambio=false;
+    filas.forEach(f=>{ if(f&&f.disponibilidad!=null&&('semaforo_color' in f||'semaforo_label' in f)){ const s=semDeD(f.disponibilidad); if('semaforo_color' in f&&f.semaforo_color!==s.color){ f.semaforo_color=s.color; cambio=true; } if('semaforo_label' in f&&f.semaforo_label!==s.label){ f.semaforo_label=s.label; cambio=true; } } });
+    return cambio?JSON.stringify(filas):txt;
+  }catch(e){ return txt; }
+}
 function qConUid(path){
   // Si el pedido elige columnas, sumar jugador_uid para poder cruzar
   return path.replace(/([?&]select=)([^&]*)/,(t,a,cols)=>(/jugador_nombre/.test(cols)&&!/jugador_uid|\*/.test(cols))?a+cols+',jugador_uid':t);
@@ -4556,6 +4574,7 @@ async function q(path,o){
       }
     }
     if(m==='GET'&&r.ok&&Q_PP_TABLAS.test(path)) txt=await qNormalizarJugadores(txt);
+    if(m==='GET'&&r.ok&&/^resultados\b/.test(path)) txt=qSemaforoUnico(txt);
     if(m==='GET'&&/^grupos\b/.test(path)&&r.ok){ try{ (JSON.parse(txt)||[]).forEach(g=>{ if(g&&g.codigo&&g.club!==undefined) GRUPO_CLUB[g.codigo]=g.club||''; }); }catch(e){} }
     if(m!=='GET') qLimpiarCache();
     else if(cacheable&&r.ok) Q_CACHE.set(path,{t:Date.now(),txt});
@@ -5173,7 +5192,7 @@ function actualizarSelectorGrupoR(porClub){
 // ═══════════════════════════════════════════════════════════════
 const R_REEVAL_DIAS=90;
 let R_SORT={k:'fecha',dir:-1}, R_IDC={}, R_ABIERTOS=new Set(), R_ULT_FILTRO=[];
-const R_DISC_COL={D:'#ef4444',I:'#f59e0b',S:'#22c55e',C:'#00c2ff'};
+const R_DISC_COL={D:'#e879f9',I:'#f59e0b',S:'#22c55e',C:'#00c2ff'};
 
 function rDiasDesde(f){ return f?Math.floor((Date.now()-new Date(f).getTime())/86400000):null; }
 function rHace(d){ if(d==null) return '—'; if(d<1) return 'hoy'; if(d===1) return 'ayer'; if(d<30) return 'hace '+d+' días'; const m=Math.round(d/30); return 'hace '+m+(m===1?' mes':' meses'); }
@@ -6270,7 +6289,7 @@ function renderGrupal(f){
     const discCount={D:0,I:0,S:0,C:0};
     f.forEach(r=>{ if(r.primary_disc && discCount.hasOwnProperty(r.primary_disc)) discCount[r.primary_disc]++; });
     const discInfoIG={
-      D:{name:'Dominante',color:'#ef4444'}, I:{name:'Influyente',color:'#f59e0b'},
+      D:{name:'Dominante',color:'#e879f9'}, I:{name:'Influyente',color:'#f59e0b'},
       S:{name:'Estable',color:'#22c55e'}, C:{name:'Concienzudo',color:'#8b5cf6'},
     };
     discCont.innerHTML=Object.keys(discInfoIG).map(function(k){
@@ -6457,11 +6476,11 @@ const ROLES_PUESTO={
   // Fútbol
   'Arquero':          {rol:'CALMA',      color:'#0ea5e9', emo:['regulacion','consistencia','confianza'], cog:['autoconocimiento','atencion','metacognicion']},
   'Enganche':         {rol:'CALMA',      color:'#0ea5e9', emo:['regulacion','consistencia','confianza'], cog:['autoconocimiento','atencion','metacognicion']},
-  'Defensor central': {rol:'INTENSIDAD', color:'#ef4444', emo:['competitividad','regulacion','motivacion'], cog:['autoconocimiento','atencion','metacognicion']},
+  'Defensor central': {rol:'INTENSIDAD', color:'#e879f9', emo:['competitividad','regulacion','motivacion'], cog:['autoconocimiento','atencion','metacognicion']},
   'Lateral':          {rol:'EQUILIBRIO', color:'#7c3aed', emo:['liderazgo','consistencia','regulacion'], cog:['metacognicion','atencion','autoconocimiento']},
   'Mediocampista central':{rol:'EQUILIBRIO',color:'#7c3aed',emo:['liderazgo','consistencia','regulacion'],cog:['metacognicion','atencion','autoconocimiento']},
   'Mediocampista defensivo':{rol:'EQUILIBRIO',color:'#7c3aed',emo:['liderazgo','consistencia','regulacion'],cog:['metacognicion','atencion','autoconocimiento']},
-  'Extremo':          {rol:'INTENSIDAD', color:'#ef4444', emo:['competitividad','motivacion','regulacion'], cog:['atencion','toma_decisiones','metacognicion']},
+  'Extremo':          {rol:'INTENSIDAD', color:'#e879f9', emo:['competitividad','motivacion','regulacion'], cog:['atencion','toma_decisiones','metacognicion']},
   'Delantero centro': {rol:'DECISIÓN',   color:'#f59e0b', emo:['competitividad','confianza','motivacion'], cog:['toma_decisiones','atencion','metacognicion']},
   // Pádel
   'Posicion derecha': {rol:'DECISIÓN',   color:'#f59e0b', emo:['competitividad','confianza','regulacion'], cog:['toma_decisiones','metacognicion','atencion']},
@@ -6469,11 +6488,11 @@ const ROLES_PUESTO={
   // Básquet
   'Base':             {rol:'EQUILIBRIO', color:'#7c3aed', emo:['liderazgo','consistencia','regulacion'],   cog:['toma_decisiones','metacognicion','atencion']},
   'Escolta':          {rol:'DECISIÓN',   color:'#f59e0b', emo:['competitividad','confianza','motivacion'], cog:['toma_decisiones','atencion','metacognicion']},
-  'Alero':            {rol:'INTENSIDAD', color:'#ef4444', emo:['competitividad','motivacion','regulacion'], cog:['atencion','metacognicion','autoconocimiento']},
-  'Ala-pivot':        {rol:'INTENSIDAD', color:'#ef4444', emo:['competitividad','motivacion','regulacion'], cog:['metacognicion','atencion','autoconocimiento']},
+  'Alero':            {rol:'INTENSIDAD', color:'#e879f9', emo:['competitividad','motivacion','regulacion'], cog:['atencion','metacognicion','autoconocimiento']},
+  'Ala-pivot':        {rol:'INTENSIDAD', color:'#e879f9', emo:['competitividad','motivacion','regulacion'], cog:['metacognicion','atencion','autoconocimiento']},
   'Pivot':            {rol:'CALMA',      color:'#0ea5e9', emo:['regulacion','consistencia','confianza'],   cog:['autoconocimiento','metacognicion','atencion']},
   // Hockey
-  'Defensa':          {rol:'INTENSIDAD', color:'#ef4444', emo:['competitividad','regulacion','motivacion'], cog:['autoconocimiento','atencion','metacognicion']},
+  'Defensa':          {rol:'INTENSIDAD', color:'#e879f9', emo:['competitividad','regulacion','motivacion'], cog:['autoconocimiento','atencion','metacognicion']},
   'Mediocampista':    {rol:'EQUILIBRIO', color:'#7c3aed', emo:['liderazgo','consistencia','regulacion'],   cog:['metacognicion','atencion','autoconocimiento']},
   'Delantera':        {rol:'DECISIÓN',   color:'#f59e0b', emo:['competitividad','confianza','motivacion'], cog:['toma_decisiones','atencion','metacognicion']},
   // Tenis
@@ -7406,7 +7425,7 @@ function plAsignarRol(r){
   if(disc.startsWith('D')) return 'INTENSIDAD';
   return 'EQUILIBRIO';
 }
-const PL_ROL_COLOR={CALMA:'#0ea5e9',INTENSIDAD:'#ef4444',EQUILIBRIO:'#7c3aed','DECISIÓN':'#f59e0b'};
+const PL_ROL_COLOR={CALMA:'#0ea5e9',INTENSIDAD:'#e879f9',EQUILIBRIO:'#7c3aed','DECISIÓN':'#f59e0b'};
 function plColD(d){ return d>=80?'#22c55e':d>=65?'#f59e0b':'#ef4444'; }
 function plLineasOrden(titulares){
   const base=getLineasDeporte(titulares[0]?.deporte||'');
@@ -7851,7 +7870,7 @@ function filtrarRolesEtapa(cat){
 }
 
 const DISC_INFO={
-  D:{label:'Dominancia',   color:'#ef4444'},
+  D:{label:'Dominancia',   color:'#e879f9'},
   I:{label:'Influencia',   color:'#f59e0b'},
   S:{label:'Serenidad',    color:'#22c55e'},
   C:{label:'Cumplimiento', color:'#00c2ff'},
@@ -7861,7 +7880,7 @@ function renderRolesFasesEn(targetId,f){
   ROLES_ULTIMO_F=f; ROLES_ULTIMO_TARGET=targetId;
   const ROLES_INFO={
     'CALMA':     {icon:'🧘',color:'#0ea5e9'},
-    'INTENSIDAD':{icon:'💥',color:'#ef4444'},
+    'INTENSIDAD':{icon:'💥',color:'#e879f9'},
     'EQUILIBRIO':{icon:'⚖️',color:'#7c3aed'},
     'DECISIÓN':  {icon:'🎯',color:'#f59e0b'},
   };
@@ -13111,7 +13130,7 @@ function renderLegajo(r, ppJugs, ppDTs, partidos, histEvals){
   const rolDef = ROLES_PUESTO[r.jugador_pos||''] || null;
   const rolInfo = rolDef ? {
     'CALMA':     {icon:'🧘',color:'#0ea5e9'},
-    'INTENSIDAD':{icon:'💥',color:'#ef4444'},
+    'INTENSIDAD':{icon:'💥',color:'#e879f9'},
     'EQUILIBRIO':{icon:'⚖️',color:'#7c3aed'},
     'DECISIÓN':  {icon:'🎯',color:'#f59e0b'},
   }[rolDef.rol] : null;
@@ -15288,7 +15307,7 @@ function renderCardCancha(r) {
   const col = disp>=80?'#22c55e':disp>=65?'#f59e0b':'#ef4444';
   const bgcol = disp>=80?'#22c55e18':disp>=65?'#f59e0b18':'#ef444418';
   const disc = r.primary_disc||'—';
-  const discCol = {'D':'#ef4444','I':'#f59e0b','S':'#22c55e','C':'#00c2ff'}[disc]||'#b4c2d4';
+  const discCol = {'D':'#e879f9','I':'#f59e0b','S':'#22c55e','C':'#00c2ff'}[disc]||'#b4c2d4';
   const nombre = (r.jugador_nombre||'—').split(' ');
   const apellido = nombre.length>1 ? nombre[nombre.length-1] : nombre[0];
   const pos = (r.jugador_pos||'').split(' ').slice(0,2).join(' ');
@@ -19845,7 +19864,7 @@ async function idcCargarPerfil(r){
 // ═══════════════════════════════════════════════════════════════
 const ROL_INFO_PJ={
   'CALMA':     {icon:'🧘',color:'#0ea5e9',desc:'Sostiene al equipo cuando el partido se desordena: ordena, baja pulsaciones y da seguridad.'},
-  'INTENSIDAD':{icon:'💥',color:'#ef4444',desc:'Pone la energía y la agresividad competitiva: presiona, recupera y contagia.'},
+  'INTENSIDAD':{icon:'💥',color:'#e879f9',desc:'Pone la energía y la agresividad competitiva: presiona, recupera y contagia.'},
   'EQUILIBRIO':{icon:'⚖️',color:'#7c3aed',desc:'Conecta líneas y regula el ritmo: lee el partido y sostiene la estructura.'},
   'DECISIÓN':  {icon:'🎯',color:'#f59e0b',desc:'Resuelve en el momento clave: define, asume el riesgo y toma la responsabilidad.'},
 };
@@ -20058,7 +20077,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='04/11/2026 · 1';
+const SC360_VERSION='04/11/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
