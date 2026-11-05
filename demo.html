@@ -949,6 +949,13 @@ body.es-admin .solo-admin{display:inline!important}
 .dsh-tile-t{font-size:9.5px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.07em;font-weight:800}
 .dsh-tile-v{font-size:32px;font-weight:900;line-height:1.05;margin-top:4px}
 .dsh-tile-s{font-size:10.5px;color:#7c8fae;margin-top:3px}
+#dash-accion-recomendada{display:none!important}
+.qp-fila{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid #1a3a6e55}
+.qp-fila:first-child{border-top:none}
+.qp-ic{width:26px;height:26px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px}
+.qp-t{font-size:10.5px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase}
+.qp-v{font-size:13.5px;color:#e8eff8;line-height:1.45;margin-top:1px}
+.qp-e{font-size:11px;color:#7c8fae;margin-top:2px}
 .dsh-tile-tr{font-size:10.5px;font-weight:700;margin-top:5px;padding-top:5px;border-top:1px solid #1a3a6e66;line-height:1.3}
 .dsh-bloque-t{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:2px 2px 8px}
 .dsh-bloque-t b{font-size:17px;font-weight:900;color:#fff}
@@ -1629,6 +1636,7 @@ tr:hover td{background:#0d1b3e40}
           <button onclick="go('evolucion');evSwitchTab('equipo')" style="padding:7px 14px;background:#00c2ff;color:#0a0f1e;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">Ver evolución →</button>
         </div>
 
+        <div id="dash-que-pasa"></div>
         <div id="dash-centro"></div>
         <div id="dash-avisos-uso" style="display:none;margin-bottom:1rem"></div>
         <div id="dash-onboarding" style="display:none;margin-bottom:1rem;background:linear-gradient(135deg,#0d1b3e,#0a1530);border:1px solid #00c2ff33;border-radius:12px;padding:12px 14px">
@@ -20118,7 +20126,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='05/11/2026 · 1';
+const SC360_VERSION='05/11/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -21323,6 +21331,7 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
     const recomienda=mirarTop.length?'<div class="dsh-card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div class="dsh-card-t">🔎 SC360 recomienda mirar</div><button onclick="go(\'decisiones\')" style="white-space:nowrap;font-size:11.5px;font-weight:800;color:#0a0f1e;background:#00c2ff;border:none;border-radius:7px;padding:5px 11px;cursor:pointer">🎯 '+nDec+' decisiones hoy →</button></div>'+
       mirarTop.map((p,i)=>'<div class="dec-item"><span style="min-width:22px;height:22px;border-radius:50%;background:'+p[1]+'22;border:1px solid '+p[1]+';color:'+p[1]+';font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center">'+(i+1)+'</span><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:800;color:#fff">'+p[0].nom+'</div><div style="font-size:12px;color:#b4c2d4">'+p[0].txt+'</div></div><button onclick="'+p[0].go+'" style="white-space:nowrap;font-size:11px;padding:4px 9px;background:transparent;color:#00c2ff;border:1px solid #00c2ff55;border-radius:7px;cursor:pointer">Ver →</button></div>').join('')+'</div>':'';
     try{ if(document.getElementById('screen-decisiones').classList.contains('active')) renderDecisiones(); }catch(e){}
+    try{ dashQuePasa({jugs,capas,riesgo,ppAll,D,K,prom}); }catch(e){ console.warn('Qué está pasando:',e); }
     // Calidad y fecha de los datos (para saber cuánto confiar en lo que sigue)
     const fT=jugs.map(r=>String(r.fecha||'').slice(0,10)).filter(Boolean).sort().pop()||null;
     const fP=Object.values(D.fechas||{}).map(f=>String(f).slice(0,10)).filter(Boolean).sort().pop()||null;
@@ -21443,6 +21452,77 @@ async function dashPlanInicio(cods){
     h+='<div style="font-size:10.5px;color:#7c8fae;margin-top:4px">Básico: evaluación, perfiles e informe grupal. Pro suma el seguimiento: Post Partido, check-in, acciones, evolución y preparación de partidos.</div>';
   }
   box.innerHTML=h;
+}
+// ═══════════════════════════════════════════════════════════════
+// 02 · ¿QUÉ ESTÁ PASANDO? (Etapa 2 del rediseño, 05/11/2026)
+// Fortaleza e interferencia: capas MDC del último test de cada jugador.
+// Qué cambió: las 15 preguntas del Post Partido de los JUGADORES (antes se
+// usaba la evaluación del DT con los nombres de las preguntas del jugador,
+// que no coinciden). Cada frase dice de qué datos sale; si no alcanza, lo dice.
+// ═══════════════════════════════════════════════════════════════
+function dashQuePasa(o){
+  const box=document.getElementById('dash-que-pasa'); if(!box) return;
+  const {jugs,capas,riesgo,ppAll,D,K,prom}=o;
+  const E=decEsc, nJ=jugs.length;
+  const fT=jugs.map(r=>String(r.fecha||'').slice(0,10)).filter(Boolean).sort().pop();
+  const fila=(ic,col,t,v,e)=>'<div class="qp-fila"><div class="qp-ic" style="background:'+col+'1f;border:1px solid '+col+'55">'+ic+'</div><div style="flex:1;min-width:0"><div class="qp-t" style="color:'+col+'">'+t+'</div><div class="qp-v">'+v+'</div>'+(e?'<div class="qp-e">📎 '+e+'</div>':'')+'</div></div>';
+  const SIN='<span style="color:#94a3b8">Sin información suficiente.</span>';
+  let h='';
+  // Fortaleza e interferencia (capas MDC)
+  const okTest=nJ>=5&&capas.length>=2;
+  const evTest='Test MDC de '+nJ+' jugador'+(nJ===1?'':'es')+(fT?' · último '+decFechaCorta(fT):'');
+  const fuerte=okTest?capas[capas.length-1]:null;
+  h+=fila('💪','#22c55e','Principal fortaleza',fuerte?'<b>'+E(fuerte.c.nombre)+'</b> ('+Math.round(fuerte.v)+'/100): la capa más alta del plantel.':SIN+' Hace falta el test de al menos 5 jugadores.',okTest?evTest:'');
+  // jugadores más bajos en la capa de interferencia
+  let atender=[];
+  if(okTest&&riesgo){
+    const capaJ=r=>{ const d=r.dims||{}; const xs=riesgo.c.dims.map(k=>d[k]).filter(x=>x>0); return xs.length?xs.reduce((a,b)=>a+b,0)/xs.length/5*100:null; };
+    atender=jugs.map(r=>({r,v:capaJ(r)})).filter(x=>x.v!=null&&x.v<60).sort((a,b)=>a.v-b.v);
+  }
+  h+=fila('⚠️','#f59e0b','Principal interferencia',okTest&&riesgo?'<b>'+E(riesgo.c.nombre)+'</b> ('+Math.round(riesgo.v)+'/100): la capa más baja del plantel, de donde viene la mayor interferencia.':SIN,okTest?evTest:'');
+  // Qué cambió en partidos: 15 preguntas del jugador, primeros vs últimos partidos
+  const porP={}; (ppAll||[]).forEach(x=>{ (porP[x.partido_codigo]=porP[x.partido_codigo]||[]).push(x); });
+  const fechaP=c=>{ const f=idcFechaPartido(c,D.fechas); return f?f.getTime():0; };
+  const parts=Object.keys(porP).filter(c=>porP[c].length>=3).sort((a,b)=>fechaP(a)-fechaP(b));
+  let cambio=null;
+  if(parts.length>=4){
+    const n=Math.min(3,Math.floor(parts.length/2)), A=parts.slice(-2*n,-n), B=parts.slice(-n);
+    const avg=(cs,k)=>prom(cs.flatMap(c=>porP[c].map(x=>x[k]).filter(v=>v!=null&&v!=='').map(Number)));
+    const vs=PP_PREGS_ORDEN.map((lbl,i)=>{ const k='q'+(i+1), a=avg(A,k), b=avg(B,k); return (a==null||b==null)?null:{lbl,k,a,b,dif:b-a}; }).filter(Boolean);
+    const baja=vs.filter(v=>v.dif<=-0.5).sort((x,y)=>x.dif-y.dif)[0]||null, sube=vs.filter(v=>v.dif>=0.5).sort((x,y)=>y.dif-x.dif)[0]||null;
+    const nResp=B.concat(A).reduce((s,c)=>s+porP[c].length,0);
+    const fB=fechaP(B[B.length-1]);
+    cambio={baja,sube,n,ev:'Post Partido de los jugadores: '+nResp+' respuestas en '+(2*n)+' partidos'+(fB?' · último '+decFechaCorta(new Date(fB).toISOString().slice(0,10)):'')+' · escala 1–10'};
+  }
+  const fmt=v=>(v.dif>0?'+':'')+v.dif.toFixed(1);
+  let txtCambio;
+  if(!cambio) txtCambio=SIN+' Hacen falta al menos 4 partidos con Post Partido de 3 o más jugadores.';
+  else if(!cambio.baja&&!cambio.sube) txtCambio='Sin cambios relevantes (ninguna variable se movió medio punto o más) entre los últimos '+cambio.n+' partidos y los '+cambio.n+' anteriores.';
+  else txtCambio=(cambio.baja?'<span style="color:#fca5a5">▼ Más cayó:</span> <b>'+E(cambio.baja.lbl)+'</b> '+fmt(cambio.baja)+' (de '+cambio.baja.a.toFixed(1)+' a '+cambio.baja.b.toFixed(1)+')':'')+
+    (cambio.baja&&cambio.sube?'<br>':'')+(cambio.sube?'<span style="color:#86efac">▲ Más mejoró:</span> <b>'+E(cambio.sube.lbl)+'</b> '+fmt(cambio.sube)+' (de '+cambio.sube.a.toFixed(1)+' a '+cambio.sube.b.toFixed(1)+')':'')+
+    '<br><span style="font-size:11.5px;color:#94a3b8">Últimos '+cambio.n+' partidos contra los '+cambio.n+' anteriores.</span>';
+  h+=fila('📈','#00c2ff','Lo que más cambió en los partidos',txtCambio,cambio?cambio.ev:'');
+  // Jugadores que requieren atención
+  const rojos=(K&&K.rojo?K.rojo.filter(i=>!i.equipo):[]);
+  let txtAt;
+  if(!okTest) txtAt=SIN;
+  else{
+    const partes=[];
+    if(rojos.length) partes.push('<b>'+rojos.length+'</b> para intervenir esta semana (ver Centro de decisiones)');
+    if(atender.length) partes.push('<b>'+atender.length+'</b> por debajo de 60 en '+E(riesgo.c.nombre)+': '+atender.slice(0,4).map(x=>E((x.r.jugador_nombre||'').split(' ').slice(0,2).join(' '))).join(', ')+(atender.length>4?' y '+(atender.length-4)+' más':''));
+    txtAt=partes.length?partes.join('<br>'):'Ningún jugador por debajo de los umbrales de atención.';
+  }
+  h+=fila('👥','#a78bfa','Jugadores que requieren atención',txtAt,okTest?'Mismos criterios que el Centro de decisiones y el test MDC':'');
+  // Recomendación
+  let rec=null, porque='';
+  if(cambio&&cambio.baja){ const k=MAPEO_PP_MDC[cambio.baja.lbl]; if(k&&ACCION_DT[k]){ rec=ACCION_DT[k]; porque='Porque bajó '+cambio.baja.lbl.toLowerCase()+' en los últimos partidos.'; } }
+  if(!rec&&okTest&&riesgo&&ACCION_CAPA[riesgo.c.key]){ rec=ACCION_CAPA[riesgo.c.key]; porque='Porque '+riesgo.c.nombre+' es la capa con más interferencia del plantel.'; }
+  h+=fila('✅','#22c55e','Qué trabajar esta semana',rec?E(rec)+'<div style="font-size:11.5px;color:#94a3b8;margin-top:2px">'+E(porque)+'</div>':SIN+' Cuando haya test y Post Partido suficientes, acá aparece una recomendación concreta.','');
+  box.innerHTML='<div class="dsh-bloque-t" style="margin-top:4px"><b><i>02</i>¿Qué está pasando?</b><div style="font-size:10px;color:#7c8fae;letter-spacing:0.08em">QUÉ AFECTA AL EQUIPO Y QUÉ TRABAJAR</div></div>'+
+    '<div class="tw" style="margin:0 0 14px;padding:4px 16px 10px;border-color:#00c2ff44">'+h+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><button onclick="go(\'evolucion\');evSwitchTab(\'equipo\')" style="font-size:11.5px;font-weight:700;padding:6px 11px;border-radius:7px;cursor:pointer;color:#00c2ff;background:transparent;border:1px solid #00c2ff55">Ver evolución del equipo →</button>'+
+    '<button onclick="go(\'grupal\')" style="font-size:11.5px;font-weight:700;padding:6px 11px;border-radius:7px;cursor:pointer;color:#00c2ff;background:transparent;border:1px solid #00c2ff55">Ver informe grupal →</button></div>'+
+    '<div style="font-size:10.5px;color:#4a5a78;margin-top:8px">Lectura armada solo con los datos cargados. Son patrones para decidir, no diagnósticos.</div></div>';
 }
 let DASH_REEVAL=[];
 async function dashHabilitarReeval(btn){
