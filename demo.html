@@ -996,6 +996,30 @@ body.es-admin .solo-admin{display:inline!important}
 .dcx-cov .tr{height:6px;background:#0a1024;border-radius:4px;overflow:hidden}.dcx-cov .tr span{display:block;height:100%}
 .fe-fila .es{padding:0}
 @media(max-width:600px){.fe-fila{grid-template-columns:repeat(3,minmax(0,1fr))!important}.fe-fila>:first-child{grid-column:1/-1}}
+.pjx-k15{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.pjx-box{background:#0a1024;border:1px solid #1a3a6e;border-radius:12px;padding:10px 12px;min-width:0}
+.pjx-acc{grid-column:1/-1;background:#06b6d414;border-color:#06b6d455}
+.pjx-k{font-size:9.5px;font-weight:800;color:#7c8fae;letter-spacing:.06em}
+.pjx-n{font-size:15px;font-weight:800;color:#fff;margin-top:3px}
+.pjx-v{font-size:24px;font-weight:900;line-height:1.1}
+.pjx-s{font-size:10.5px;color:#7c8fae;line-height:1.35}
+.pjx-btn{margin-top:8px;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;border:1px solid #00c2ff66;color:#00c2ff;background:#00c2ff12;cursor:pointer}
+.pjx-tit{font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#5d7391;margin:6px 2px 0}
+.pjx-det{background:rgba(255,255,255,0.03);border:1px solid #1a3a6e;border-radius:14px;overflow:hidden}
+.pjx-det>summary{list-style:none;cursor:pointer;padding:11px 12px;display:flex;align-items:center;gap:10px}
+.pjx-det>summary::-webkit-details-marker{display:none}
+.pjx-ic{font-size:17px;width:24px;text-align:center;flex:none}
+.pjx-st{font-weight:800;font-size:13.5px;color:#fff}
+.pjx-sm{font-size:11px;color:#7c8fae;margin-top:1px}
+.pjx-rt{margin-left:auto;font-weight:900;font-size:16px;white-space:nowrap}
+.pjx-ch{color:#7c8fae;font-size:12px;transition:transform .2s}
+.pjx-det[open] .pjx-ch{transform:rotate(180deg)}
+.pjx-in{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px}
+.pjx-in .tw{margin:0!important}
+@media(max-width:760px){#pj-grid-detalle{order:-1}}
+#pj-left-col>div.pj-print-hide:not(#pj-patron-slot){grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
+#pj-left-col>div.pj-print-hide:not(#pj-patron-slot) button{font-size:11px!important;padding:8px 4px!important;white-space:normal!important;line-height:1.25;overflow:visible!important}
+@media print{.pjx-det>summary{display:none}}
 #dcx-tip{position:fixed;z-index:9999;max-width:260px;background:#0a1530;border:1px solid #00c2ff66;color:#e8eff8;font-size:12px;line-height:1.4;padding:8px 10px;border-radius:9px;box-shadow:0 8px 24px #0008}
 .dcx-det .dsh-bloque-t{display:none}
 #dash-club-sub,#dash-hero > div:nth-child(2) > div:first-child{display:none}
@@ -6503,7 +6527,7 @@ function renderLineasIG(f){
   if(!cont) return;
   const deporte=f[0]?.deporte||'';
   const lineasBase=getLineasDeporte(deporte);
-  const dimKeys=['regulacion','consistencia','confianza','autoconocimiento','atencion','metacognicion','competitividad','motivacion','liderazgo','toma_decisiones','potencial','desempeno'];
+  const dimKeys=['regulacion','consistencia','confianza','autoconocimiento','atencion','metacognicion','competitividad','motivacion','liderazgo','decision','potencial','desempeno'];
 
   const porLinea={};
   f.forEach(r=>{
@@ -6572,21 +6596,21 @@ const ROLES_PUESTO={
   'Lateral':          {rol:'EQUILIBRIO', color:'#7c3aed', emo:['liderazgo','consistencia','regulacion'], cog:['metacognicion','atencion','autoconocimiento']},
   'Mediocampista central':{rol:'EQUILIBRIO',color:'#7c3aed',emo:['liderazgo','consistencia','regulacion'],cog:['metacognicion','atencion','autoconocimiento']},
   'Mediocampista defensivo':{rol:'EQUILIBRIO',color:'#7c3aed',emo:['liderazgo','consistencia','regulacion'],cog:['metacognicion','atencion','autoconocimiento']},
-  'Extremo':          {rol:'INTENSIDAD', color:'#e879f9', emo:['competitividad','motivacion','regulacion'], cog:['atencion','toma_decisiones','metacognicion']},
-  'Delantero centro': {rol:'DECISIÓN',   color:'#f59e0b', emo:['competitividad','confianza','motivacion'], cog:['toma_decisiones','atencion','metacognicion']},
+  'Extremo':          {rol:'INTENSIDAD', color:'#e879f9', emo:['competitividad','motivacion','regulacion'], cog:['atencion','decision','metacognicion']},
+  'Delantero centro': {rol:'DECISIÓN',   color:'#f59e0b', emo:['competitividad','confianza','motivacion'], cog:['decision','atencion','metacognicion']},
   // Pádel
-  'Posicion derecha': {rol:'DECISIÓN',   color:'#f59e0b', emo:['competitividad','confianza','regulacion'], cog:['toma_decisiones','metacognicion','atencion']},
+  'Posicion derecha': {rol:'DECISIÓN',   color:'#f59e0b', emo:['competitividad','confianza','regulacion'], cog:['decision','metacognicion','atencion']},
   'Posicion reves':   {rol:'EQUILIBRIO', color:'#7c3aed', emo:['consistencia','regulacion','liderazgo'],   cog:['atencion','metacognicion','autoconocimiento']},
   // Básquet
-  'Base':             {rol:'EQUILIBRIO', color:'#7c3aed', emo:['liderazgo','consistencia','regulacion'],   cog:['toma_decisiones','metacognicion','atencion']},
-  'Escolta':          {rol:'DECISIÓN',   color:'#f59e0b', emo:['competitividad','confianza','motivacion'], cog:['toma_decisiones','atencion','metacognicion']},
+  'Base':             {rol:'EQUILIBRIO', color:'#7c3aed', emo:['liderazgo','consistencia','regulacion'],   cog:['decision','metacognicion','atencion']},
+  'Escolta':          {rol:'DECISIÓN',   color:'#f59e0b', emo:['competitividad','confianza','motivacion'], cog:['decision','atencion','metacognicion']},
   'Alero':            {rol:'INTENSIDAD', color:'#e879f9', emo:['competitividad','motivacion','regulacion'], cog:['atencion','metacognicion','autoconocimiento']},
   'Ala-pivot':        {rol:'INTENSIDAD', color:'#e879f9', emo:['competitividad','motivacion','regulacion'], cog:['metacognicion','atencion','autoconocimiento']},
   'Pivot':            {rol:'CALMA',      color:'#0ea5e9', emo:['regulacion','consistencia','confianza'],   cog:['autoconocimiento','metacognicion','atencion']},
   // Hockey
   'Defensa':          {rol:'INTENSIDAD', color:'#e879f9', emo:['competitividad','regulacion','motivacion'], cog:['autoconocimiento','atencion','metacognicion']},
   'Mediocampista':    {rol:'EQUILIBRIO', color:'#7c3aed', emo:['liderazgo','consistencia','regulacion'],   cog:['metacognicion','atencion','autoconocimiento']},
-  'Delantera':        {rol:'DECISIÓN',   color:'#f59e0b', emo:['competitividad','confianza','motivacion'], cog:['toma_decisiones','atencion','metacognicion']},
+  'Delantera':        {rol:'DECISIÓN',   color:'#f59e0b', emo:['competitividad','confianza','motivacion'], cog:['decision','atencion','metacognicion']},
   // Tenis
   'Individual':       {rol:'CALMA',      color:'#0ea5e9', emo:['regulacion','consistencia','confianza'],   cog:['metacognicion','autoconocimiento','atencion']},
 };
@@ -6595,7 +6619,7 @@ const DIM_LABELS={
   regulacion:'Reg. emocional', consistencia:'Consistencia', confianza:'Autoconfianza',
   autoconocimiento:'Identidad', atencion:'Atención', metacognicion:'Metacognición',
   competitividad:'Competitividad', motivacion:'Motivación', liderazgo:'Liderazgo',
-  toma_decisiones:'Toma de decisiones', potencial:'Talento dif.', desempeno:'Desempeño'
+  decision:'Toma de decisiones', potencial:'Talento dif.', desempeno:'Desempeño'
 };
 
 // Aptitud según variables clave del rol
@@ -7039,7 +7063,7 @@ function renderPlantelMDC(titulares){
   h+='</tbody></table></div>';
 
   // Promedio por dimensión del plantel
-  const dimKeys=['regulacion','consistencia','confianza','autoconocimiento','atencion','metacognicion','competitividad','motivacion','liderazgo','toma_decisiones','potencial','desempeno'];
+  const dimKeys=['regulacion','consistencia','confianza','autoconocimiento','atencion','metacognicion','competitividad','motivacion','liderazgo','decision','potencial','desempeno'];
   const dimProms={};
   dimKeys.forEach(k=>{
     const vals=titulares.map(r=>r.dims&&r.dims[k]||0).filter(v=>v>0);
@@ -7205,7 +7229,7 @@ function renderPlantelLineas(titulares){
   // Deportes individuales — mostrar jugadores sin agrupar por línea
   if(!lineasBase){
     let hSingle='<div style="overflow-x:auto"><table><thead><tr><th>Jugador</th><th>DISC</th><th>MDC</th>';
-    const dimKeys=['regulacion','consistencia','confianza','autoconocimiento','atencion','metacognicion','competitividad','motivacion','liderazgo','toma_decisiones','potencial','desempeno'];
+    const dimKeys=['regulacion','consistencia','confianza','autoconocimiento','atencion','metacognicion','competitividad','motivacion','liderazgo','decision','potencial','desempeno'];
     const dimPromsGlobal={};
     dimKeys.forEach(k=>{const vals=titulares.map(r=>r.dims&&r.dims[k]||0).filter(v=>v>0);dimPromsGlobal[k]=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;});
     const topDims=dimKeys.filter(k=>dimPromsGlobal[k]>0).sort((a,b)=>dimPromsGlobal[b]-dimPromsGlobal[a]).slice(0,4);
@@ -7223,7 +7247,7 @@ function renderPlantelLineas(titulares){
     return;
   }
   const lineasOrden=lineasBase;
-  const dimKeys=['regulacion','consistencia','confianza','autoconocimiento','atencion','metacognicion','competitividad','motivacion','liderazgo','toma_decisiones','potencial','desempeno'];
+  const dimKeys=['regulacion','consistencia','confianza','autoconocimiento','atencion','metacognicion','competitividad','motivacion','liderazgo','decision','potencial','desempeno'];
   const porLinea={};
   titulares.forEach(r=>{const l=r.linea||'Sin posición';if(!porLinea[l])porLinea[l]=[];porLinea[l].push(r);});
 
@@ -8081,7 +8105,7 @@ const NIVELES=[
 function nivelActual(r){
   const d=r.dims||{};
   const disp=r.disponibilidad||0;
-  const td=d.toma_decisiones||0;
+  const td=d.decision||0;
   const re=d.regulacion||0;
   const cons=d.consistencia||0;
   const ac=d.confianza||0;
@@ -8099,15 +8123,16 @@ function varsFaltantes(r, nivelIdx){
   const d=r.dims||{};
   const n=NIVELES[nivelIdx];
   const checks=[
-    {k:'toma_decisiones',label:'Toma de decisiones',v:d.toma_decisiones||0,req:n.td},
+    {k:'decision',label:'Toma de decisiones',v:d.decision||0,req:n.td},
     {k:'regulacion',label:'Reg. emocional',v:d.regulacion||0,req:n.re},
     {k:'consistencia',label:'Consistencia',v:d.consistencia||0,req:n.cons},
     {k:'confianza',label:'Autoconfianza',v:d.confianza||0,req:n.ac},
     {k:'metacognicion',label:'Metacognición',v:d.metacognicion||0,req:n.meta},
   ];
   // Si al redondear a 1 decimal quedan iguales (3.66 → 3.7 vs 3.7), mostrar 2 decimales
-  const fmt=(v,req)=>v.toFixed(1)===Number(req).toFixed(1)?v.toFixed(2):v.toFixed(1);
-  return checks.filter(c=>c.v>0&&c.v<c.req).map(c=>`${c.label} ${fmt(c.v,c.req)}→${c.req}`);
+  // 0–100, como el resto del perfil (08/11/2026): solo cambia cómo se muestra
+  const fmt=(v,req)=>Math.round(v*20)===Math.round(req*20)?(v*20).toFixed(1):String(Math.round(v*20));
+  return checks.filter(c=>c.v>0&&c.v<c.req).map(c=>`${c.label} ${fmt(c.v,c.req)}→${Math.round(c.req*20)}`);
 }
 
 
@@ -13308,8 +13333,8 @@ function renderLegajo(r, ppJugs, ppDTs, partidos, histEvals){
   if(sorted.length){
     h+=`<div style="background:#141f3a;border-radius:12px;padding:1rem;margin-bottom:1rem">
       <div style="font-size:10px;font-weight:700;color:#b4c2d4;letter-spacing:0.05em;margin-bottom:10px">PERFIL MENTAL — TEST BASE</div>`;
-    const dimLabels={autoconocimiento:'Identidad',motivacion:'Motivación',confianza:'Autoconfianza',regulacion:'Regulación emocional',atencion:'Atención y foco',metacognicion:'Metacognición',potencial:'Potencial',consistencia:'Consistencia',liderazgo:'Liderazgo',competitividad:'Competitividad',desempeno:'Desempeño',toma_decisiones:'Toma de decisiones'};
-    const dimColors={autoconocimiento:'#8b5cf6',motivacion:'#f59e0b',confianza:'#0ea5e9',regulacion:'#06b6d4',atencion:'#22c55e',metacognicion:'#f97316',potencial:'#a855f7',consistencia:'#ec4899',liderazgo:'#ef4444',competitividad:'#8b5cf6',desempeno:'#0ea5e9',toma_decisiones:'#22c55e'};
+    const dimLabels={autoconocimiento:'Identidad',motivacion:'Motivación',confianza:'Autoconfianza',regulacion:'Regulación emocional',atencion:'Atención y foco',metacognicion:'Metacognición',potencial:'Potencial',consistencia:'Consistencia',liderazgo:'Liderazgo',competitividad:'Competitividad',desempeno:'Desempeño',decision:'Toma de decisiones'};
+    const dimColors={autoconocimiento:'#8b5cf6',motivacion:'#f59e0b',confianza:'#0ea5e9',regulacion:'#06b6d4',atencion:'#22c55e',metacognicion:'#f97316',potencial:'#a855f7',consistencia:'#ec4899',liderazgo:'#ef4444',competitividad:'#8b5cf6',desempeno:'#0ea5e9',decision:'#22c55e'};
     sorted.forEach(({k,v})=>{
       const label=dimLabels[k]||k;
       const color=dimColors[k]||'#00c2ff';
@@ -13328,8 +13353,8 @@ function renderLegajo(r, ppJugs, ppDTs, partidos, histEvals){
     const evalOrden=[...histEvals].sort((a,b)=>(a.evaluacion_num||1)-(b.evaluacion_num||1));
     const primera=evalOrden[0];
     const ultima=evalOrden[evalOrden.length-1];
-    const dimKeys=['regulacion','consistencia','confianza','autoconocimiento','atencion','metacognicion','competitividad','motivacion','liderazgo','toma_decisiones','potencial','desempeno'];
-    const dimLabels2={regulacion:'Reg. emocional',consistencia:'Consistencia',confianza:'Autoconfianza',autoconocimiento:'Identidad',atencion:'Atención',metacognicion:'Metacognición',competitividad:'Competitividad',motivacion:'Motivación',liderazgo:'Liderazgo',toma_decisiones:'Toma decisiones',potencial:'Potencial',desempeno:'Desempeño'};
+    const dimKeys=['regulacion','consistencia','confianza','autoconocimiento','atencion','metacognicion','competitividad','motivacion','liderazgo','decision','potencial','desempeno'];
+    const dimLabels2={regulacion:'Reg. emocional',consistencia:'Consistencia',confianza:'Autoconfianza',autoconocimiento:'Identidad',atencion:'Atención',metacognicion:'Metacognición',competitividad:'Competitividad',motivacion:'Motivación',liderazgo:'Liderazgo',decision:'Toma decisiones',potencial:'Potencial',desempeno:'Desempeño'};
 
     const dispDelta=(ultima.disponibilidad||0)-(primera.disponibilidad||0);
     const dispCol=dispDelta>0?'#22c55e':dispDelta<0?'#ef4444':'#f59e0b';
@@ -13567,7 +13592,7 @@ async function exportarLegajoPDF(){
   let y=38;
   // Dimensiones
   const dims=r.dims||{};
-  const dimLabels={autoconocimiento:'Identidad',motivacion:'Motivacion',confianza:'Autoconfianza',regulacion:'Regulacion emocional',atencion:'Atencion y foco',metacognicion:'Metacognicion',potencial:'Potencial',consistencia:'Consistencia',liderazgo:'Liderazgo',competitividad:'Competitividad',desempeno:'Desempeno',toma_decisiones:'Toma de decisiones'};
+  const dimLabels={autoconocimiento:'Identidad',motivacion:'Motivacion',confianza:'Autoconfianza',regulacion:'Regulacion emocional',atencion:'Atencion y foco',metacognicion:'Metacognicion',potencial:'Potencial',consistencia:'Consistencia',liderazgo:'Liderazgo',competitividad:'Competitividad',desempeno:'Desempeno',decision:'Toma de decisiones'};
   doc.setFillColor(230,237,250);doc.rect(14,y,182,6,'F');
   doc.setFillColor(0,194,255);doc.rect(14,y,2,6,'F');
   doc.setTextColor(10,40,100);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('PERFIL MENTAL — TEST BASE',19,y+4.2);y+=10;
@@ -16870,8 +16895,10 @@ function renderLecturaPJ(r){
   const fila=(ic,t,txt,col)=>txt?'<div style="display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px solid #1a3a6e44"><span style="font-size:15px;width:20px;text-align:center">'+ic+'</span><div style="flex:1;min-width:0"><span style="font-size:10.5px;font-weight:800;letter-spacing:0.06em;color:'+(col||'#94a3b8')+'">'+t+'</span><div style="font-size:13px;color:#e8eff8;line-height:1.45">'+txt+'</div></div></div>':'';
   box.innerHTML='<div class="tw" style="margin:0;background:rgba(255,255,255,0.03);border-color:rgba(0,194,255,0.25);padding:10px 14px">'+
     '<div style="font-size:14px;color:#e8eff8;line-height:1.5;margin-bottom:4px"><b>'+nom+'</b> <b style="color:'+est[0]+'">'+est[1]+' ('+D+')</b>'+(rol?' · rol en cancha <b style="color:#00c2ff">'+rol+'</b>':'')+'.</div>'+
-    fila('💪','SU FUERZA',dims.length?dims.slice(0,2).map(x=>x.l+' ('+x.v+')').join(' y ')+'.':'','#22c55e')+
-    fila('🧱','LO QUE LO FRENA',capas.length?'Su interferencia está en <b>'+capas[0].n+'</b> ('+capas[0].v+')'+(dims.length?'; lo más bajo es '+dims[dims.length-1].l.toLowerCase()+' ('+dims[dims.length-1].v+')':'')+'.':'','#f59e0b')+
+    // Mismo criterio que "Lo que hay que saber" (pjFoco)
+    (function(){ const F=pjFoco(r); if(!F) return '';
+      return fila('💪','SU FUERZA',F.fortaleza.nombre+' ('+F.fortaleza.v+'), en '+F.capaAlta.c.nombre+'.','#22c55e')+
+        fila('🧱','LO QUE LO FRENA','Su interferencia está en <b>'+F.capaBaja.c.nombre+'</b> ('+F.capaBaja.v+'): foco en '+F.foco.nombre.toLowerCase()+' ('+F.foco.v+')'+(F.tambien?'. También bajo: '+F.tambien.nombre.toLowerCase()+' ('+F.tambien.v+')':'')+'.','#f59e0b'); })()+
     fila('⚠️','BAJO PRESIÓN',di&&di.riesgo?di.riesgo+'. A trabajar: '+(di.estrategia||'').toLowerCase()+'.':'','#ef4444')+
     fila('⚽','CÓMO ACTIVARLO',guia&&guia.previa?guia.previa:'','#00c2ff')+
     (function(){
@@ -19560,7 +19587,7 @@ function cargarPerfilJugador() {
     dimsBox.innerHTML = arr.map(function(d){
       const pct = Math.round((d.val/5)*100);
       return '<div style="margin-bottom:8px">' +
-        '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span style="color:#e8eff8">'+d.label+'</span><span style="color:'+d.color+';font-weight:700">'+d.val.toFixed(1)+'</span></div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span style="color:#e8eff8">'+d.label+'</span><span style="color:'+d.color+';font-weight:700">'+pct+'</span></div>' +
         '<div style="height:6px;background:#0d1b3e;border-radius:6px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+d.color+'"></div></div>' +
       '</div>';
     }).join('');
@@ -20128,7 +20155,7 @@ function renderRolDesarrolloPJ(r){
   if(prox){
     const d=r.dims||{};
     const req=[[r.disponibilidad||0,prox.disp],[d.regulacion||0,prox.re],[d.consistencia||0,prox.cons],[d.confianza||0,prox.ac],[d.metacognicion||0,prox.meta]];
-    if(d.toma_decisiones) req.push([d.toma_decisiones,prox.td]);
+    if(d.decision) req.push([d.decision,prox.td]);
     prog={ok:req.filter(x=>x[0]>=x[1]).length,tot:req.length};
   }
   box.innerHTML=
@@ -20314,7 +20341,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='08/11/2026 · 3';
+const SC360_VERSION='08/11/2026 · 4';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -20778,7 +20805,7 @@ function renderMPTResumen(activa,ini,act,hayComp,ref,obs){
   const btn='font-size:12px;font-weight:700;padding:5px 12px;border-radius:7px;cursor:pointer';
   box.innerHTML='<div style="background:linear-gradient(135deg,rgba(124,58,237,0.16),rgba(0,194,255,0.08));border:1px solid rgba(124,58,237,0.45);border-radius:12px;padding:10px 14px">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">'+
-      '<span style="font-size:11px;font-weight:900;color:#c4b5fd;letter-spacing:0.08em">🧠 MENTAL PERFORMANCE TRACKING</span>'+
+      '<span style="font-size:11px;font-weight:900;color:#c4b5fd;letter-spacing:0.08em">🧠 SEGUIMIENTO DEL PROCESO</span>'+
       '<span style="font-size:11px;color:#e8eff8">'+(activa?'<b style="color:#c4b5fd">● '+activa.tipo+'</b> desde '+mptFecha(activa.fecha_inicio):'<span style="color:#94a3b8">Sin proceso activo</span>')+
         '</span></div>'+
     (activa&&activa.fecha_revision?(function(){ const venc=String(activa.fecha_revision)<=segFechaMas(0);
@@ -21081,7 +21108,7 @@ function renderTracking(){
 // Todo con reglas sobre los datos existentes (no inventa nada).
 // ═══════════════════════════════════════════════════════════════
 const ACCION_CAPA={
-  autoconocimiento:'Trabajar el autoconocimiento: una charla breve con cada jugador sobre sus fortalezas y su rol.',
+  autoconocimiento:'Trabajar la identidad: una charla breve con cada jugador sobre sus fortalezas y su rol.',
   talento:'Reforzar lo que cada uno hace mejor: tareas donde pueda mostrar su talento diferencial.',
   regulacion:'Trabajar la respuesta al error y la respiración dentro de las tareas de la semana.',
   energia:'Fijar objetivos cortos y alcanzables para reactivar la energía y la motivación.',
@@ -22125,6 +22152,92 @@ async function evAccionesCargar(){
 // 4 números grandes + acción + 2 gráficos. Se completa a medida que
 // llegan el IDC y el seguimiento (tests y Post Partido).
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// PERFIL COMPACTO (08/11/2026) — un solo criterio y menos texto.
+// • Fortaleza: la dimensión más alta de la capa más alta.
+// • Foco: la dimensión (o las empatadas) más baja de la capa con la
+//   interferencia principal. Si la más baja de todas está en otra capa,
+//   se muestra como "También bajo".
+// • Un solo ejercicio recomendado (el del foco) en todo el perfil.
+// • Todo en 0–100 (solo cómo se muestra; los cálculos no cambian).
+// Los bloques existentes no se borran: se mueven a desplegables.
+// ═══════════════════════════════════════════════════════════════
+function pjLbl(k){ const d=(typeof DL!=='undefined'?DL:[]).find(x=>x.key===k); return d?d.label:((typeof DIM_LABELS!=='undefined'&&DIM_LABELS[k])||k); }
+function pjFoco(r){
+  const dd=(r&&r.dims)||{}, p=k=>dd[k]>0?Math.round(dd[k]/5*100):null;
+  const capas=CAPAS_DEF_PJ.map(c=>{ const ds=c.dims.map(k=>({k,v:p(k)})).filter(x=>x.v!=null); return {c,ds,v:ds.length?Math.round(ds.reduce((a,x)=>a+x.v,0)/ds.length):null}; }).filter(x=>x.v!=null);
+  if(!capas.length) return null;
+  const baja=capas.slice().sort((a,b)=>a.v-b.v)[0], alta=capas.slice().sort((a,b)=>b.v-a.v)[0];
+  const mn=Math.min(...baja.ds.map(x=>x.v)), focoDs=baja.ds.filter(x=>x.v===mn);
+  const mx=Math.max(...alta.ds.map(x=>x.v)), fortDs=alta.ds.filter(x=>x.v===mx);
+  const todas=capas.flatMap(c=>c.ds.map(x=>Object.assign({capa:c.c},x))).sort((a,b)=>a.v-b.v);
+  const tambien=todas.find(x=>x.v<mn&&x.capa.key!==baja.c.key)||null;
+  const ej=EJERCICIO_COGNITIVO_DIM[focoDs[0].k]||null;
+  return {capaBaja:baja, capaAlta:alta,
+    foco:{keys:focoDs.map(x=>x.k), nombre:focoDs.map(x=>pjLbl(x.k)).join(' y '), v:mn},
+    fortaleza:{keys:fortDs.map(x=>x.k), nombre:fortDs.map(x=>pjLbl(x.k)).join(' y '), v:mx},
+    tambien:tambien?{nombre:pjLbl(tambien.k), v:tambien.v, capa:tambien.capa.nombre}:null,
+    accion:(typeof ACCION_CAPA!=='undefined'&&ACCION_CAPA[baja.c.key])||'',
+    ejercicio:ej?{tipo:ej.tipo, nombre:(COG_LABELS[ej.tipo]||ej.tipo), razon:ej.razon}:null};
+}
+function pjColV(v){ return v==null?'#7c8fae':v>=80?'#22c55e':v>=65?'#f59e0b':'#ef4444'; }
+function pjK15Html(r){
+  const F=pjFoco(r); if(!F) return '';
+  const caja=(ic,t,n,v,sub,col)=>'<div class="pjx-box"><div class="pjx-k">'+ic+' '+t+'</div><div class="pjx-n">'+decEsc(n)+'</div><div class="pjx-v" style="color:'+col+'">'+v+'</div><div class="pjx-s">'+sub+'</div></div>';
+  return '<div class="pjx-k15">'+
+    caja('💪','FORTALEZA',F.fortaleza.nombre,F.fortaleza.v,'capa '+F.capaAlta.c.nombre+' · '+F.capaAlta.v,pjColV(F.fortaleza.v))+
+    caja('🎯','FOCO DE TRABAJO',F.foco.nombre,F.foco.v,'capa '+F.capaBaja.c.nombre+' · '+F.capaBaja.v+(F.tambien?'<br><span style="color:#fbbf24">También bajo: '+decEsc(F.tambien.nombre)+' '+F.tambien.v+'</span>':''),pjColV(F.foco.v))+
+    '<div class="pjx-box pjx-acc"><div class="pjx-k">⚽ QUÉ HACER ESTA SEMANA</div>'+
+      (F.accion?'<div style="font-size:13px;color:#e8eff8;margin-top:4px;line-height:1.4">'+decEsc(F.accion)+'</div>':'')+
+      (F.ejercicio?'<div style="font-size:11.5px;color:#b4c2d4;margin-top:6px;line-height:1.4">Ejercicio: <b style="color:#fff">'+decEsc(F.ejercicio.nombre)+'</b> · '+decEsc(F.ejercicio.razon)+'</div>'+
+        '<button class="pjx-btn" onclick="habilitarEjercicioRecomendado(\''+F.ejercicio.tipo+'\')">📲 Enviar ejercicio</button>'
+        :'<div style="font-size:11.5px;color:#b4c2d4;margin-top:6px">'+decEsc(F.foco.nombre)+' se trabaja en cancha: '+decEsc((typeof ACCION_DT!=='undefined'&&ACCION_DT[F.foco.keys[0]])||'')+'</div>')+
+    '</div></div>';
+}
+// Arma los desplegables una sola vez, moviendo los bloques que ya existen
+function pjxArmar(){
+  if(document.getElementById('pjx-detalle')) return;
+  const filas=document.getElementById('pj-filas'), ficha=document.getElementById('pj-ficha'); if(!filas||!ficha) return;
+  const tw=id=>{ const el=document.getElementById(id); return el?(el.closest('.tw')||el):null; };
+  // encabezados numerados viejos y bloques que se reemplazan (quedan en el DOM, ocultos)
+  [...filas.children].forEach(ch=>{ if(/^\d · /.test((ch.textContent||'').trim())&&ch.children.length===0) ch.style.display='none'; });
+  const lec=document.getElementById('pj-lectura'); if(lec) lec.style.display='none';
+  const ff=tw('pj-fortaleza-foco'); if(ff) ff.style.display='none';
+  const cont=document.createElement('div'); cont.id='pjx-detalle';
+  cont.innerHTML='<div class="pjx-tit">DETALLE</div>';
+  const det=(id,ic,tit,nodos)=>{ const d=document.createElement('details'); d.className='pjx-det'; d.id='pjxd-'+id;
+    d.innerHTML='<summary><span class="pjx-ic">'+ic+'</span><div style="min-width:0"><div class="pjx-st">'+tit+'</div><div class="pjx-sm" id="pjx-'+id+'-sm"></div></div><span class="pjx-rt" id="pjx-'+id+'-rt"></span><span class="pjx-ch">▾</span></summary><div class="pjx-in"></div>';
+    const inn=d.querySelector('.pjx-in'); nodos.filter(Boolean).forEach(n=>inn.appendChild(n)); cont.appendChild(d); };
+  const nuevo=id=>{ const d=document.createElement('div'); d.id=id; return d; };
+  const fila3=filas.querySelector('.pj-fila3');
+  det('capas','⚠️','Capas MDC · D = T − I',[nuevo('pjx-capas'),document.getElementById('pj-dti'),tw('pj-dims')]);
+  det('idc','📊','IDC por módulos',[document.getElementById('pj-idc')]);
+  det('partidos','⚽','Partidos',[nuevo('pjx-linea'),document.getElementById('pj-reset'),document.getElementById('pj-cuadrante-pp')]);
+  det('fe','🧩','Funciones ejecutivas · capa 3',[tw('pj-fe')]);
+  det('como','🎭','Cómo es',[fila3]);
+  const guia=tw('pj-guia-ct');
+  det('trabajar','📋','Cómo trabajarlo',[guia]);
+  det('seg','📈','Seguimiento del proceso',[document.getElementById('pj-mpt-resumen'),tw('pj-cognitivo'),tw('pj-vs-plantel'),tw('pj-ia'),tw('pj-evolucion-canvas')]);
+  filas.appendChild(cont);
+  // al imprimir se abre todo
+  window.addEventListener('beforeprint',()=>document.querySelectorAll('.pjx-det').forEach(d=>d.open=true));
+}
+function pjxSet(id,sm,rt,col){ const a=document.getElementById('pjx-'+id+'-sm'), b=document.getElementById('pjx-'+id+'-rt'); if(a&&sm!=null) a.innerHTML=sm; if(b){ b.textContent=rt==null?'':rt; b.style.color=col||'#e8eff8'; } }
+function pjxResumen(r,st,mentalPP){
+  try{
+    const F=pjFoco(r), D=r.disponibilidad;
+    pjxSet('capas',F?'Interferencia principal: '+decEsc(F.capaBaja.c.nombre)+' ('+F.capaBaja.v+')':'Sin test',D||'—',pjColV(D));
+    const idc=PJ_TAB.idc; pjxSet('idc',idc?(idc.cobertura!=null?idc.cobertura+' de 6 módulos':'Índice competitivo'):'Cargando…',idc&&idc.idc!=null?idc.idc:'',pjColV(idc&&idc.idc));
+    const n=st?st.pp.length:null; pjxSet('partidos',n==null?'Cargando…':n?n+' Post Partido'+(st.pp.length?' · estado mental de los últimos 3':''):'Sin Post Partido cargados',mentalPP==null?'':mentalPP,pjColV(mentalPP));
+    const fe=r.funciones_ejecutivas||null;
+    pjxSet('fe',fe?['control_inhibitorio','memoria_trabajo','flexibilidad'].filter(k=>fe[k]).map(k=>({control_inhibitorio:'Inhibición',memoria_trabajo:'Memoria',flexibilidad:'Flexibilidad'})[k]+' '+fe[k].pct).join(' · '):'Se mide desde el test y el Post Partido de noviembre 2026','');
+    const di=(typeof PJ_DISC_INFO!=='undefined')?PJ_DISC_INFO[(r.primary_disc||'').charAt(0)]:null;
+    pjxSet('como',[di&&di.name?'DISC '+di.name:(r.primary_disc?'DISC '+r.primary_disc:''),r.estilo_dominante?(({AN:'Analítico',SE:'Secuencial',IN:'Interpersonal',EX:'Exploratorio'})[r.estilo_dominante]||r.estilo_dominante):'',r.modo_motivacional?(r.modo_motivacional==='promocion'?'Modo promoción':r.modo_motivacional==='prevencion'?'Modo prevención':''):''].filter(Boolean).join(' · ')||'Rol, DISC, motivación y entorno','');
+    const g=(typeof GUIA_CT_DISC!=='undefined')?GUIA_CT_DISC[r.primary_disc]:null;
+    pjxSet('trabajar',g&&g.hablar?decEsc(g.hablar.split('.')[0])+'.':'Cómo hablarle, qué evitar y la previa','');
+    pjxSet('seg','Intervenciones · objetivos · cognitivo · plantel · IA','');
+  }catch(e){ console.warn('Resumen del perfil:',e); }
+}
 let PJ_TAB={r:null,idc:null};
 function renderTableroPJ(){
   const box=document.getElementById('pj-tablero'); const r=PJ_TAB.r; if(!box||!r||PJ_ACTUAL!==r) return;
@@ -22173,13 +22286,18 @@ function renderTableroPJ(){
       tile('Evolución',evol==null?(st?'—':cargando):(evol>0?'▲ +':evol<0?'▼ ':'')+evol,evol==null?'necesita 2 evaluaciones':'vs. evaluación anterior',evol==null?'#94a3b8':evol>0?'#22c55e':evol<0?'#ef4444':'#e8eff8')+
       tile('En partidos',mentalPP==null?(st?'—':cargando):mentalPP,mentalPP==null?'sin Post Partido':'estado mental · últimos '+ult3.length,mentalPP==null?'#94a3b8':colD(mentalPP))+
     '</div>'+
-    (accion?'<div style="margin:10px 0;background:linear-gradient(90deg,#00c2ff1f,#00c2ff08);border:1px solid #00c2ff55;border-left:4px solid #00c2ff;border-radius:10px;padding:9px 12px;font-size:13px;color:#e8eff8;line-height:1.45"><b style="color:#00c2ff">🎯 Foco de trabajo:</b> '+accion+'</div>':'<div style="height:10px"></div>')+
-    '<div class="pj-tab-cards">'+
+    pjK15Html(r)+
+    '<div class="pj-tab-cards" style="display:none">'+
       '<div class="dsh-card"><div class="dsh-card-t">⚠️ Capas MDC</div><div style="flex:1;display:flex;flex-direction:column;justify-content:space-evenly;max-height:300px">'+barras+'</div>'+(baja?'<div class="dsh-card-p">Su principal interferencia está en <b style="color:#f59e0b">'+baja.c.nombre+'</b>.</div>':'')+'</div>'+
       '<div class="dsh-card"><div class="dsh-card-t">📈 Estado mental por partido</div>'+linea+'<div class="dsh-card-p">Post Partido del jugador. La línea punteada marca 80 (nivel óptimo).</div></div>'+
     '</div></div>';
   const slot=document.getElementById('pj-patron-slot');
   if(slot){ try{ slot.innerHTML=patronesHtmlPJ(r,st)||''; }catch(e){ console.warn('Patrones:',e); slot.innerHTML=''; } }
+  // Perfil compacto: capas y gráfico de partidos van dentro de sus desplegables
+  try{ pjxArmar();
+    const cx=document.getElementById('pjx-capas'); if(cx) cx.innerHTML='<div style="margin-bottom:8px">'+barras+'</div>';
+    const lx=document.getElementById('pjx-linea'); if(lx) lx.innerHTML='<div style="font-size:10px;font-weight:800;color:#7c8fae;letter-spacing:.06em">ESTADO MENTAL POR PARTIDO</div>'+linea+'<div style="font-size:10.5px;color:#7c8fae;margin:4px 0 8px">Post Partido del jugador. La línea punteada marca 80.</div>';
+    pjxResumen(r,st,mentalPP); }catch(e){ console.warn('Perfil compacto:',e); }
 }
 
 
@@ -22614,12 +22732,9 @@ async function cargarCognitivoPerfilJugador(r){
       // Fortaleza/Foco), se ofrece habilitar ese ejercicio en un toque.
       let tipoSugerido=null, labelSugerido='';
       if(r.dims){
-        const arr=DL.map(function(d){ return { key:d.key, label:d.label, val:r.dims[d.key]||0 }; }).filter(function(d){return d.val>0;}).sort(function(a,b){return a.val-b.val;});
-        if(arr.length){
-          const foco=arr[0];
-          const ejercicio=EJERCICIO_COGNITIVO_DIM[foco.key];
-          if(ejercicio){ tipoSugerido=ejercicio.tipo; labelSugerido=COG_LABELS[ejercicio.tipo]||ejercicio.tipo; }
-        }
+        // Mismo ejercicio que el foco de trabajo del perfil (un solo criterio)
+        const F=pjFoco(r);
+        if(F&&F.ejercicio){ tipoSugerido=F.ejercicio.tipo; labelSugerido=F.ejercicio.nombre; }
       }
       cont.innerHTML='<div class="es" style="text-align:center;padding:1.5rem 1rem">'+
         '<div style="margin-bottom:12px">Este jugador todavía no hizo ningún ejercicio cognitivo.</div>'+
@@ -23348,17 +23463,17 @@ function renderVsPlantelPJ(r){
     let h = '<div style="margin-bottom:14px">';
     h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">';
     h += '<span style="font-size:12px;color:#e8eff8;font-weight:600">'+x.label+'</span>';
-    h += '<span style="font-size:10px;font-weight:700;color:'+col+';background:'+col+'18;border:1px solid '+col+'40;padding:2px 8px;border-radius:10px">'+(x.gap>0?'+':'')+x.gap.toFixed(1)+'</span>';
+    h += '<span style="font-size:10px;font-weight:700;color:'+col+';background:'+col+'18;border:1px solid '+col+'40;padding:2px 8px;border-radius:10px">'+(x.gap>0?'+':'')+Math.round(x.gap*20)+'</span>';
     h += '</div>';
     // Barra del jugador (celeste institucional)
     h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">';
     h += '<div style="flex:1;height:6px;background:#0d1b3e;border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pctJ+'%;background:#00c2ff;border-radius:3px"></div></div>';
-    h += '<span style="font-size:11px;font-weight:700;color:#00c2ff;width:26px;text-align:right">'+x.val.toFixed(1)+'</span>';
+    h += '<span style="font-size:11px;font-weight:700;color:#00c2ff;width:26px;text-align:right">'+Math.round(x.val*20)+'</span>';
     h += '</div>';
     // Barra del plantel (gris)
     h += '<div style="display:flex;align-items:center;gap:8px">';
     h += '<div style="flex:1;height:6px;background:#0d1b3e;border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pctA+'%;background:#4a6a8a;border-radius:3px"></div></div>';
-    h += '<span style="font-size:11px;font-weight:700;color:#b4c2d4;width:26px;text-align:right">'+x.avg.toFixed(1)+'</span>';
+    h += '<span style="font-size:11px;font-weight:700;color:#b4c2d4;width:26px;text-align:right">'+Math.round(x.avg*20)+'</span>';
     h += '</div>';
     h += '</div>';
     return h;
