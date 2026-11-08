@@ -116,8 +116,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <h1>El partido más importante<br><span>se juega en la cabeza.</span></h1>
     <p>Completá este test con honestidad. No hay respuestas buenas ni malas. Pensá en vos: como deportista, como profesional, como persona.</p>
     <div class="info-row">
-      <div class="info-pill"><div class="info-pill-val">48</div><div class="info-pill-lbl">preguntas</div></div>
-      <div class="info-pill"><div class="info-pill-val">~8</div><div class="info-pill-lbl">minutos</div></div>
+      <div class="info-pill"><div class="info-pill-val" id="info-total">58</div><div class="info-pill-lbl">preguntas</div></div>
+      <div class="info-pill"><div class="info-pill-val">~10</div><div class="info-pill-lbl">minutos</div></div>
       <div class="info-pill"><div class="info-pill-val">8+1</div><div class="info-pill-lbl">dimensiones</div></div>
     </div>
     <div class="cover-card">
@@ -265,7 +265,26 @@ var RADAR_QS=[
   {dim:'consistencia',text:'Puedo volver rápido después de un error importante sin que me afecte.'},
   {dim:'consistencia',text:'Mantengo mi nivel independientemente del resultado o el contexto.'},
   {dim:'consistencia',text:'Puedo repetir buenas actuaciones de manera sostenida en el tiempo.'},
+  // ── Funciones ejecutivas (08/11/2026) · capa 3 · Control inhibitorio
+  // fe:true → se guardan en funciones_ejecutivas, NO entran en dims ni en D = T − I.
+  // inv:true → puntaje invertido (Siempre = 1).
+  {dim:'control_inhibitorio',fe:true,text:'Cuando me provocan, puedo no responder aunque tenga ganas.'},
+  {dim:'control_inhibitorio',fe:true,text:'Puedo frenar una acción cuando me doy cuenta de que no es la mejor opción.'},
+  {dim:'control_inhibitorio',fe:true,inv:true,text:'Después de un error, me apuro en la jugada siguiente para compensar.'},
 ];
+var FE_DIMS=[{key:'control_inhibitorio',label:'Control inhibitorio',color:'#06b6d4'}];
+// Funciones ejecutivas: promedio 1–5 (invertidas corregidas) y % comparable
+function calcFE(){
+  var out={version:1};
+  FE_DIMS.forEach(function(d){
+    var vals=[];
+    RADAR_QS.forEach(function(q,i){ if(q.fe&&q.dim===d.key&&typeof answers[i]==='number'){ vals.push(q.inv?6-answers[i]:answers[i]); } });
+    if(!vals.length) return;
+    var avg=vals.reduce(function(a,b){return a+b;},0)/vals.length;
+    out[d.key]={valor:Math.round(avg*100)/100,pct:Math.round(((avg-1)/4)*100),n:vals.length,items:vals};
+  });
+  return out;
+}
 
 
 var LIDERAZGO_QS=[
@@ -374,6 +393,7 @@ var ESTILO_INFO={
 };
 
 var TOTAL=RADAR_QS.length+LIDERAZGO_QS.length+COMPETITIVIDAD_QS.length+DESEMPENO_QS.length+DECISION_QS.length+DISC_QS.length+ESTILO_QS.length+ENTORNO_QS.length;
+try{ document.addEventListener('DOMContentLoaded',function(){ var el=document.getElementById('info-total'); if(el) el.textContent=TOTAL; }); }catch(e){}
 var PUESTOS={
   futbol:['Arquero','Defensor central','Lateral','Mediocampista central','Mediocampista defensivo','Enganche','Extremo','Delantero centro'],
   padel:['Posicion derecha','Posicion reves'],
@@ -485,7 +505,7 @@ function renderQ(){
     document.getElementById('dim-badge').style.borderColor='#f43f5e33';
   } else {
     document.getElementById('phase-txt').textContent='Parte 1 — Radar Mental';
-    var d=DIMS.find(function(x){return x.key===RADAR_QS[localIdx].dim;});
+    var d=DIMS.find(function(x){return x.key===RADAR_QS[localIdx].dim;})||FE_DIMS.find(function(x){return x.key===RADAR_QS[localIdx].dim;});
     document.getElementById('dim-badge').innerHTML='<span style="width:8px;height:8px;border-radius:50%;background:'+d.color+';display:inline-block"></span> <span style="color:'+d.color+'">'+d.label.toUpperCase()+'</span>';
     document.getElementById('dim-badge').style.borderColor=d.color+'33';
   }
@@ -574,7 +594,7 @@ function navQ(dir){
 function calcDims(){
   var sums={},counts={};
   DIMS.forEach(function(d){sums[d.key]=0;counts[d.key]=0;});
-  RADAR_QS.forEach(function(q,i){if(answers[i]!==null){sums[q.dim]+=answers[i];counts[q.dim]++;}});
+  RADAR_QS.forEach(function(q,i){if(q.fe) return; if(answers[i]!==null){sums[q.dim]+=answers[i];counts[q.dim]++;}});
   // Situacionales con valor directo
   function calcSituacional(qs, base){
     var sum=0,cnt=0;
@@ -695,7 +715,8 @@ function guardarYmostrar(dims,disc,scores,disp,sem,primary,discInfo,sorted,modoM
     ctx_social:ctxEntorno.ctx_social,
     ctx_apoyo:ctxEntorno.ctx_apoyo,
     ctx_economico:ctxEntorno.ctx_economico,
-    ctx_bienestar:ctxEntorno.ctx_bienestar
+    ctx_bienestar:ctxEntorno.ctx_bienestar,
+    funciones_ejecutivas:calcFE()
   };
 
   // Mostrar resultados inmediatamente sin esperar Supabase

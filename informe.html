@@ -226,7 +226,7 @@ function renderInforme(data){
 
   // 5 CAPAS DEL MDC
   var capas=[
-    {nombre:'AUTOCONOCIMIENTO',key:['autoconocimiento','confianza'],color:'#8b5cf6',desc:'Quién sos cuando todo presiona'},
+    {nombre:'IDENTIDAD',key:['autoconocimiento','confianza'],color:'#8b5cf6',desc:'Quién sos cuando todo presiona'},
     {nombre:'TALENTO DIFERENCIAL',key:['potencial','liderazgo'],color:'#0ea5e9',desc:'Lo singular que te diferencia'},
     {nombre:'REGULACIÓN Y LECTURA',key:['regulacion','metacognicion','decision'],color:'#06b6d4',desc:'Emoción, metacognición y decisión bajo presión'},
     {nombre:'ENERGÍA Y ASPIRACIÓN',key:['motivacion','consistencia'],color:'#f59e0b',desc:'Combustible interno que sostiene el querer'},
@@ -254,6 +254,10 @@ function renderInforme(data){
     html+='<div style="height:6px;background:#0d1b3e;border-radius:3px;overflow:hidden">';
     html+='<div style="width:'+pct+'%;height:100%;background:'+capa.color+';border-radius:3px;transition:width 0.6s"></div>';
     html+='</div>';
+    // Funciones ejecutivas (08/11/2026): línea propia dentro de la capa 3, fuera de D = T − I
+    var feCI=idx===2&&data.funciones_ejecutivas&&data.funciones_ejecutivas.control_inhibitorio;
+    if(feCI){ var fv=feCI.pct, fc=fv>=80?'#22c55e':fv>=65?'#f59e0b':'#ef4444';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 0 16px;font-size:11.5px"><span style="color:#b4c2d4">↳ Control inhibitorio <span style="color:#8fa3bf;font-size:10px">(frenar el impulso a tiempo)</span></span><span style="font-weight:700;color:'+fc+'">'+fv+'</span></div>'; }
     html+='</div>';
   });
   if(capaMinNombre){
@@ -1037,7 +1041,7 @@ function generarPDFInforme(){
   y+=6;
 
   var capasData=[
-    {nombre:'AUTOCONOCIMIENTO',   key:['autoconocimiento','confianza'],              color:'#8b5cf6', desc:'Quien sos cuando todo presiona'},
+    {nombre:'IDENTIDAD',          key:['autoconocimiento','confianza'],              color:'#8b5cf6', desc:'Quien sos cuando todo presiona'},
     {nombre:'TALENTO DIFERENCIAL', key:['potencial','liderazgo'],                    color:'#0ea5e9', desc:'Lo singular que te diferencia'},
     {nombre:'REGULACION Y LECTURA',key:['regulacion','metacognicion','decision'],    color:'#06b6d4', desc:'Emocion, metacognicion y decision bajo presion'},
     {nombre:'ENERGIA Y ASPIRACION',key:['motivacion','consistencia'],                color:'#f59e0b', desc:'Combustible interno que sostiene el querer'},
