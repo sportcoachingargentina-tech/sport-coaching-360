@@ -4465,7 +4465,7 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const TU='https://subtle-chimera-c543b2.netlify.app';
 const IU='https://subtle-chimera-c543b2.netlify.app/informe.html';
 const DL=[
-  {key:'autoconocimiento',label:'Autoconocimiento',color:'#8b5cf6'},
+  {key:'autoconocimiento',label:'Identidad',color:'#8b5cf6'},
   {key:'motivacion',label:'Motivación',color:'#f59e0b'},
   {key:'confianza',label:'Autoconfianza',color:'#0ea5e9'},
   {key:'regulacion',label:'Regulación emocional',color:'#06b6d4'},
@@ -6593,7 +6593,7 @@ const ROLES_PUESTO={
 
 const DIM_LABELS={
   regulacion:'Reg. emocional', consistencia:'Consistencia', confianza:'Autoconfianza',
-  autoconocimiento:'Autoconocimiento', atencion:'Atención', metacognicion:'Metacognición',
+  autoconocimiento:'Identidad', atencion:'Atención', metacognicion:'Metacognición',
   competitividad:'Competitividad', motivacion:'Motivación', liderazgo:'Liderazgo',
   toma_decisiones:'Toma de decisiones', potencial:'Talento dif.', desempeno:'Desempeño'
 };
@@ -13308,7 +13308,7 @@ function renderLegajo(r, ppJugs, ppDTs, partidos, histEvals){
   if(sorted.length){
     h+=`<div style="background:#141f3a;border-radius:12px;padding:1rem;margin-bottom:1rem">
       <div style="font-size:10px;font-weight:700;color:#b4c2d4;letter-spacing:0.05em;margin-bottom:10px">PERFIL MENTAL — TEST BASE</div>`;
-    const dimLabels={autoconocimiento:'Autoconocimiento',motivacion:'Motivación',confianza:'Autoconfianza',regulacion:'Regulación emocional',atencion:'Atención y foco',metacognicion:'Metacognición',potencial:'Potencial',consistencia:'Consistencia',liderazgo:'Liderazgo',competitividad:'Competitividad',desempeno:'Desempeño',toma_decisiones:'Toma de decisiones'};
+    const dimLabels={autoconocimiento:'Identidad',motivacion:'Motivación',confianza:'Autoconfianza',regulacion:'Regulación emocional',atencion:'Atención y foco',metacognicion:'Metacognición',potencial:'Potencial',consistencia:'Consistencia',liderazgo:'Liderazgo',competitividad:'Competitividad',desempeno:'Desempeño',toma_decisiones:'Toma de decisiones'};
     const dimColors={autoconocimiento:'#8b5cf6',motivacion:'#f59e0b',confianza:'#0ea5e9',regulacion:'#06b6d4',atencion:'#22c55e',metacognicion:'#f97316',potencial:'#a855f7',consistencia:'#ec4899',liderazgo:'#ef4444',competitividad:'#8b5cf6',desempeno:'#0ea5e9',toma_decisiones:'#22c55e'};
     sorted.forEach(({k,v})=>{
       const label=dimLabels[k]||k;
@@ -13329,7 +13329,7 @@ function renderLegajo(r, ppJugs, ppDTs, partidos, histEvals){
     const primera=evalOrden[0];
     const ultima=evalOrden[evalOrden.length-1];
     const dimKeys=['regulacion','consistencia','confianza','autoconocimiento','atencion','metacognicion','competitividad','motivacion','liderazgo','toma_decisiones','potencial','desempeno'];
-    const dimLabels2={regulacion:'Reg. emocional',consistencia:'Consistencia',confianza:'Autoconfianza',autoconocimiento:'Autoconocimiento',atencion:'Atención',metacognicion:'Metacognición',competitividad:'Competitividad',motivacion:'Motivación',liderazgo:'Liderazgo',toma_decisiones:'Toma decisiones',potencial:'Potencial',desempeno:'Desempeño'};
+    const dimLabels2={regulacion:'Reg. emocional',consistencia:'Consistencia',confianza:'Autoconfianza',autoconocimiento:'Identidad',atencion:'Atención',metacognicion:'Metacognición',competitividad:'Competitividad',motivacion:'Motivación',liderazgo:'Liderazgo',toma_decisiones:'Toma decisiones',potencial:'Potencial',desempeno:'Desempeño'};
 
     const dispDelta=(ultima.disponibilidad||0)-(primera.disponibilidad||0);
     const dispCol=dispDelta>0?'#22c55e':dispDelta<0?'#ef4444':'#f59e0b';
@@ -13567,7 +13567,7 @@ async function exportarLegajoPDF(){
   let y=38;
   // Dimensiones
   const dims=r.dims||{};
-  const dimLabels={autoconocimiento:'Autoconocimiento',motivacion:'Motivacion',confianza:'Autoconfianza',regulacion:'Regulacion emocional',atencion:'Atencion y foco',metacognicion:'Metacognicion',potencial:'Potencial',consistencia:'Consistencia',liderazgo:'Liderazgo',competitividad:'Competitividad',desempeno:'Desempeno',toma_decisiones:'Toma de decisiones'};
+  const dimLabels={autoconocimiento:'Identidad',motivacion:'Motivacion',confianza:'Autoconfianza',regulacion:'Regulacion emocional',atencion:'Atencion y foco',metacognicion:'Metacognicion',potencial:'Potencial',consistencia:'Consistencia',liderazgo:'Liderazgo',competitividad:'Competitividad',desempeno:'Desempeno',toma_decisiones:'Toma de decisiones'};
   doc.setFillColor(230,237,250);doc.rect(14,y,182,6,'F');
   doc.setFillColor(0,194,255);doc.rect(14,y,2,6,'F');
   doc.setTextColor(10,40,100);doc.setFontSize(7);doc.setFont('helvetica','bold');doc.text('PERFIL MENTAL — TEST BASE',19,y+4.2);y+=10;
@@ -20314,7 +20314,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='08/11/2026 · 2';
+const SC360_VERSION='08/11/2026 · 3';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -23197,7 +23197,7 @@ async function generarAnalisisIAPJ(){
 
   const prompt = 'Sos un especialista en psicología deportiva y rendimiento, experto en el Modelo de Disponibilidad Competitiva (MDC: D = T − I) creado por Eduardo Meljin.\n' +
 'Escribís en español neutro profesional, con voseo rioplatense pero sin modismos informales ni lenguaje coloquial. Sos directo, técnico, claro y humano. Nunca usás términos vulgares ni expresiones de jerga. Tu tono es el de un informe profesional que leerá un cuerpo técnico y eventualmente el propio jugador.\n\n' +
-'Marco de referencia para tu lectura (no lo describas ni lo nombres explícitamente en la respuesta — usalo solo como trasfondo para que tu interpretación sea más precisa, no como una sección aparte): el rendimiento se construye en capas — primero una identidad estable que no dependa del resultado, después un sistema interno que la sostenga, después la capacidad de regular lo que se siente bajo presión, y recién ahí la competitividad genuina puede aparecer sin ser un escape del miedo a perder. Un jugador con baja Autoconfianza o Autoconocimiento todavía está resolviendo la base — no tiene sentido pedirle competitividad ahí sin haber trabajado antes esa base.\n\n' +
+'Marco de referencia para tu lectura (no lo describas ni lo nombres explícitamente en la respuesta — usalo solo como trasfondo para que tu interpretación sea más precisa, no como una sección aparte): el rendimiento se construye en capas — primero una identidad estable que no dependa del resultado, después un sistema interno que la sostenga, después la capacidad de regular lo que se siente bajo presión, y recién ahí la competitividad genuina puede aparecer sin ser un escape del miedo a perder. Un jugador con baja Autoconfianza o Identidad todavía está resolviendo la base — no tiene sentido pedirle competitividad ahí sin haber trabajado antes esa base.\n\n' +
 (patronDisc?('Patrón específico de este perfil ('+r.primary_disc+') — '+patronDisc+'\n\n'):'') +
 (estiloTxt?(estiloTxt+'\n\n'):'') +
 'Datos del jugador:\n' +
@@ -23457,7 +23457,7 @@ async function generarPDFFichaIntegral(){
   // Las mismas 5 "capas" que ya se muestran en la carta (mismo criterio, para no
   // mostrar dos lecturas distintas del mismo jugador entre la carta y la ficha)
   const capas=[
-    {label:'Identidad (Autoconoc.)',val:dims.autoconocimiento},
+    {label:'Identidad',val:dims.autoconocimiento},
     {label:'Talento diferencial',val:dims.potencial},
     {label:'Regulacion y lectura',val:dims.regulacion},
     {label:'Energia y aspiracion',val:dims.motivacion},

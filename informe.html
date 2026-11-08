@@ -135,8 +135,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 var DIMS=[
-  // Capa 1 — Autoconocimiento: quién soy, valores, patrones
-  {key:'autoconocimiento',label:'Autoconocimiento',color:'#8b5cf6'},
+  // Capa 1 — Identidad: quién soy, valores, patrones
+  {key:'autoconocimiento',label:'Identidad',color:'#8b5cf6'},
   {key:'confianza',label:'Autoconfianza',color:'#a78bfa'},
   // Capa 2 — Talento diferencial: lo singular que me diferencia
   {key:'potencial',label:'Talento diferencial',color:'#0ea5e9'},
@@ -548,7 +548,8 @@ async function generarAnalisisIA(){
 
   var d = INFORME_DATA;
   var p = d.jugador;
-  var sorted = d.sorted || [];
+  // Los tests guardados antes del 08/11/2026 traen la etiqueta vieja: se muestra con el nombre actual
+  var sorted = (d.sorted || []).map(function(x){ return x&&x.label==='Autoconocimiento'?Object.assign({},x,{label:'Identidad'}):x; });
   var disc = d.disc || {};
   var total = Object.values(disc).reduce(function(a,b){return a+b;},0)||1;
   var discPcts = Object.entries(disc).map(function(e){return e[0]+': '+Math.round(e[1]/total*100)+'%';}).join(', ');
