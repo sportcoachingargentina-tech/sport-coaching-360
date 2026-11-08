@@ -193,7 +193,10 @@ const PREGUNTAS_MENTAL=[
   'Cuando algo salió mal, lo que me dije a mí mismo me ayudó a seguir en vez de hundirme',
   // 17 y 18 · Control inhibitorio (08/11/2026): se guardan aparte, NO entran en mental_score_pct
   'Controlé mis reacciones ante el rival, el árbitro o la protesta',
-  'No me apuré: esperé el momento justo para actuar'
+  'No me apuré: esperé el momento justo para actuar',
+  // 19 · Memoria de trabajo y 20 · Flexibilidad (fase 2): aparte, NO entran en mental_score_pct
+  'Sostuve el plan de juego y las indicaciones durante todo el partido',
+  'Me adapté cuando cambió el partido'
 ];
 
 const PREGUNTAS_FISICO=[
@@ -411,7 +414,8 @@ async function enviar(){
     q10_pct:toPct10(answers[nF+9]), q11_pct:toPct10(answers[nF+10]), q12_pct:toPct10(answers[nF+11]),
     q13_pct:toPct10(answers[nF+12]), q14_pct:toPct10(answers[nF+13]), q15_pct:toPct10(answers[nF+14]),
     q16_pct:toPct10(answers[nF+15]), // Autodiálogo — capturado aparte, no entra en mental_score_pct
-    q17_pct:toPct10(answers[nF+16]), q18_pct:toPct10(answers[nF+17]) // Control inhibitorio — aparte, no entra en mental_score_pct
+    q17_pct:toPct10(answers[nF+16]), q18_pct:toPct10(answers[nF+17]), // Control inhibitorio — aparte, no entra en mental_score_pct
+    q19_pct:toPct10(answers[nF+18]), q20_pct:toPct10(answers[nF+19]) // Memoria de trabajo y flexibilidad — aparte
   };
 
   let data={
@@ -432,7 +436,7 @@ async function enviar(){
     // Mental
     q1:answers[nF],q2:answers[nF+1],q3:answers[nF+2],q4:answers[nF+3],q5:answers[nF+4],
     q6:answers[nF+5],q7:answers[nF+6],q8:answers[nF+7],q9:answers[nF+8],q10:answers[nF+9],
-    q11:answers[nF+10],q12:answers[nF+11],q13:answers[nF+12],q14:answers[nF+13],q15:answers[nF+14],q16:answers[nF+15],q17:answers[nF+16],q18:answers[nF+17],
+    q11:answers[nF+10],q12:answers[nF+11],q13:answers[nF+12],q14:answers[nF+13],q15:answers[nF+14],q16:answers[nF+15],q17:answers[nF+16],q18:answers[nF+17],q19:answers[nF+18],q20:answers[nF+19],
     // Físico post
     dolor_comp:answers[nF+nM],dolor_post:answers[nF+nM+1],fatiga_post:answers[nF+nM+2],
     texto_libre:tl||null,

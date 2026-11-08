@@ -116,7 +116,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <h1>El partido más importante<br><span>se juega en la cabeza.</span></h1>
     <p>Completá este test con honestidad. No hay respuestas buenas ni malas. Pensá en vos: como deportista, como profesional, como persona.</p>
     <div class="info-row">
-      <div class="info-pill"><div class="info-pill-val" id="info-total">58</div><div class="info-pill-lbl">preguntas</div></div>
+      <div class="info-pill"><div class="info-pill-val" id="info-total">62</div><div class="info-pill-lbl">preguntas</div></div>
       <div class="info-pill"><div class="info-pill-val">~10</div><div class="info-pill-lbl">minutos</div></div>
       <div class="info-pill"><div class="info-pill-val">8+1</div><div class="info-pill-lbl">dimensiones</div></div>
     </div>
@@ -271,8 +271,13 @@ var RADAR_QS=[
   {dim:'control_inhibitorio',fe:true,text:'Cuando me provocan, puedo no responder aunque tenga ganas.'},
   {dim:'control_inhibitorio',fe:true,text:'Puedo frenar una acción cuando me doy cuenta de que no es la mejor opción.'},
   {dim:'control_inhibitorio',fe:true,inv:true,text:'Después de un error, me apuro en la jugada siguiente para compensar.'},
+  // Fase 2 · Memoria de trabajo y flexibilidad (también fuera de D = T − I)
+  {dim:'memoria_trabajo',fe:true,text:'En el partido recuerdo las indicaciones del DT sin que me las repitan.'},
+  {dim:'memoria_trabajo',fe:true,text:'Tengo en la cabeza dónde están mis compañeros y rivales aunque no los esté mirando.'},
+  {dim:'flexibilidad',fe:true,text:'Me adapto rápido cuando el rival cambia la forma de jugar.'},
+  {dim:'flexibilidad',fe:true,text:'Si algo no me funciona, pruebo otra solución en el momento.'},
 ];
-var FE_DIMS=[{key:'control_inhibitorio',label:'Control inhibitorio',color:'#06b6d4'}];
+var FE_DIMS=[{key:'control_inhibitorio',label:'Control inhibitorio',color:'#06b6d4'},{key:'memoria_trabajo',label:'Memoria de trabajo',color:'#06b6d4'},{key:'flexibilidad',label:'Flexibilidad cognitiva',color:'#06b6d4'}];
 // Funciones ejecutivas: promedio 1–5 (invertidas corregidas) y % comparable
 function calcFE(){
   var out={version:1};

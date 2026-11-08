@@ -100,6 +100,8 @@ body.es-admin .solo-admin{display:inline!important}
 .dcx-ev:first-of-type{border-top:0}
 .dcx-cov{display:grid;grid-template-columns:20px 1fr 42px;gap:6px;align-items:center;font-size:11px;margin:5px 0}
 .dcx-cov .tr{height:6px;background:#0a1024;border-radius:4px;overflow:hidden}.dcx-cov .tr span{display:block;height:100%}
+.fe-fila .es{padding:0}
+@media(max-width:600px){.fe-fila{grid-template-columns:repeat(3,minmax(0,1fr))!important}.fe-fila>:first-child{grid-column:1/-1}}
 #dcx-tip{position:fixed;z-index:9999;max-width:260px;background:#0a1530;border:1px solid #00c2ff66;color:#e8eff8;font-size:12px;line-height:1.4;padding:8px 10px;border-radius:9px;box-shadow:0 8px 24px #0008}
 .dcx-det .dsh-bloque-t{display:none}
 #dash-club-sub,#dash-hero > div:nth-child(2) > div:first-child{display:none}
@@ -1143,8 +1145,8 @@ tr:hover td{background:#0d1b3e40}
         <div id="ig-capa-alerta" style="margin:0 14px 14px"></div>
       </div>
       <div class="tw" id="ig-fe-w" style="display:none">
-        <div class="th">🧩 FUNCIONES EJECUTIVAS · CONTROL INHIBITORIO · CAPA 3</div>
-        <div style="font-size:11px;color:#b4c2d4;padding:10px 14px 0">Frenar un impulso a tiempo para hacer lo que conviene. Test y Post Partido se muestran por separado.</div>
+        <div class="th">🧩 FUNCIONES EJECUTIVAS · CAPA 3 · REGULACIÓN Y LECTURA</div>
+        <div style="font-size:11px;color:#b4c2d4;padding:10px 14px 0">Control inhibitorio, memoria de trabajo y flexibilidad. Test y Post Partido se muestran por separado.</div>
         <div id="ig-fe" style="padding:10px 14px 14px"></div>
       </div>
       <div class="tw" id="ig-disc-w" style="display:none">
@@ -18202,37 +18204,44 @@ async function loadPerfilJugador() {
 // ═══════════════════════════════════════════════════════════════
 const CAPAS_DEF_PJ = [
   { key:'autoconocimiento', nombre:'Identidad', color:'#8b5cf6', dims:['autoconocimiento','confianza'], ejercicios:['apuesta_confianza'] },
-  { key:'talento', nombre:'Talento Diferencial', color:'#0ea5e9', dims:['potencial','liderazgo'], ejercicios:['memoria_trabajo'] },
-  { key:'regulacion', nombre:'Regulación y Lectura', color:'#06b6d4', dims:['regulacion','metacognicion','decision','atencion'], ejercicios:['go_nogo','stroop'] },
+  { key:'talento', nombre:'Talento Diferencial', color:'#0ea5e9', dims:['potencial','liderazgo'], ejercicios:[] },
+  { key:'regulacion', nombre:'Regulación y Lectura', color:'#06b6d4', dims:['regulacion','metacognicion','decision','atencion'], ejercicios:['go_nogo','stroop','memoria_trabajo'] },
   { key:'energia', nombre:'Energía y Aspiración', color:'#f59e0b', dims:['motivacion','consistencia'], ejercicios:['resistencia'] },
   { key:'destreza', nombre:'Destreza y Oportunidad', color:'#22c55e', dims:['competitividad','desempeno'], ejercicios:['reaccion_simple'] },
 ];
 
 // ═══════════════════════════════════════════════════════════════
-// FUNCIONES EJECUTIVAS · CAPA 3 (08/11/2026) — Fase 1: control inhibitorio
+// FUNCIONES EJECUTIVAS · CAPA 3 (08/11/2026)
+// Fase 1: control inhibitorio · Fase 2: memoria de trabajo y flexibilidad.
 // Tres fuentes, siempre por separado y sin mezclarlas en un número:
-//   • Test MDC   → cómo se percibe   (resultados.funciones_ejecutivas)
-//   • Post Partido → cómo dice que actuó (postpartido_jugador.q17/q18)
-//   • Gimnasio   → lo que rinde      (ejercicios_cognitivos go_nogo/stroop)
+//   • Test MDC     → cómo se percibe      (resultados.funciones_ejecutivas)
+//   • Post Partido → cómo dice que actuó  (postpartido_jugador q17–q20)
+//   • Gimnasio     → lo que rinde         (ejercicios_cognitivos)
 // No entra en D = T − I, ni en el IDC, ni en el estado mental del Post Partido.
 // ═══════════════════════════════════════════════════════════════
 const FE_DESDE='noviembre 2026';
+const FE_FUNCS=[
+  {k:'control_inhibitorio', nombre:'Control inhibitorio', que:'Frenar el impulso a tiempo: no responder la provocación, no apurarse después del error.', pp:['q17_pct','q18_pct'], ppTxt:'Preguntas 17 y 18', gym:'go_nogo'},
+  {k:'memoria_trabajo', nombre:'Memoria de trabajo', que:'Sostener la información en la cabeza mientras juega: indicaciones, plan y posiciones.', pp:['q19_pct'], ppTxt:'Pregunta 19', gym:'memoria_trabajo'},
+  {k:'flexibilidad', nombre:'Flexibilidad cognitiva', que:'Cambiar de plan cuando cambia el partido y probar otra solución.', pp:['q20_pct'], ppTxt:'Pregunta 20', gym:null}
+];
 function feCol(v){ return v==null?'#7c8fae':v>=80?'#22c55e':v>=65?'#f59e0b':'#ef4444'; }
 function feEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function feProm(a){ const v=a.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((s,x)=>s+x,0)/v.length:null; }
 function feMismo(a,b){ return (a.jugador_uid&&b.jugador_uid&&a.jugador_uid===b.jugador_uid)||(String(a.jugador_nombre||'').trim().toLowerCase()===String(b.jugador_nombre||'').trim().toLowerCase()); }
-// Test: la evaluación más reciente del jugador que ya tenga el dato
-function feTest(r,lista){
+// Test: la evaluación más reciente del jugador que tenga esa función
+function feTest(r,lista,k){
+  k=k||'control_inhibitorio';
   const rows=[r].concat((lista||[]).filter(x=>x!==r&&feMismo(x,r)))
-    .filter(x=>x&&x.funciones_ejecutivas&&x.funciones_ejecutivas.control_inhibitorio)
+    .filter(x=>x&&x.funciones_ejecutivas&&x.funciones_ejecutivas[k])
     .sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')));
   if(!rows.length) return null;
-  const ci=rows[0].funciones_ejecutivas.control_inhibitorio;
-  return {v:ci.pct, fecha:rows[0].fecha};
+  return {v:rows[0].funciones_ejecutivas[k].pct, fecha:rows[0].fecha};
 }
-// Post Partido: promedio de las preguntas 17 y 18 por partido (0–100)
-function fePPFilas(rows){
-  return (rows||[]).map(p=>({cod:p.partido_codigo, v:feProm([p.q17_pct,p.q18_pct])})).filter(x=>x.v!=null);
+// Post Partido: promedio por partido de las preguntas de esa función (0–100)
+function fePPFilas(rows,cols){
+  cols=cols||['q17_pct','q18_pct'];
+  return (rows||[]).map(p=>({cod:p.partido_codigo, v:feProm(cols.map(c=>p[c]))})).filter(x=>x.v!=null);
 }
 function fePPResumen(filas){
   if(!filas.length) return null;
@@ -18241,80 +18250,92 @@ function fePPResumen(filas){
   if(filas.length>=6){ const a=feProm(filas.slice(0,3).map(x=>x.v)), b=feProm(filas.slice(3,6).map(x=>x.v)); tend=Math.round(a-b); }
   return {v, n:ult.length, total:filas.length, tend};
 }
-// Gimnasio: último Go/No-Go (inhibición) y último Stroop (interferencia)
-function feGym(cog){
-  const gn=(cog||[]).find(c=>c.tipo==='go_nogo'&&c.detalle&&c.detalle.inhibicion_pct!=null);
-  const st=(cog||[]).find(c=>c.tipo==='stroop'&&c.detalle&&c.detalle.precision_pct!=null);
-  if(!gn&&!st) return null;
-  const costo=st&&st.detalle.tiempo_incongruente_prom!=null&&st.detalle.tiempo_congruente_prom!=null?Math.round(st.detalle.tiempo_incongruente_prom-st.detalle.tiempo_congruente_prom):null;
-  return {v:gn?Math.round(gn.detalle.inhibicion_pct):null, fGn:gn&&gn.creado_en, prec:st?Math.round(st.detalle.precision_pct):null, costo, fSt:st&&st.creado_en};
+// Gimnasio: último resultado del ejercicio de cada función
+function feGym(cog,tipo){
+  if(tipo==='go_nogo'){
+    const gn=(cog||[]).find(c=>c.tipo==='go_nogo'&&c.detalle&&c.detalle.inhibicion_pct!=null);
+    const st=(cog||[]).find(c=>c.tipo==='stroop'&&c.detalle&&c.detalle.precision_pct!=null);
+    if(!gn&&!st) return null;
+    const costo=st&&st.detalle.tiempo_incongruente_prom!=null&&st.detalle.tiempo_congruente_prom!=null?Math.round(st.detalle.tiempo_incongruente_prom-st.detalle.tiempo_congruente_prom):null;
+    return {v:gn?Math.round(gn.detalle.inhibicion_pct):null, txt:(gn?'Go/No-Go '+decFechaCorta(gn.creado_en):'Sin Go/No-Go')+(st?' · Stroop '+Math.round(st.detalle.precision_pct)+'%'+(costo!=null?', interferencia '+costo+' ms':''):'')};
+  }
+  if(tipo==='memoria_trabajo'){
+    const m=(cog||[]).find(c=>c.tipo==='memoria_trabajo'&&c.detalle&&c.detalle.nivel_alcanzado!=null);
+    return m?{nivel:m.detalle.nivel_alcanzado, txt:'Nivel alcanzado · '+decFechaCorta(m.creado_en)}:null;
+  }
+  return null;
 }
-function feTarjeta(titulo,sub,v,extra,vacio){
-  return '<div style="background:#0a1024;border:1px solid #1a3a6e;border-radius:12px;padding:12px;min-width:0">'+
-    '<div style="font-size:9.5px;font-weight:800;color:#7c8fae;letter-spacing:.06em;text-transform:uppercase">'+titulo+'</div>'+
-    '<div style="font-size:10.5px;color:#5d7391;margin-top:1px">'+sub+'</div>'+
-    (v!=null?'<div style="font-size:30px;font-weight:900;color:'+feCol(v)+';line-height:1;margin-top:8px">'+v+'</div>'+
-      '<div style="height:6px;background:#132449;border-radius:4px;overflow:hidden;margin-top:6px"><div style="height:100%;width:'+Math.max(0,Math.min(100,v))+'%;background:'+feCol(v)+'"></div></div>'
-      :'<div style="font-size:13px;font-weight:700;color:#7c8fae;margin-top:10px">Sin datos</div>')+
-    '<div style="font-size:11px;color:'+(v!=null?'#b4c2d4':'#7c8fae')+';margin-top:6px;line-height:1.4">'+(v!=null?extra:vacio)+'</div></div>';
+function feCelda(v,sub,vacio){
+  if(v==null) return '<div style="min-width:0"><div style="font-size:13px;font-weight:700;color:#4a5a78">—</div><div style="font-size:10px;color:#5d7391;margin-top:2px;line-height:1.3">'+vacio+'</div></div>';
+  return '<div style="min-width:0"><div style="font-size:22px;font-weight:900;color:'+feCol(v)+';line-height:1">'+v+'</div>'+
+    '<div style="height:5px;background:#132449;border-radius:3px;overflow:hidden;margin-top:5px"><div style="height:100%;width:'+Math.max(0,Math.min(100,v))+'%;background:'+feCol(v)+'"></div></div>'+
+    '<div style="font-size:10px;color:#94a3b8;margin-top:4px;line-height:1.3">'+sub+'</div></div>';
 }
-function feLectura(t,pp,g){
-  // Lectura de una frase solo cuando hay dos fuentes para comparar
-  const s=[]; if(t) s.push(['test',t.v]); if(pp) s.push(['pp',pp.v]); if(g&&g.v!=null) s.push(['gym',g.v]);
-  if(s.length<2) return '';
-  const tv=t?t.v:null, accion=pp?pp.v:(g&&g.v!=null?g.v:null);
-  let txt;
-  if(tv!=null&&accion!=null&&tv-accion>=15) txt='Se percibe con más control del que muestra en la acción: vale la pena trabajarlo con situaciones reales de partido.';
-  else if(tv!=null&&accion!=null&&accion-tv>=15) txt='En la acción muestra más control del que se reconoce: reforzarlo para que lo incorpore como propio.';
-  else { const m=Math.round(feProm(s.map(x=>x[1]))); txt=m>=80?'Las fuentes coinciden: frena a tiempo y sostiene la decisión.':m>=65?'Las fuentes coinciden en un nivel intermedio: hay margen para trabajar el freno antes de actuar.':'Las fuentes coinciden en un nivel bajo: priorizar el trabajo de freno y respuesta al error.'; }
-  return '<div style="margin-top:10px;padding:9px 12px;border-radius:10px;background:#06b6d414;border:1px solid #06b6d444;font-size:12px;color:#e8eff8;line-height:1.45">'+txt+'</div>';
+function feBrecha(nombre,t,acc){
+  if(t==null||acc==null) return null;
+  if(t-acc>=15) return '<b>'+nombre+'</b>: se percibe con más de lo que muestra en la acción.';
+  if(acc-t>=15) return '<b>'+nombre+'</b>: en la acción muestra más de lo que se reconoce.';
+  return null;
 }
 async function renderFEPJ(r){
   const box=document.getElementById('pj-fe'); if(!box||!r) return;
   box.innerHTML='<div class="es">Cargando…</div>';
-  const t=feTest(r,typeof PJ_RESULTADOS!=='undefined'?PJ_RESULTADOS:[]);
+  const lista=typeof PJ_RESULTADOS!=='undefined'?PJ_RESULTADOS:[];
   const nom=encodeURIComponent((r.jugador_nombre||'').trim());
   const filtro=r.jugador_uid?'or=(jugador_uid.eq.'+r.jugador_uid+',jugador_nombre.ilike.'+nom+')':'jugador_nombre=ilike.'+nom;
   let ppRows=[], cog=[];
   try{ [ppRows,cog]=await Promise.all([
-    q('postpartido_jugador?'+filtro+'&select=partido_codigo,q17_pct,q18_pct&order=partido_codigo.desc&limit=20').catch(()=>[]),
-    nom?q('ejercicios_cognitivos?jugador_nombre=ilike.'+nom+'&tipo=in.(go_nogo,stroop)&order=creado_en.desc&limit=20').catch(()=>[]):[]
+    q('postpartido_jugador?'+filtro+'&select=partido_codigo,q17_pct,q18_pct,q19_pct,q20_pct&order=partido_codigo.desc&limit=20').catch(()=>[]),
+    nom?q('ejercicios_cognitivos?jugador_nombre=ilike.'+nom+'&tipo=in.(go_nogo,stroop,memoria_trabajo)&order=creado_en.desc&limit=30').catch(()=>[]):[]
   ]); }catch(e){}
   if(PJ_ACTUAL&&PJ_ACTUAL.id!==r.id) return; // cambió de jugador mientras cargaba
-  const pp=fePPResumen(fePPFilas(ppRows)), g=feGym(cog);
-  const tendTxt=pp&&pp.tend!=null?' · tendencia <b style="color:'+(Math.abs(pp.tend)<3?'#b4c2d4':pp.tend>0?'#22c55e':'#ef4444')+'">'+(Math.abs(pp.tend)<3?'estable':(pp.tend>0?'▲ +':'▼ ')+pp.tend)+'</b>':'';
-  box.innerHTML='<div style="font-size:12px;color:#b4c2d4;margin-bottom:10px;line-height:1.45"><b style="color:#06b6d4">Control inhibitorio</b> · frenar un impulso a tiempo para hacer lo que conviene: no responder la provocación, no salir antes de tiempo, no apurarse después del error.</div>'+
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px">'+
-    feTarjeta('Cómo se percibe','Test MDC · 3 preguntas',t?t.v:null,t?'Test del '+decFechaCorta(t.fecha):'', 'Se mide desde el test de '+FE_DESDE+'. Aparece con la próxima evaluación.')+
-    feTarjeta('Cómo actuó','Post Partido · preguntas 17 y 18',pp?pp.v:null,pp?'Promedio de '+pp.n+' partido'+(pp.n>1?'s':'')+tendTxt:'', 'Aparece cuando responda el Post Partido.')+
-    feTarjeta('Cómo rinde','Gimnasio · Go/No-Go y Stroop',g?g.v:null,g?((g.v!=null?'Inhibición en Go/No-Go'+(g.fGn?' · '+decFechaCorta(g.fGn):''):'Sin Go/No-Go')+(g.prec!=null?'<br>Stroop: '+g.prec+'% de aciertos'+(g.costo!=null?' · interferencia '+g.costo+' ms':''):'')):'', 'Pedile el ejercicio Go/No-Go en el gimnasio cognitivo.')+
-    '</div>'+feLectura(t,pp,g)+
-    '<div style="font-size:10.5px;color:#5d7391;margin-top:8px">Escala 0–100 · verde desde 80. No entra en D = T − I ni en el IDC.</div>';
+  const brechas=[];
+  const filas=FE_FUNCS.map(fx=>{
+    const t=feTest(r,lista,fx.k), pp=fePPResumen(fePPFilas(ppRows,fx.pp)), g=fx.gym?feGym(cog,fx.gym):null;
+    const tend=pp&&pp.tend!=null?(Math.abs(pp.tend)<3?' · estable':' · '+(pp.tend>0?'▲ +':'▼ ')+pp.tend):'';
+    const b=feBrecha(fx.nombre,t&&t.v,pp?pp.v:(g&&g.v!=null?g.v:null)); if(b) brechas.push(b);
+    const gymCelda=!fx.gym?'<div style="font-size:10px;color:#5d7391;line-height:1.3">Ejercicio en preparación</div>'
+      :g&&g.nivel!=null?'<div style="min-width:0"><div style="font-size:22px;font-weight:900;color:#00c2ff;line-height:1">Nv. '+g.nivel+'</div><div style="font-size:10px;color:#94a3b8;margin-top:9px;line-height:1.3">'+g.txt+'</div></div>'
+      :feCelda(g?g.v:null,g?g.txt:'','Sin ejercicio cargado');
+    return '<div class="fe-fila" style="display:grid;grid-template-columns:minmax(0,1.3fr) repeat(3,minmax(0,1fr));gap:12px;align-items:start;padding:11px 0;border-top:1px solid #1a3a6e66">'+
+      '<div style="min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+fx.nombre+'</div><div style="font-size:10.5px;color:#94a3b8;margin-top:2px;line-height:1.35">'+fx.que+'</div></div>'+
+      feCelda(t?t.v:null,t?'Test '+decFechaCorta(t.fecha):'','Desde el test de '+FE_DESDE)+
+      feCelda(pp?pp.v:null,pp?pp.n+' partido'+(pp.n>1?'s':'')+tend:'','Con el Post Partido nuevo')+
+      gymCelda+'</div>';
+  }).join('');
+  box.innerHTML='<div class="fe-fila fe-cab" style="display:grid;grid-template-columns:minmax(0,1.3fr) repeat(3,minmax(0,1fr));gap:12px;font-size:9.5px;font-weight:800;color:#7c8fae;letter-spacing:.06em;padding-bottom:6px">'+
+      '<span>FUNCIÓN</span><span>CÓMO SE PERCIBE<br><span style="font-weight:500;letter-spacing:0">Test MDC</span></span><span>CÓMO ACTUÓ<br><span style="font-weight:500;letter-spacing:0">Post Partido</span></span><span>CÓMO RINDE<br><span style="font-weight:500;letter-spacing:0">Gimnasio</span></span></div>'+
+    filas+
+    (brechas.length?'<div style="margin-top:8px;padding:9px 12px;border-radius:10px;background:#06b6d414;border:1px solid #06b6d444;font-size:12px;color:#e8eff8;line-height:1.5">'+brechas.join('<br>')+'</div>':'')+
+    '<div style="font-size:10.5px;color:#5d7391;margin-top:8px">Escala 0–100 · verde desde 80 · en amarillo desde 65. No entra en D = T − I ni en el IDC.</div>';
 }
-// Informe grupal: promedio del plantel por fuente y jugadores con valores bajos
+// Informe grupal: promedio del plantel por función y fuente, y jugadores con valores bajos
 async function igRenderFE(f){
   const w=document.getElementById('ig-fe-w'), box=document.getElementById('ig-fe'); if(!w||!box) return;
   if(!f||!f.length){ w.style.display='none'; return; }
   w.style.display='block'; box.innerHTML='<div class="es">Cargando…</div>';
   const N=f.length;
-  const tests=f.map(r=>({r,t:feTest(r,AR)}));
   let ppAll=[];
   try{ const cods=[...new Set(f.map(r=>r.grupo_codigo).filter(Boolean))];
-    if(cods.length) ppAll=await q('postpartido_jugador?grupo_codigo=in.('+cods.map(encodeURIComponent).join(',')+')&or=(q17.not.is.null,q18.not.is.null)&select=jugador_uid,jugador_nombre,partido_codigo,q17_pct,q18_pct&order=partido_codigo.desc&limit=3000')||[]; }catch(e){}
-  const filas=f.map(r=>{ const t=tests.find(x=>x.r===r).t; const pp=fePPResumen(fePPFilas(ppAll.filter(p=>feMismo(p,r)))); return {r,t:t?t.v:null,pp:pp?pp.v:null}; });
-  const conT=filas.filter(x=>x.t!=null), conP=filas.filter(x=>x.pp!=null);
-  const pT=conT.length?Math.round(feProm(conT.map(x=>x.t))):null, pP=conP.length?Math.round(feProm(conP.map(x=>x.pp))):null;
-  const bajos=filas.filter(x=>(x.t!=null&&x.t<65)||(x.pp!=null&&x.pp<65)).sort((a,b)=>Math.min(a.t??100,a.pp??100)-Math.min(b.t??100,b.pp??100));
-  const card=(tit,v,n,vacio)=>'<div style="background:#0a1024;border:1px solid #1a3a6e;border-radius:12px;padding:12px"><div style="font-size:9.5px;font-weight:800;color:#7c8fae;letter-spacing:.06em;text-transform:uppercase">'+tit+'</div>'+
-    (v!=null?'<div style="font-size:30px;font-weight:900;color:'+feCol(v)+';line-height:1;margin-top:8px">'+v+'</div><div style="font-size:11px;color:#b4c2d4;margin-top:6px">'+n+' de '+N+' jugadores</div>':'<div style="font-size:13px;font-weight:700;color:#7c8fae;margin-top:10px">Sin datos</div><div style="font-size:11px;color:#7c8fae;margin-top:4px">'+vacio+'</div>')+'</div>';
-  box.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px">'+
-    card('Cómo se perciben · Test',pT,conT.length,'Se mide desde el test de '+FE_DESDE+'.')+
-    card('Cómo actuaron · Post Partido',pP,conP.length,'Aparece con las respuestas a las preguntas 17 y 18.')+'</div>'+
-    (bajos.length?'<div style="margin-top:12px;font-size:10px;font-weight:800;color:#7c8fae;letter-spacing:.06em">JUGADORES CON CONTROL INHIBITORIO BAJO (MENOS DE 65)</div>'+
-      bajos.slice(0,12).map(x=>'<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #1a3a6e55;font-size:12.5px"><b style="color:#fff;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+feEsc(x.r.jugador_nombre)+'</b><span style="white-space:nowrap;font-size:11.5px">'+
-        (x.t!=null?'Test <b style="color:'+feCol(x.t)+'">'+x.t+'</b>':'')+(x.t!=null&&x.pp!=null?' · ':'')+(x.pp!=null?'Partido <b style="color:'+feCol(x.pp)+'">'+x.pp+'</b>':'')+'</span></div>').join('')
-      :(conT.length||conP.length?'<div style="margin-top:10px;font-size:12px;color:#22c55e">✓ Ningún jugador por debajo de 65 con los datos cargados.</div>':''))+
-    '<div style="font-size:10.5px;color:#5d7391;margin-top:8px">Escala 0–100 · verde desde 80. No entra en D = T − I ni en el IDC.</div>';
+    if(cods.length) ppAll=await q('postpartido_jugador?grupo_codigo=in.('+cods.map(encodeURIComponent).join(',')+')&or=(q17.not.is.null,q18.not.is.null,q19.not.is.null,q20.not.is.null)&select=jugador_uid,jugador_nombre,partido_codigo,q17_pct,q18_pct,q19_pct,q20_pct&order=partido_codigo.desc&limit=3000')||[]; }catch(e){}
+  const ppDe=r=>ppAll.filter(p=>feMismo(p,r));
+  const datos=f.map(r=>{ const pr=ppDe(r); const o={r}; FE_FUNCS.forEach(fx=>{ const t=feTest(r,AR,fx.k), pp=fePPResumen(fePPFilas(pr,fx.pp)); o[fx.k]={t:t?t.v:null,pp:pp?pp.v:null}; }); return o; });
+  const celda=(v,n)=>v==null?'<span style="color:#4a5a78">—</span>':'<b style="font-size:17px;color:'+feCol(v)+'">'+v+'</b> <span style="font-size:10.5px;color:#7c8fae">'+n+'/'+N+'</span>';
+  const filas=FE_FUNCS.map(fx=>{
+    const ts=datos.map(d=>d[fx.k].t).filter(v=>v!=null), ps=datos.map(d=>d[fx.k].pp).filter(v=>v!=null);
+    return '<div style="display:grid;grid-template-columns:minmax(0,1.4fr) 1fr 1fr;gap:10px;align-items:center;padding:9px 0;border-top:1px solid #1a3a6e66;font-size:12.5px"><b style="color:#fff">'+fx.nombre+'</b>'+
+      '<span>'+celda(ts.length?Math.round(feProm(ts)):null,ts.length)+'</span><span>'+celda(ps.length?Math.round(feProm(ps)):null,ps.length)+'</span></div>';
+  }).join('');
+  const bajos=datos.map(d=>({r:d.r, b:FE_FUNCS.map(fx=>{ const x=d[fx.k], m=Math.min(x.t??100,x.pp??100); return m<65?{n:fx.nombre,m,x}:null; }).filter(Boolean)}))
+    .filter(x=>x.b.length).sort((a,b)=>Math.min(...a.b.map(y=>y.m))-Math.min(...b.b.map(y=>y.m)));
+  const hay=datos.some(d=>FE_FUNCS.some(fx=>d[fx.k].t!=null||d[fx.k].pp!=null));
+  box.innerHTML='<div style="display:grid;grid-template-columns:minmax(0,1.4fr) 1fr 1fr;gap:10px;font-size:9.5px;font-weight:800;color:#7c8fae;letter-spacing:.06em;padding-bottom:6px"><span>FUNCIÓN</span><span>TEST · PROMEDIO</span><span>POST PARTIDO · PROMEDIO</span></div>'+filas+
+    (!hay?'<div style="margin-top:10px;font-size:12px;color:#7c8fae">Sin datos todavía: se mide desde el test y el Post Partido de '+FE_DESDE+'.</div>'
+     :bajos.length?'<div style="margin-top:12px;font-size:10px;font-weight:800;color:#7c8fae;letter-spacing:.06em">JUGADORES POR DEBAJO DE 65</div>'+
+      bajos.slice(0,12).map(x=>'<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #1a3a6e55;font-size:12.5px"><b style="color:#fff;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+feEsc(x.r.jugador_nombre)+'</b><span style="font-size:11.5px;text-align:right">'+
+        x.b.map(y=>y.n+' <b style="color:'+feCol(y.m)+'">'+Math.round(y.m)+'</b>').join(' · ')+'</span></div>').join('')
+     :'<div style="margin-top:10px;font-size:12px;color:#22c55e">✓ Ningún jugador por debajo de 65 con los datos cargados.</div>')+
+    '<div style="font-size:10.5px;color:#5d7391;margin-top:8px">Escala 0–100 · verde desde 80. Junto a cada promedio, cuántos jugadores tienen el dato. No entra en D = T − I ni en el IDC.</div>';
 }
 async function renderCuadrantePJ(r){
   const cont = document.getElementById('pj-cuadrante');
@@ -19399,7 +19420,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='08/11/2026 · 1';
+const SC360_VERSION='08/11/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
