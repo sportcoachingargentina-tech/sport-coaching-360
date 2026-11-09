@@ -20476,7 +20476,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='08/11/2026 · 7';
+const SC360_VERSION='09/11/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -22383,6 +22383,22 @@ async function evAccionesCargar(){
 // Los bloques existentes no se borran: se mueven a desplegables.
 // ═══════════════════════════════════════════════════════════════
 function pjLbl(k){ const d=(typeof DL!=='undefined'?DL:[]).find(x=>x.key===k); return d?d.label:((typeof DIM_LABELS!=='undefined'&&DIM_LABELS[k])||k); }
+// Acción individual por dimensión: la del perfil es para ESTE jugador
+// (ACCION_CAPA y ACCION_DT siguen siendo las del equipo, en el Inicio)
+const ACCION_INDIVIDUAL={
+  autoconocimiento:'Una charla corta con él: que diga qué lo hace distinto y cuál es su rol en el equipo. Recordáselo antes del partido.',
+  confianza:'Dejalo repetir la acción que le salió mal hasta que le salga, sin cambiar de ejercicio, y marcale cuando la resuelve bien.',
+  potencial:'Dale un desafío técnico un poco por encima de su nivel esta semana, con devolución en el momento.',
+  liderazgo:'Dale una responsabilidad concreta en la práctica: dirigir la entrada en calor o elegir un ejercicio.',
+  regulacion:'Acordá con él una rutina de 3 respiraciones antes de cada pelota parada y que la use en cada entrenamiento.',
+  metacognicion:'Después del entrenamiento, preguntale por una decisión puntual que tomó y por qué.',
+  decision:'En rondos y juegos reducidos, ponelo con 2 toques máximo para que lea y decida más rápido.',
+  atencion:'Dale una sola consigna para mirar en el partido y repasala con él en el entretiempo.',
+  motivacion:'Antes del próximo partido, pedile un objetivo personal de actitud (no de resultado) y revisalo con él después.',
+  consistencia:'Acordá con él un registro simple de puntualidad y actitud, y revisalo juntos cada 2 semanas.',
+  competitividad:'Sumalo a una competencia de baja presión en la entrada en calor y destacale el esfuerzo, no solo el resultado.',
+  desempeno:'Mostrale un video corto de una jugada suya reciente y pedile su lectura.'
+};
 function pjFoco(r){
   // Con el criterio del cuerpo técnico, el foco es el que eligió el DT
   const B=pjFocoSC360(r); if(!B) return B;
@@ -22391,7 +22407,7 @@ function pjFoco(r){
   const capa=CAPAS_DEF_PJ.find(x=>x.dims.includes(k)), ej=EJERCICIO_COGNITIVO_DIM[k]||null;
   return Object.assign({},B,{dt:true, sc:B.foco, foco:{keys:[k], nombre:pjLbl(k), v:Math.round(dd[k]/5*100)},
     capaFoco:capa?{nombre:capa.nombre,key:capa.key}:null, tambien:null,
-    accion:(capa&&ACCION_CAPA[capa.key])||B.accion,
+    accion:ACCION_INDIVIDUAL[k]||(capa&&ACCION_CAPA[capa.key])||B.accion,
     ejercicio:ej?{tipo:ej.tipo,nombre:(COG_LABELS[ej.tipo]||ej.tipo),razon:ej.razon}:B.ejercicio});
 }
 function pjFocoSC360(r){
@@ -22408,7 +22424,7 @@ function pjFocoSC360(r){
     foco:{keys:focoDs.map(x=>x.k), nombre:focoDs.map(x=>pjLbl(x.k)).join(' y '), v:mn},
     fortaleza:{keys:fortDs.map(x=>x.k), nombre:fortDs.map(x=>pjLbl(x.k)).join(' y '), v:mx},
     tambien:tambien?{nombre:pjLbl(tambien.k), v:tambien.v, capa:tambien.capa.nombre}:null,
-    accion:(typeof ACCION_CAPA!=='undefined'&&ACCION_CAPA[baja.c.key])||'',
+    accion:ACCION_INDIVIDUAL[focoDs[0].k]||(typeof ACCION_CAPA!=='undefined'&&ACCION_CAPA[baja.c.key])||'',
     ejercicio:ej?{tipo:ej.tipo, nombre:(COG_LABELS[ej.tipo]||ej.tipo), razon:ej.razon}:null};
 }
 function pjColV(v){ return v==null?'#7c8fae':v>=80?'#22c55e':v>=65?'#f59e0b':'#ef4444'; }
