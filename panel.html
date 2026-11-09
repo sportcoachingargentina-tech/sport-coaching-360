@@ -126,6 +126,7 @@ body.es-admin .solo-admin{display:inline!important}
 #pj-left-col>div.pj-print-hide:not(#pj-patron-slot){grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
 #pj-left-col>div.pj-print-hide:not(#pj-patron-slot) button{font-size:11px!important;padding:8px 4px!important;white-space:normal!important;line-height:1.25;overflow:visible!important}
 @media print{.pjx-det>summary{display:none}}
+#pjxd-fe .pjx-in>.tw>.th,#pjxd-trabajar .pjx-in>.tw>.th{display:none}
 @media(max-width:600px){.pp-resp .ppr-l{display:none}}
 #dcx-tip{position:fixed;z-index:9999;max-width:260px;background:#0a1530;border:1px solid #00c2ff66;color:#e8eff8;font-size:12px;line-height:1.4;padding:8px 10px;border-radius:9px;box-shadow:0 8px 24px #0008}
 .dcx-det .dsh-bloque-t{display:none}
@@ -11396,7 +11397,7 @@ function evRenderTendencias(data){
     const a2=evAvg(data.slice(mid).map(d=>d[k]).filter(v=>v!=null));
     return a1!=null&&a2!=null?{lbl,diff:a2-a1}:null;
   }).filter(Boolean).sort((a,b)=>Math.abs(b.diff)-Math.abs(a.diff));
-  el.innerHTML=tends.slice(0,10).map(t=>{const c=t.diff>0.5?'#22c55e':t.diff<-0.5?'#ef4444':'#b4c2d4';const arr=t.diff>0.5?'▲':t.diff<-0.5?'▼':'→';return`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(26,58,110,0.2);font-size:12px"><span style="color:#b4c2d4">${t.lbl}</span><span style="color:${c};font-weight:700">${arr} ${t.diff>=0?'+':''}${evFmt(t.diff)}</span></div>`;}).join('')||'<div style="font-size:12px;color:#b4c2d4">Sin datos.</div>';
+  el.innerHTML=tends.slice(0,10).map(t=>{const c=t.diff>0.5?'#22c55e':t.diff<-0.5?'#ef4444':'#b4c2d4';const arr=t.diff>0.5?'▲':t.diff<-0.5?'▼':'→';return`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(26,58,110,0.2);font-size:12px"><span style="color:#b4c2d4">${FE_REL_PP.has(t.lbl)?'🧩 ':''}${t.lbl}</span><span style="color:${c};font-weight:700">${arr} ${t.diff>=0?'+':''}${evFmt(t.diff)}</span></div>`;}).join('')+(tends.slice(0,10).some(t=>FE_REL_PP.has(t.lbl))?'<div style="font-size:10.5px;color:#7c8fae;margin-top:6px">🧩 Relacionada con funciones ejecutivas (capa 3)</div>':'')||'<div style="font-size:12px;color:#b4c2d4">Sin datos.</div>';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -18370,10 +18371,21 @@ const CAPAS_DEF_PJ = [
 // ═══════════════════════════════════════════════════════════════
 const FE_DESDE='noviembre 2026';
 const FE_FUNCS=[
-  {k:'control_inhibitorio', nombre:'Control inhibitorio', que:'Frenar el impulso a tiempo: no responder la provocación, no apurarse después del error.', pp:['q17_pct','q18_pct'], ppTxt:'Preguntas 17 y 18', gym:'go_nogo'},
-  {k:'memoria_trabajo', nombre:'Memoria de trabajo', que:'Sostener la información en la cabeza mientras juega: indicaciones, plan y posiciones.', pp:['q19_pct'], ppTxt:'Pregunta 19', gym:'memoria_trabajo'},
-  {k:'flexibilidad', nombre:'Flexibilidad cognitiva', que:'Cambiar de plan cuando cambia el partido y probar otra solución.', pp:['q20_pct'], ppTxt:'Pregunta 20', gym:null}
+  {k:'control_inhibitorio', nombre:'Control inhibitorio', que:'Frenar el impulso a tiempo: no responder la provocación, no apurarse después del error.', pp:['q17_pct','q18_pct'], ppTxt:'Preguntas 17 y 18', gym:'go_nogo', rel:['Concentración y foco','Eje ante adversidad','Recuperación tras error']},
+  {k:'memoria_trabajo', nombre:'Memoria de trabajo', que:'Sostener la información en la cabeza mientras juega: indicaciones, plan y posiciones.', pp:['q19_pct'], ppTxt:'Pregunta 19', gym:'memoria_trabajo', rel:['Confianza táctica','Control de zona']},
+  {k:'flexibilidad', nombre:'Flexibilidad cognitiva', que:'Cambiar de plan cuando cambia el partido y probar otra solución.', pp:['q20_pct'], ppTxt:'Pregunta 20', gym:null, rel:['Aceptación del error','Recuperación tras error']}
 ];
+// Preguntas de siempre del Post Partido que reflejan funciones ejecutivas (indirectas)
+const FE_REL_PP=new Set(['Concentración y foco','Eje ante adversidad','Recuperación tras error','Confianza táctica','Control de zona','Aceptación del error','Decisión bajo presión']);
+// Línea "En partidos": valor (últimos 5) y tendencia (últimos 3 vs. 3 anteriores) de cada relacionada
+function feRelLinea(rows,labels){
+  const it=labels.map(l=>{ const i=PP_PREGS_ORDEN.indexOf(l); if(i<0) return null; const c='q'+(i+1)+'_pct';
+    const vs=(rows||[]).map(p=>p[c]).filter(v=>v!=null); if(!vs.length) return null;
+    const v=Math.round(feProm(vs.slice(0,5)));
+    let t=''; if(vs.length>=6){ const d=Math.round(feProm(vs.slice(0,3))-feProm(vs.slice(3,6))); if(Math.abs(d)>=5) t=' <span style="color:'+(d>0?'#22c55e':'#ef4444')+'">'+(d>0?'▲':'▼')+Math.abs(d)+'</span>'; }
+    return l.replace(' y foco','').replace(' ante adversidad',' ante adv.')+' <b style="color:'+feCol(v)+'">'+v+'</b>'+t; }).filter(Boolean);
+  return it.length?'<div style="font-size:10.5px;color:#7c8fae;margin-top:4px;line-height:1.45">En partidos: '+it.join(' · ')+'</div>':'';
+}
 function feCol(v){ return v==null?'#7c8fae':v>=80?'#22c55e':v>=65?'#f59e0b':'#ef4444'; }
 function feEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function feProm(a){ const v=a.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((s,x)=>s+x,0)/v.length:null; }
@@ -18434,7 +18446,7 @@ async function renderFEPJ(r){
   const filtro=r.jugador_uid?'or=(jugador_uid.eq.'+r.jugador_uid+',jugador_nombre.ilike.'+nom+')':'jugador_nombre=ilike.'+nom;
   let ppRows=[], cog=[];
   try{ [ppRows,cog]=await Promise.all([
-    q('postpartido_jugador?'+filtro+'&select=partido_codigo,q17_pct,q18_pct,q19_pct,q20_pct&order=partido_codigo.desc&limit=20').catch(()=>[]),
+    q('postpartido_jugador?'+filtro+'&select=partido_codigo,q1_pct,q2_pct,q3_pct,q4_pct,q5_pct,q6_pct,q7_pct,q8_pct,q9_pct,q10_pct,q11_pct,q12_pct,q13_pct,q14_pct,q15_pct,q17_pct,q18_pct,q19_pct,q20_pct&order=partido_codigo.desc&limit=20').catch(()=>[]),
     nom?q('ejercicios_cognitivos?jugador_nombre=ilike.'+nom+'&tipo=in.(go_nogo,stroop,memoria_trabajo)&order=creado_en.desc&limit=30').catch(()=>[]):[]
   ]); }catch(e){}
   if(PJ_ACTUAL&&PJ_ACTUAL.id!==r.id) return; // cambió de jugador mientras cargaba
@@ -18447,7 +18459,7 @@ async function renderFEPJ(r){
       :g&&g.nivel!=null?'<div style="min-width:0"><div style="font-size:22px;font-weight:900;color:#00c2ff;line-height:1">Nv. '+g.nivel+'</div><div style="font-size:10px;color:#94a3b8;margin-top:9px;line-height:1.3">'+g.txt+'</div></div>'
       :feCelda(g?g.v:null,g?g.txt:'','Sin ejercicio cargado');
     return '<div class="fe-fila" style="display:grid;grid-template-columns:minmax(0,1.3fr) repeat(3,minmax(0,1fr));gap:12px;align-items:start;padding:11px 0;border-top:1px solid #1a3a6e66">'+
-      '<div style="min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+fx.nombre+'</div><div style="font-size:10.5px;color:#94a3b8;margin-top:2px;line-height:1.35">'+fx.que+'</div></div>'+
+      '<div style="min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+fx.nombre+'</div><div style="font-size:10.5px;color:#94a3b8;margin-top:2px;line-height:1.35">'+fx.que+'</div>'+feRelLinea(ppRows,fx.rel)+'</div>'+
       feCelda(t?t.v:null,t?'Test '+decFechaCorta(t.fecha):'','Desde el test de '+FE_DESDE)+
       feCelda(pp?pp.v:null,pp?pp.n+' partido'+(pp.n>1?'s':'')+tend:'','Con el Post Partido nuevo')+
       gymCelda+'</div>';
@@ -19570,7 +19582,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='08/11/2026 · 6';
+const SC360_VERSION='08/11/2026 · 7';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
