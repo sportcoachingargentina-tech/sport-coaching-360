@@ -18768,6 +18768,7 @@ function cargarPerfilJugador() {
 
   renderCuadrantePJ(r);
   try{ renderFEPJ(r); }catch(e){ console.warn('Funciones ejecutivas:',e); }
+  try{ pjCritCargar(r); }catch(e){}
 
   // Motivación + Entorno — "Modo Promoción/Prevención" ahora es un tag
   // chico en el header de la tarjeta (no un banner que ocupa alto), y
@@ -19569,7 +19570,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='08/11/2026 · 5';
+const SC360_VERSION='08/11/2026 · 6';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -21477,6 +21478,17 @@ async function evAccionesCargar(){
 // ═══════════════════════════════════════════════════════════════
 function pjLbl(k){ const d=(typeof DL!=='undefined'?DL:[]).find(x=>x.key===k); return d?d.label:((typeof DIM_LABELS!=='undefined'&&DIM_LABELS[k])||k); }
 function pjFoco(r){
+  // Con el criterio del cuerpo técnico, el foco es el que eligió el DT
+  const B=pjFocoSC360(r); if(!B) return B;
+  const c=r&&PJ_CRIT[r.id]; const k=c&&c.foco_dim, dd=(r&&r.dims)||{};
+  if(!k||!(dd[k]>0)) return B;
+  const capa=CAPAS_DEF_PJ.find(x=>x.dims.includes(k)), ej=EJERCICIO_COGNITIVO_DIM[k]||null;
+  return Object.assign({},B,{dt:true, sc:B.foco, foco:{keys:[k], nombre:pjLbl(k), v:Math.round(dd[k]/5*100)},
+    capaFoco:capa?{nombre:capa.nombre,key:capa.key}:null, tambien:null,
+    accion:(capa&&ACCION_CAPA[capa.key])||B.accion,
+    ejercicio:ej?{tipo:ej.tipo,nombre:(COG_LABELS[ej.tipo]||ej.tipo),razon:ej.razon}:B.ejercicio});
+}
+function pjFocoSC360(r){
   const dd=(r&&r.dims)||{}, p=k=>dd[k]>0?Math.round(dd[k]/5*100):null;
   const capas=CAPAS_DEF_PJ.map(c=>{ const ds=c.dims.map(k=>({k,v:p(k)})).filter(x=>x.v!=null); return {c,ds,v:ds.length?Math.round(ds.reduce((a,x)=>a+x.v,0)/ds.length):null}; }).filter(x=>x.v!=null);
   if(!capas.length) return null;
@@ -21499,12 +21511,18 @@ function pjK15Html(r){
   const caja=(ic,t,n,v,sub,col)=>'<div class="pjx-box"><div class="pjx-k">'+ic+' '+t+'</div><div class="pjx-n">'+decEsc(n)+'</div><div class="pjx-v" style="color:'+col+'">'+v+'</div><div class="pjx-s">'+sub+'</div></div>';
   return '<div class="pjx-k15">'+
     caja('💪','FORTALEZA',F.fortaleza.nombre,F.fortaleza.v,'capa '+F.capaAlta.c.nombre+' · '+F.capaAlta.v,pjColV(F.fortaleza.v))+
-    caja('🎯','FOCO DE TRABAJO',F.foco.nombre,F.foco.v,'capa '+F.capaBaja.c.nombre+' · '+F.capaBaja.v+(F.tambien?'<br><span style="color:#fbbf24">También bajo: '+decEsc(F.tambien.nombre)+' '+F.tambien.v+'</span>':''),pjColV(F.foco.v))+
+    caja('🎯',F.dt?'FOCO · CRITERIO DEL CUERPO TÉCNICO':'FOCO DE TRABAJO',F.foco.nombre,F.foco.v,
+      (F.dt?(F.capaFoco?'capa '+F.capaFoco.nombre+'<br>':'')+'<span style="color:#94a3b8">SC360 sugería: '+decEsc(F.sc.nombre)+' '+F.sc.v+'</span>'
+          :'capa '+F.capaBaja.c.nombre+' · '+F.capaBaja.v+(F.tambien?'<br><span style="color:#fbbf24">También bajo: '+decEsc(F.tambien.nombre)+' '+F.tambien.v+'</span>':''))+
+      '<br><a onclick="pjCritElegir()" class="pj-print-hide" style="color:#00c2ff;cursor:pointer;font-size:11px">✎ '+(F.dt?'Cambiar el foco':'Para mí el foco es otro')+'</a>',pjColV(F.foco.v))+
     '<div class="pjx-box pjx-acc"><div class="pjx-k">⚽ QUÉ HACER ESTA SEMANA</div>'+
       (F.accion?'<div style="font-size:13px;color:#e8eff8;margin-top:4px;line-height:1.4">'+decEsc(F.accion)+'</div>':'')+
       (F.ejercicio?'<div style="font-size:11.5px;color:#b4c2d4;margin-top:6px;line-height:1.4">Ejercicio: <b style="color:#fff">'+decEsc(F.ejercicio.nombre)+'</b> · '+decEsc(F.ejercicio.razon)+'</div>'+
         '<button class="pjx-btn" onclick="habilitarEjercicioRecomendado(\''+F.ejercicio.tipo+'\')">📲 Enviar ejercicio</button>'
         :'<div style="font-size:11.5px;color:#b4c2d4;margin-top:6px">'+decEsc(F.foco.nombre)+' se trabaja en cancha: '+decEsc((typeof ACCION_DT!=='undefined'&&ACCION_DT[F.foco.keys[0]])||'')+'</div>')+
+      '<div class="pj-print-hide" style="margin-top:8px;font-size:11.5px;color:#94a3b8;display:flex;align-items:center;gap:8px">¿Te sirvió? '+
+        '<button onclick="pjCritFeedback(true,this)" style="background:#0a1024;border:1px solid #1a3a6e;border-radius:8px;padding:3px 9px;cursor:pointer;font-size:13px">👍</button>'+
+        '<button onclick="pjCritFeedback(false,this)" style="background:#0a1024;border:1px solid #1a3a6e;border-radius:8px;padding:3px 9px;cursor:pointer;font-size:13px">👎</button></div>'+
     '</div></div>';
 }
 // Arma los desplegables una sola vez, moviendo los bloques que ya existen
@@ -21550,6 +21568,61 @@ function pjxResumen(r,st,mentalPP){
     pjxSet('trabajar',g&&g.hablar?decEsc(g.hablar.split('.')[0])+'.':'Cómo hablarle, qué evitar y la previa','');
     pjxSet('seg','Intervenciones · objetivos · cognitivo · plantel · IA','');
   }catch(e){ console.warn('Resumen del perfil:',e); }
+}
+// ═══════════════════════════════════════════════════════════════
+// CRITERIO DEL CUERPO TÉCNICO (08/11/2026) — tabla criterio_dt
+// • El DT puede elegir otro foco: el perfil lo muestra como "criterio del
+//   cuerpo técnico", con la sugerencia de SC360 al lado como referencia.
+// • "¿Te sirvió?" sobre la recomendación de la semana.
+// ═══════════════════════════════════════════════════════════════
+let PJ_CRIT={};
+function pjCritFiltro(r){ const nom=encodeURIComponent((r.jugador_nombre||'').trim()); return 'grupo_codigo=eq.'+encodeURIComponent(r.grupo_codigo||'')+'&jugador_nombre=ilike.'+nom; }
+async function pjCritCargar(r){
+  if(!r||!r.grupo_codigo) return;
+  let rows=[]; try{ rows=await q('criterio_dt?'+pjCritFiltro(r)+'&tipo=eq.foco&select=foco_dim,creado_por,creado_en&order=creado_en.desc&limit=1',{sinCache:true}); }catch(e){}
+  PJ_CRIT[r.id]=Array.isArray(rows)&&rows[0]&&rows[0].foco_dim?rows[0]:null;
+  if(PJ_ACTUAL&&PJ_ACTUAL.id!==r.id) return;
+  pjK15Refrescar(r);
+}
+function pjK15Refrescar(r){
+  const el=document.querySelector('#pj-tablero .pjx-k15'); if(!el) return;
+  const t=document.createElement('div'); t.innerHTML=pjK15Html(r); const nuevo=t.firstElementChild; if(nuevo) el.replaceWith(nuevo);
+}
+function pjCritElegir(){
+  const r=PJ_ACTUAL; if(!r) return;
+  const dd=r.dims||{}, F=pjFocoSC360(r);
+  const ops=(typeof DL!=='undefined'?DL:[]).filter(d=>dd[d.key]>0).map(d=>({k:d.key,l:d.label,v:Math.round(dd[d.key]/5*100)})).sort((a,b)=>a.v-b.v);
+  const ov=document.createElement('div'); ov.id='pj-crit-ov';
+  ov.style.cssText='position:fixed;inset:0;background:#000a;z-index:9998;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  const actual=PJ_CRIT[r.id]&&PJ_CRIT[r.id].foco_dim;
+  ov.innerHTML='<div style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:16px;max-width:420px;width:100%;max-height:85vh;overflow:auto;padding:16px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center"><b style="color:#fff;font-size:15px">¿Cuál es el foco para '+decEsc((r.jugador_nombre||'').split(' ')[0])+'?</b><button onclick="document.getElementById(\'pj-crit-ov\').remove()" style="background:none;border:none;color:#7c8fae;font-size:18px;cursor:pointer">✕</button></div>'+
+    '<div style="font-size:11.5px;color:#b4c2d4;margin:4px 0 10px">SC360 sugiere <b>'+decEsc(F?F.foco.nombre:'—')+'</b>. Elegí el que vos ves; queda registrado como criterio del cuerpo técnico.</div>'+
+    ops.map(o=>'<button onclick="pjCritGuardar(\''+o.k+'\')" style="display:flex;justify-content:space-between;width:100%;text-align:left;padding:9px 10px;margin:4px 0;border-radius:9px;cursor:pointer;background:'+(o.k===actual?'#00c2ff22':'#0a1024')+';border:1px solid '+(o.k===actual?'#00c2ff':'#1a3a6e')+';color:#e8eff8;font-size:13px"><span>'+decEsc(o.l)+'</span><b style="color:'+pjColV(o.v)+'">'+o.v+'</b></button>').join('')+
+    (actual?'<button onclick="pjCritGuardar(null)" style="width:100%;margin-top:8px;padding:9px;border-radius:9px;cursor:pointer;background:none;border:1px dashed #3a5585;color:#94a3b8;font-size:12.5px">Volver a la sugerencia de SC360</button>':'')+
+    '</div>';
+  document.body.appendChild(ov);
+}
+async function pjCritGuardar(dim){
+  const r=PJ_ACTUAL; if(!r) return;
+  try{
+    await q('criterio_dt',{m:'POST',b:{tipo:'foco',jugador_uid:r.jugador_uid||null,jugador_nombre:r.jugador_nombre,grupo_codigo:r.grupo_codigo,foco_dim:dim,creado_por:(USUARIO_ACTUAL&&(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email))||null},h:{'Prefer':'return=minimal'}});
+    PJ_CRIT[r.id]=dim?{foco_dim:dim}:null;
+    const ov=document.getElementById('pj-crit-ov'); if(ov) ov.remove();
+    pjK15Refrescar(r);
+  }catch(e){ alert('No se pudo guardar: '+(e&&e.message||e)); }
+}
+async function pjCritFeedback(util,btn){
+  const r=PJ_ACTUAL; if(!r) return;
+  const F=pjFoco(r);
+  let com=null; if(!util){ com=prompt('¿Qué no te sirvió? (opcional)'); if(com===null) com=''; }
+  try{
+    await q('criterio_dt',{m:'POST',b:{tipo:'feedback',jugador_uid:r.jugador_uid||null,jugador_nombre:r.jugador_nombre,grupo_codigo:r.grupo_codigo,
+      recomendacion:'foco:'+(F?F.foco.keys.join('+'):'')+(F&&F.ejercicio?' · ejercicio:'+F.ejercicio.tipo:''),util:!!util,comentario:com||null,
+      creado_por:(USUARIO_ACTUAL&&(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email))||null}});
+    const box=btn&&btn.parentNode; if(box) box.innerHTML='<span style="color:#22c55e">✓ Gracias, quedó registrado.</span>';
+  }catch(e){ alert('No se pudo guardar: '+(e&&e.message||e)); }
 }
 let PJ_TAB={r:null,idc:null};
 function renderTableroPJ(){
