@@ -1020,6 +1020,7 @@ body.es-admin .solo-admin{display:inline!important}
 #pj-left-col>div.pj-print-hide:not(#pj-patron-slot){grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
 #pj-left-col>div.pj-print-hide:not(#pj-patron-slot) button{font-size:11px!important;padding:8px 4px!important;white-space:normal!important;line-height:1.25;overflow:visible!important}
 @media print{.pjx-det>summary{display:none}}
+@media(max-width:600px){.pp-resp .ppr-l{display:none}}
 #dcx-tip{position:fixed;z-index:9999;max-width:260px;background:#0a1530;border:1px solid #00c2ff66;color:#e8eff8;font-size:12px;line-height:1.4;padding:8px 10px;border-radius:9px;box-shadow:0 8px 24px #0008}
 .dcx-det .dsh-bloque-t{display:none}
 #dash-club-sub,#dash-hero > div:nth-child(2) > div:first-child{display:none}
@@ -5608,7 +5609,7 @@ function cargarOnboarding(gC, jugCount, ppCount, tecCount){
   ];
 
   const completados=pasos.filter(p=>p.ok).length;
-  if(completados===pasos.length){box.style.display='none';return;}
+  if(completados===pasos.length){ dashPrimerMes(box,jugCount,ppCount); return; }
 
   const hechos=pasos.filter(p=>p.ok);
   const pendientes=pasos.filter(p=>!p.ok);
@@ -5652,6 +5653,41 @@ function cargarOnboarding(gC, jugCount, ppCount, tecCount){
   document.getElementById('dash-onboarding-pasos').innerHTML=html;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// PLAN DEL PRIMER MES (08/11/2026): después de configurar el club,
+// una tarea por semana que se tilda sola cuando se cumple.
+// ═══════════════════════════════════════════════════════════════
+async function dashPrimerMes(box,jugCount,ppCount){
+  const clubKey=(USUARIO_ACTUAL&&USUARIO_ACTUAL.club_nombre)||'club';
+  let oculto=null; try{ oculto=localStorage.getItem('sc360_primermes_oculto_'+clubKey); }catch(e){}
+  if(oculto){ box.style.display='none'; return; }
+  let ck=[], ints=[];
+  try{ [ck,ints]=await Promise.all([ q('checkin_diario?select=id&limit=1').catch(()=>[]), q('intervenciones?tipo=neq.Observación&select=id&limit=1').catch(()=>[]) ]); }catch(e){}
+  let informe=null; try{ informe=localStorage.getItem('sc360_informe_impacto_'+clubKey); }catch(e){}
+  const sem=[
+    {ok:jugCount>=10, t:'Test a todo el plantel', d:jugCount>=10?jugCount+' evaluaciones cargadas':'Mandá el link del test: '+jugCount+' de al menos 10', a:"go('resultados')"},
+    {ok:ppCount>0&&Array.isArray(ck)&&ck.length>0, t:'Primer Post Partido y check-in', d:'El Post Partido después de un partido y el check-in diario de la semana', a:"go('postpartido')"},
+    {ok:Array.isArray(ints)&&ints.length>0, t:'Primera acción del Centro de decisiones', d:'Elegí un jugador prioritario y registrá qué van a hacer', a:"go('decisiones')"},
+    {ok:!!informe, t:'Primer informe para el club', d:'Generá el Informe de impacto desde el Inicio (bloque E)', a:"document.getElementById('dash-seg')&&document.getElementById('dash-seg').scrollIntoView({behavior:'smooth'})"}
+  ];
+  const hechas=sem.filter(x=>x.ok).length;
+  if(hechas===sem.length){ box.style.display='none'; return; }
+  const actual=sem.findIndex(x=>!x.ok);
+  box.style.display='block'; box.style.padding='12px 14px';
+  box.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><b style="font-size:13.5px;color:#fff">🗓 Plan del primer mes</b><span style="font-size:11.5px;color:#7c8fae">'+hechas+' de 4 semanas</span>'+
+      '<span onclick="ocultarPrimerMes()" style="margin-left:auto;cursor:pointer;color:#94a3b8;font-size:13px" title="Ocultar">✕</span></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:8px">'+
+    sem.map((x,i)=>{ const cur=i===actual, col=x.ok?'#22c55e':cur?'#00c2ff':'#3a5585';
+      return '<div onclick="'+x.a+'" style="cursor:pointer;background:'+(cur?'#00c2ff10':'#0a1530')+';border:1px solid '+col+(x.ok?'55':cur?'88':'55')+';border-radius:10px;padding:9px 10px">'+
+        '<div style="font-size:9.5px;font-weight:800;letter-spacing:.06em;color:'+col+'">'+(x.ok?'✓ ':'')+'SEMANA '+(i+1)+(cur?' · AHORA':'')+'</div>'+
+        '<div style="font-size:12.5px;font-weight:700;color:'+(x.ok?'#94a3b8':'#fff')+';margin-top:3px;'+(x.ok?'text-decoration:line-through':'')+'">'+x.t+'</div>'+
+        '<div style="font-size:10.5px;color:#7c8fae;margin-top:2px;line-height:1.35">'+x.d+'</div></div>'; }).join('')+'</div>';
+}
+function ocultarPrimerMes(){
+  const clubKey=(USUARIO_ACTUAL&&USUARIO_ACTUAL.club_nombre)||'club';
+  try{ localStorage.setItem('sc360_primermes_oculto_'+clubKey,'1'); }catch(e){}
+  const box=document.getElementById('dash-onboarding'); if(box) box.style.display='none';
+}
 function ocultarOnboarding(){
   const clubKey=(USUARIO_ACTUAL&&USUARIO_ACTUAL.club_nombre)||'club';
   localStorage.setItem('sc360_onboarding_oculto_'+clubKey,'1');
@@ -10781,6 +10817,89 @@ async function guardarResolucionAusentismo(alertaId, candidatosAttr){
 const PPU=window.location.origin+'/postpartido.html';
 const DTU=window.location.origin+'/dtpf.html';
 
+// ═══════════════════════════════════════════════════════════════
+// RESPUESTA AL POST PARTIDO (08/11/2026)
+// Por partido: cuántos respondieron y quiénes faltan, con recordatorio
+// por WhatsApp. Por división: % de respuesta de las últimas 4 fechas,
+// con aviso si baja del 60 %. Solo lectura: no cambia ningún cálculo.
+// ═══════════════════════════════════════════════════════════════
+let PP_RESP={plantel:{}, porPartido:{}, partidos:[]};
+function ppHoyISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+async function ppPlantel(gcod){
+  if(PP_RESP.plantel[gcod]) return PP_RESP.plantel[gcod];
+  let r=[]; try{ r=await q('rpc/jugadores_de_grupo',{m:'POST',b:{p_codigo:gcod}}); }catch(e){}
+  const nombres=[...new Set((Array.isArray(r)?r:[]).map(x=>x.nombre).filter(Boolean))];
+  PP_RESP.plantel[gcod]=nombres; return nombres;
+}
+function ppRespColor(p){ return p==null?'#7c8fae':p>=70?'#22c55e':p>=40?'#f59e0b':'#ef4444'; }
+async function ppRespuestasCargar(partidos){
+  try{
+    PP_RESP.partidos=partidos||[];
+    const cods=PP_RESP.partidos.map(p=>p.codigo).filter(Boolean);
+    if(!cods.length) return;
+    const filas=[];
+    for(let i=0;i<cods.length;i+=40){
+      const r=await q('postpartido_jugador?partido_codigo=in.('+cods.slice(i,i+40).map(encodeURIComponent).join(',')+')&select=partido_codigo,jugador_nombre&limit=5000',{sinCache:true});
+      if(Array.isArray(r)) filas.push(...r);
+    }
+    PP_RESP.porPartido={};
+    filas.forEach(f=>{ (PP_RESP.porPartido[f.partido_codigo]=PP_RESP.porPartido[f.partido_codigo]||new Set()).add(idcNom(f.jugador_nombre)); });
+    const grupos=[...new Set(PP_RESP.partidos.map(p=>p.grupo_codigo).filter(Boolean))];
+    await Promise.all(grupos.map(ppPlantel));
+    const hoy=ppHoyISO();
+    // Insignia de cada partido
+    PP_RESP.partidos.forEach(p=>{
+      const el=document.querySelector('.pp-resp[data-cod="'+p.codigo+'"]'); if(!el) return;
+      const futuro=String(p.fecha||'').slice(0,10)>hoy;
+      const st=ppRespEstado(p);
+      if(futuro&&!st.n){ el.innerHTML='<span style="color:#7c8fae">por jugarse</span>'; return; }
+      el.innerHTML='<span style="color:'+ppRespColor(st.pct)+';font-weight:800">'+st.n+(st.total?'/'+st.total:'')+'</span> <span class="ppr-l" style="color:#7c8fae">respondieron</span>'+(st.faltan.length?' <span style="color:#00c2ff">· ver →</span>':'');
+      el.style.cursor=st.faltan.length?'pointer':'default';
+    });
+    // Tasa por división (últimas 4 fechas jugadas)
+    const box=document.getElementById('pp-tasa'); if(!box) return;
+    const tarjetas=grupos.map(g=>{
+      const jugados=PP_RESP.partidos.filter(p=>p.grupo_codigo===g&&String(p.fecha||'').slice(0,10)<=hoy).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).slice(0,4);
+      const pcts=jugados.map(p=>ppRespEstado(p).pct).filter(x=>x!=null);
+      if(!pcts.length) return '';
+      const prom=Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length), nom=(jugados[0]&&jugados[0].grupo_nombre)||g;
+      return '<div style="flex:1 1 220px;background:#0d1b3e;border:1px solid '+(prom<60?'#ef444466':'#1a3a6e')+';border-radius:12px;padding:10px 12px">'+
+        '<div style="font-size:10px;font-weight:800;color:#7c8fae;letter-spacing:.05em">'+decEsc(nom).toUpperCase()+' · ÚLTIMAS '+jugados.length+' FECHAS</div>'+
+        '<div style="display:flex;align-items:baseline;gap:8px;margin-top:4px"><span style="font-size:26px;font-weight:900;color:'+ppRespColor(prom)+'">'+prom+'%</span><span style="font-size:11.5px;color:#b4c2d4">respondió el Post Partido</span></div>'+
+        '<div style="display:flex;gap:4px;margin-top:6px">'+jugados.slice().reverse().map(p=>{ const v=ppRespEstado(p).pct; return '<div title="vs '+decEsc(p.rival||'')+': '+(v==null?'—':v+'%')+'" style="flex:1;height:6px;border-radius:3px;background:'+ppRespColor(v)+'"></div>'; }).join('')+'</div>'+
+        (prom<60?'<div style="font-size:11.5px;color:#fca5a5;margin-top:6px">Bajó del 60 %: sin respuestas, el análisis pierde fuerza. Recordales el link después de cada partido.</div>':'')+
+      '</div>';
+    }).filter(Boolean);
+    box.innerHTML=tarjetas.length?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'+tarjetas.join('')+'</div>':'';
+  }catch(e){ console.warn('Respuestas Post Partido:',e); }
+}
+function ppRespEstado(p){
+  const resp=PP_RESP.porPartido[p.codigo]||new Set(), pl=PP_RESP.plantel[p.grupo_codigo]||[];
+  const faltan=pl.filter(n=>!resp.has(idcNom(n)));
+  const total=Math.max(pl.length,resp.size);
+  return {n:resp.size,total,faltan,pct:total?Math.round(resp.size/total*100):null};
+}
+function ppRespVer(cod){
+  const p=PP_RESP.partidos.find(x=>x.codigo===cod); if(!p) return;
+  const st=ppRespEstado(p); if(!st.faltan.length) return;
+  const ov=document.createElement('div'); ov.id='pp-resp-ov';
+  ov.style.cssText='position:fixed;inset:0;background:#000a;z-index:9998;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  ov.innerHTML='<div style="background:#0d1b3e;border:1px solid #1a3a6e;border-radius:16px;max-width:420px;width:100%;max-height:80vh;overflow:auto;padding:16px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="color:#fff;font-size:15px">vs '+decEsc(p.rival||'—')+'</b><button onclick="document.getElementById(\'pp-resp-ov\').remove()" style="background:none;border:none;color:#7c8fae;font-size:18px;cursor:pointer">✕</button></div>'+
+    '<div style="font-size:12px;color:#b4c2d4;margin:4px 0 10px">'+st.n+' de '+st.total+' respondieron · faltan '+st.faltan.length+'</div>'+
+    st.faltan.map(n=>'<div style="padding:6px 0;border-top:1px solid #1a3a6e66;font-size:13px;color:#e8eff8">'+decEsc(n)+'</div>').join('')+
+    '<button onclick="ppRespRecordar(\''+cod+'\')" style="margin-top:12px;width:100%;padding:10px;border-radius:10px;border:none;background:#25d366;color:#05210f;font-weight:800;font-size:13px;cursor:pointer">📲 Recordarles por WhatsApp</button>'+
+    '<div style="font-size:10.5px;color:#7c8fae;margin-top:6px;text-align:center">Arma el mensaje con los nombres y el link para pegar en el grupo del equipo.</div></div>';
+  document.body.appendChild(ov);
+}
+function ppRespRecordar(cod){
+  const p=PP_RESP.partidos.find(x=>x.codigo===cod); if(!p) return;
+  const st=ppRespEstado(p);
+  const link=PPU+'?partido='+p.codigo;
+  const txt='⚽ *Post Partido vs '+(p.rival||'')+'*\n\nTodavía falta que respondan:\n'+st.faltan.map(n=>'• '+n).join('\n')+'\n\nSon 2 minutos y nos ayuda a preparar la semana 👇\n'+link;
+  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+}
 async function loadPP(){
   try{
   const gs=await q('grupos?order=nombre.asc&habilitado=eq.true');
@@ -10797,6 +10916,7 @@ async function loadPP(){
   const deporteMap={}; gsFilt.forEach(function(g){ deporteMap[g.codigo]=g.deporte||'fútbol'; });
   const clubMap={}; gsFilt.forEach(function(g){ clubMap[g.codigo]=g.club||'Sin club'; });
   const lista=document.getElementById('pp-lista');
+  if(!document.getElementById('pp-tasa')&&lista) lista.insertAdjacentHTML('beforebegin','<div id="pp-tasa"></div>');
   if(!psFilt.length){lista.innerHTML='<div class="es">No hay partidos registrados aún</div>';return;}
 
   const renderFilaPartido=function(p){
@@ -10822,6 +10942,7 @@ async function loadPP(){
         '<span style="font-size:13.5px;font-weight:700;color:#f2f6fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">vs '+(p.rival||'—')+'</span>'+
         resBadge+
         '<span style="font-size:10.5px;color:#6b84a8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(p.grupo_nombre||'—')+' · '+f+'</span>'+
+        '<span class="pp-resp" data-cod="'+pcod+'" onclick="ppRespVer(this.dataset.cod)" style="font-size:10.5px;white-space:nowrap;flex-shrink:0"></span>'+
       '</div>'+
 
       // Derecha — todas las acciones agrupadas, compactas
@@ -10867,6 +10988,7 @@ async function loadPP(){
         '<div class="lista-partidos" style="margin-bottom:10px">'+porClub[key].map(renderFilaPartido).join('')+'</div>';
     }).join('');
   }
+  ppRespuestasCargar(psFilt);
   }catch(e){
     console.error('loadPP error:',e);
     const lista=document.getElementById('pp-lista');
@@ -20341,7 +20463,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='08/11/2026 · 4';
+const SC360_VERSION='08/11/2026 · 5';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -21192,7 +21314,91 @@ function dcxMover(box,titulo){
   while(box.firstChild) det.appendChild(box.firstChild);
   return det;
 }
+// ═══════════════════════════════════════════════════════════════
+// INFORME DE IMPACTO (08/11/2026) — para la dirigencia del club.
+// Solo datos cargados: compara a los mismos jugadores (primer test vs.
+// último) y los primeros partidos contra los últimos. Versión anónima
+// sin nombres de club ni de jugadores, para mostrar como caso.
+// ═══════════════════════════════════════════════════════════════
+let DCX_CTX=null;
+async function dashInformeImpacto(anonimo){
+  const o=DCX_CTX; if(!o||!o.jugs||!o.jugs.length){ alert('Elegí un plantel con evaluaciones para armar el informe.'); return; }
+  const w=window.open('','_blank'); if(!w){ alert('El navegador bloqueó la ventana. Permití ventanas emergentes para este sitio.'); return; }
+  try{ localStorage.setItem('sc360_informe_impacto_'+((USUARIO_ACTUAL&&USUARIO_ACTUAL.club_nombre)||'club'),new Date().toISOString().slice(0,10)); }catch(e){}
+  w.document.write('<p style="font-family:sans-serif;padding:24px">Armando el informe…</p>');
+  const cods=o.cods||[], inQ='in.('+cods.map(encodeURIComponent).join(',')+')';
+  let pp=[], parts=[], ints=[];
+  try{ [pp,parts,ints]=await Promise.all([
+    q('postpartido_jugador?grupo_codigo='+inQ+'&select=partido_codigo,jugador_nombre,mental_score_pct&limit=8000').catch(()=>[]),
+    q('partidos?grupo_codigo='+inQ+'&select=codigo,fecha,grupo_codigo&order=fecha.asc&limit=500').catch(()=>[]),
+    q('intervenciones?grupo_codigo='+inQ+'&select=estado,resultado,fecha_fin,tipo&limit=2000').catch(()=>[])
+  ]); }catch(e){}
+  const prom=a=>{ const v=a.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((s,x)=>s+x,0)/v.length:null; };
+  const R=v=>v==null?'—':Math.round(v);
+  const hoy=ppHoyISO();
+  // 1) Mismos jugadores: primer test vs. último
+  const pares=o.jugs.map(r=>{ const hist=(o.rL||[]).filter(x=>o.mismo(x,r)&&x.disponibilidad>0).sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha)));
+    return hist.length>=2?{nom:r.jugador_nombre, a:hist[0].disponibilidad, b:hist[hist.length-1].disponibilidad, fa:hist[0].fecha}:null; }).filter(Boolean);
+  const mej=pares.filter(p=>p.b-p.a>=3).length, baj=pares.filter(p=>p.a-p.b>=3).length, est=pares.length-mej-baj;
+  const verde=v=>v>=80; const vA=pares.filter(p=>verde(p.a)).length, vB=pares.filter(p=>verde(p.b)).length;
+  const fIni=(o.rL||[]).map(x=>String(x.fecha||'').slice(0,10)).filter(Boolean).sort()[0];
+  // 2) Estado mental en partidos: primeros 4 vs. últimos 4 partidos con respuestas
+  const fechaP={}; (parts||[]).forEach(p=>fechaP[p.codigo]=p.fecha);
+  const porP={}; (pp||[]).forEach(x=>{ if(x.mental_score_pct==null) return; (porP[x.partido_codigo]=porP[x.partido_codigo]||[]).push(x.mental_score_pct); });
+  const serie=Object.keys(porP).filter(c=>fechaP[c]).sort((a,b)=>String(fechaP[a]).localeCompare(String(fechaP[b]))).map(c=>prom(porP[c]));
+  const ppIni=serie.length>=8?prom(serie.slice(0,4)):null, ppFin=serie.length>=8?prom(serie.slice(-4)):null;
+  // 3) Respuesta al Post Partido (últimas 4 fechas por división)
+  let resp=null; try{ const tasas=[]; for(const g of cods){ const pl=await ppPlantel(g); if(!pl.length) continue;
+      const ult=(parts||[]).filter(p=>p.grupo_codigo===g&&String(p.fecha||'').slice(0,10)<=hoy).slice(-4);
+      ult.forEach(p=>{ const n=new Set((pp||[]).filter(x=>x.partido_codigo===p.codigo).map(x=>idcNom(x.jugador_nombre))).size; tasas.push(Math.min(100,n/pl.length*100)); }); }
+    resp=prom(tasas); }catch(e){}
+  // 4) Acciones del cuerpo técnico
+  const cerr=(ints||[]).filter(i=>i.estado==='finalizada'&&i.tipo!=='Observación');
+  const fun=cerr.filter(i=>i.resultado==='Funcionó').length, parte=cerr.filter(i=>i.resultado==='Funcionó en parte').length;
+  const club=anonimo?'Club de fútbol formativo':((o.jugs[0]&&o.jugs[0].jugador_club)||'Club');
+  const divs=anonimo?(cods.length===1?'1 división':cods.length+' divisiones'):[...new Set(o.jugs.map(r=>r.grupo_nombre).filter(Boolean))].join(' · ');
+  const top=pares.slice().sort((a,b)=>(b.b-b.a)-(a.b-a.a)).filter(p=>p.b-p.a>=3).slice(0,5);
+  const kpi=(t,v,s,c)=>'<div class="k"><div class="kt">'+t+'</div><div class="kv" style="color:'+(c||'#0a1226')+'">'+v+'</div><div class="ks">'+s+'</div></div>';
+  const flecha=(a,b)=>a==null||b==null?'—':R(a)+' → <b>'+R(b)+'</b>';
+  const dif=(a,b)=>{ if(a==null||b==null) return ''; const d=Math.round(b-a); return (d>=0?'+':'')+d+(Math.abs(d)===1?' punto':' puntos'); };
+  const html='<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe de impacto · SC360</title>'+
+  '<style>*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#0a1226;margin:0;padding:28px;max-width:900px;margin:auto;background:#fff}'+
+  'h1{font-size:26px;margin:4px 0}h2{font-size:15px;letter-spacing:.06em;color:#0089b8;border-bottom:2px solid #00c2ff;padding-bottom:4px;margin:26px 0 12px}'+
+  '.sub{color:#56657a;font-size:13px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}'+
+  '.k{border:1px solid #d7e2ee;border-radius:12px;padding:14px}.kt{font-size:11px;font-weight:700;color:#56657a;letter-spacing:.05em;text-transform:uppercase}.kv{font-size:26px;font-weight:800;margin-top:6px}.ks{font-size:12px;color:#56657a;margin-top:4px}'+
+  'table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px 6px;border-bottom:1px solid #e5edf5;text-align:left}th{font-size:11px;color:#56657a;text-transform:uppercase}'+
+  '.nota{font-size:11px;color:#56657a;margin-top:26px;line-height:1.5}.btn{position:fixed;right:18px;top:18px;background:#00c2ff;color:#0a1226;border:none;border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}'+
+  '@media print{.btn{display:none}body{padding:0}}</style></head><body>'+
+  '<button class="btn" onclick="window.print()">Guardar PDF</button>'+
+  '<div class="sub">SPORT COACHING 360 · INFORME DE IMPACTO'+(anonimo?' · VERSIÓN ANÓNIMA':'')+'</div>'+
+  '<h1>'+decEsc(club)+'</h1><div class="sub">'+decEsc(divs)+' · desde '+(fIni?decFechaCorta(fIni):'—')+' hasta '+decFechaCorta(hoy)+'</div>'+
+  '<h2>EL PLANTEL</h2><div class="grid">'+
+    kpi('Jugadores evaluados',o.jugs.length,'con al menos un test MDC')+
+    kpi('Re-evaluados',pares.length,'con dos tests o más: base de las comparaciones')+
+    kpi('Respuesta al Post Partido',resp==null?'—':R(resp)+'%','últimas 4 fechas',resp==null?null:resp>=70?'#15803d':resp>=40?'#b45309':'#b91c1c')+
+  '</div>'+
+  '<h2>CAMBIO EN LA DISPONIBILIDAD (MISMOS JUGADORES)</h2>'+
+  (pares.length>=3?'<div class="grid">'+
+    kpi('Disponibilidad promedio',flecha(prom(pares.map(p=>p.a)),prom(pares.map(p=>p.b))),'primer test → último · '+dif(prom(pares.map(p=>p.a)),prom(pares.map(p=>p.b))))+
+    kpi('Mejoraron',mej+' de '+pares.length,Math.round(mej/pares.length*100)+'% subió 3 puntos o más','#15803d')+
+    kpi('Estables',est,'cambio menor a 3 puntos')+
+    kpi('Bajaron',baj,'3 puntos o más')+
+    kpi('Disponibles (80+)',vA+' → <b>'+vB+'</b>','jugadores en verde, antes y ahora')+
+  '</div>':'<p class="sub">Todavía no hay suficientes re-evaluaciones para medir el cambio (hacen falta al menos 3 jugadores con dos tests).</p>')+
+  '<h2>ESTADO MENTAL EN PARTIDOS</h2>'+
+  (ppIni!=null?'<div class="grid">'+kpi('Promedio del equipo',flecha(ppIni,ppFin),'primeros 4 partidos → últimos 4 · '+dif(ppIni,ppFin))+kpi('Partidos con Post Partido',serie.length,'desde el inicio')+'</div>'
+    :'<p class="sub">Hacen falta al menos 8 partidos con Post Partido para comparar el inicio con hoy ('+serie.length+' hasta ahora).</p>')+
+  '<h2>ACCIONES DEL CUERPO TÉCNICO</h2>'+
+  (cerr.length?'<div class="grid">'+kpi('Acciones cerradas',cerr.length,'registradas en el Centro de decisiones')+kpi('Funcionaron',fun,(parte?parte+' más funcionaron en parte':'según el cuerpo técnico'),'#15803d')+'</div>'
+    :'<p class="sub">Todavía no hay acciones cerradas con resultado.</p>')+
+  (!anonimo&&top.length?'<h2>MAYORES MEJORAS</h2><table><tr><th>Jugador</th><th>Primer test</th><th>Último</th><th>Cambio</th></tr>'+
+    top.map(p=>'<tr><td>'+decEsc(p.nom)+'</td><td>'+p.a+'</td><td>'+p.b+'</td><td style="color:#15803d;font-weight:700">+'+(p.b-p.a)+'</td></tr>').join('')+'</table>':'')+
+  '<div class="nota">Datos cargados por el club en SC360. Las comparaciones usan solo a los jugadores con más de una evaluación. Disponibilidad según el Modelo de Disponibilidad Competitiva (D = T − I). SC360 no realiza diagnóstico clínico.'+(anonimo?' Versión sin nombres de club ni de jugadores.':' Uso interno del club.')+'</div>'+
+  '</body></html>';
+  w.document.open(); w.document.write(html); w.document.close();
+}
 async function dashCompacto(o){
+  DCX_CTX=o;
   const {jugs,res,Dp,est,nuevos,jugR,jugN,jugV,nDec,evol,recP,recs,trDisp,trRec,capas,riesgo,ventana,colD,prom,mismo,rL}=o;
   const E=decEsc, N=jugs.length;
   const corto=h=>{ const t=String(h||'').replace(/<[^>]*>/g,'').trim(); if(!t||/Sin (información|registro)|Solo \d/.test(t)) return null; return t.split(/\s(?:vs\.|últimas)/)[0]; };
@@ -21294,7 +21500,8 @@ async function dashCompacto(o){
     seg.innerHTML='<div class="dcx-h"><b><i>E</i>Seguimiento</b><a onclick="dashAbrirTab(\'05\')">Seguimiento completo →</a></div><div class="dcx-3">'+
       card('Últimas evaluaciones','Disponibilidad del último test y cambio contra el test anterior del mismo jugador.',ult||'<div style="font-size:12px;color:#7c8fae">Sin evaluaciones.</div>')+
       card('Alertas','Pendientes: alertas activas. Resueltas: las que ya se cerraron.','<div id="dcx-al"></div>')+
-      card('Cobertura de información','Cuántos jugadores tienen dato en cada módulo del IDC. En amarillo: información parcial.',cov,"dashAbrirTab('05')")+'</div>';
+      card('Cobertura de información','Cuántos jugadores tienen dato en cada módulo del IDC. En amarillo: información parcial.',cov,"dashAbrirTab('05')")+'</div>'+
+      '<div class="dcx-chips"><span class="dcx-chip" onclick="dashInformeImpacto(false)">📄 Informe de impacto</span><span class="dcx-chip" onclick="dashInformeImpacto(true)">🕶 Versión anónima</span>'+dcxI('Informe para la dirigencia: cómo cambió el plantel desde el primer test (mismos jugadores), el estado mental en partidos y las acciones que funcionaron. La versión anónima no muestra nombres de club ni de jugadores.')+'</div>';
     const TA=TODAS_ALERTAS||[]; dashCompactoAlertas(TA.filter(a=>a.estado==='activa').length,TA.filter(a=>a.estado==='resuelta').length);
   }
 }
