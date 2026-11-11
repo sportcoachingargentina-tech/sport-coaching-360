@@ -5056,8 +5056,8 @@ async function loadG(){
       '<div id="'+id+'" data-k="'+String(cl.k).replace(/"/g,'')+'" class="grp-club-cuerpo" style="display:'+(abierto?'block':'none')+';padding:0 8px 8px">'+cl.grupos.map(filaG).join('')+'</div></div>';
   }).join('');
   document.getElementById('grupos-list').innerHTML=html;
-  updSel('ig',gsFilt.map(g=>({v:g.codigo,l:g.nombre})),'Todos los grupos');
-  updSel('rg',gsFilt.map(g=>({v:g.codigo,l:g.nombre})),'Todos los planteles');
+  updSel('ig',gSort(gsFilt).map(g=>({v:g.codigo,l:gLbl(g)})),'Todos los grupos');
+  updSel('rg',gSort(gsFilt).map(g=>({v:g.codigo,l:gLbl(g)})),'Todos los planteles');
 }
 
 function grpGuardarAbiertos(){
@@ -5332,7 +5332,8 @@ function actualizarSelectorGrupoR(porClub){
     const cod=r.grupo_codigo;
     if(!cod||gruposVistos[cod]) return;
     gruposVistos[cod]=true;
-    gruposOpts.push({v:cod,l:r.grupo_nombre||cod});
+    const gA=(AG||[]).find(x=>x.codigo===cod);
+    gruposOpts.push({v:cod,l:gA?gLbl(gA):(r.grupo_nombre||cod)});
   });
   gruposOpts.sort(function(a,b){return a.l.localeCompare(b.l);});
   const selEl=document.getElementById('rg');
@@ -6339,7 +6340,7 @@ async function loadGrupal(){
   const gsFilt=filtrarGrupos(gs||[]);
   const rsFilt=filtrarResultados(rs||[]);
   AG=gsFilt;AR=rsFilt;
-  updSel('ig',gsFilt.map(g=>({v:g.id,l:g.nombre})),'Todos los grupos');
+  updSel('ig',gSort(gsFilt).map(g=>({v:g.id,l:gLbl(g)})),'Todos los grupos');
   generarG();
 }
 
@@ -6911,7 +6912,7 @@ async function loadPlantelScreen(){
   const gsFilt=filtrarGrupos(gs||[]);
   const rsFilt=filtrarResultados(rs||[]);
   AG=gsFilt; AR=rsFilt;
-  updSel('plantel-grupo',gsFilt.map(g=>({v:g.id,l:g.nombre})),'Seleccioná un grupo');
+  updSel('plantel-grupo',gSort(gsFilt).map(g=>({v:g.id,l:gLbl(g)})),'Seleccioná un grupo');
   document.getElementById('plantel-seleccion').style.display='none';
   document.getElementById('plantel-informe').style.display='none';
   predListaCargar();
@@ -8024,7 +8025,7 @@ async function loadRolesScreen(){
   const gsFilt=filtrarGrupos(gs||[]);
   const rsFilt=filtrarResultados(rs||[]);
   AG=gsFilt; AR=rsFilt;
-  updSel('roles-grupo',gsFilt.map(g=>({v:g.id,l:g.nombre})),'Todos los grupos');
+  updSel('roles-grupo',gSort(gsFilt).map(g=>({v:g.id,l:gLbl(g)})),'Todos los grupos');
   renderRolesScreen();
 }
 
@@ -8237,6 +8238,13 @@ async function elimR(id,nombre){
   loadR();
 }
 
+// ── Etiqueta de división con el club (11/11/2026) ──────────────────
+// Quien ve más de un club (admin) ve "Club · División" en todos los selectores,
+// ordenado por club. Un coordinador o DT ve solo el nombre de la división.
+function clubCorto(c){ return String(c||'').split('—')[0].trim().replace(/^club\s+/i,'').replace(/^((atl[eé]tico|deportivo|social|sportivo)\s+)+/i,'').trim()||String(c||'').trim(); }
+function gMulti(){ if(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin') return true; const cs=new Set((AG||[]).map(g=>clubCorto(g.club).toLowerCase())); return cs.size>1; }
+function gLbl(g){ if(!g) return ''; const n=g.nombre||g.codigo||''; return gMulti()&&g.club?clubCorto(g.club)+' · '+n:n; }
+function gSort(arr){ arr=Array.isArray(arr)?arr:[]; if(!gMulti()) return arr; return arr.slice().sort((a,b)=>clubCorto(a.club).localeCompare(clubCorto(b.club),'es')||String(a.nombre||'').localeCompare(String(b.nombre||''),'es')); }
 function updSel(id,opts,def){const s=document.getElementById(id);s.innerHTML=`<option value="">${def}</option>`+opts.map(o=>`<option value="${o.v||o}">${o.l||o}</option>`).join('');}
 function cerrar(id){document.getElementById(id).classList.remove('open');}
 
@@ -8365,13 +8373,13 @@ async function loadCognitivo(){
   const gruposDisp=filtrarGrupos(AG||[]);
   const grupoSel=document.getElementById('cog-grupo');
   grupoSel.innerHTML='<option value="">Seleccioná un grupo</option>'+
-    gruposDisp.map(g=>'<option value="'+g.codigo+'">'+g.nombre+'</option>').join('');
+    gSort(gruposDisp).map(g=>'<option value="'+g.codigo+'">'+gLbl(g)+'</option>').join('');
   document.getElementById('cog-jugador').innerHTML='<option value="">Seleccioná un grupo primero</option>';
 
   const entGrupoSel=document.getElementById('ent-grupo');
   if(entGrupoSel){
     entGrupoSel.innerHTML='<option value="">Seleccioná un grupo</option>'+
-      gruposDisp.map(g=>'<option value="'+g.codigo+'">'+g.nombre+'</option>').join('');
+      gSort(gruposDisp).map(g=>'<option value="'+g.codigo+'">'+gLbl(g)+'</option>').join('');
     entGrupoSel.onchange=entPoblarJugadores;
     document.getElementById('ent-jugador').innerHTML='<option value="">Seleccioná un grupo primero</option>';
   }
@@ -9662,8 +9670,8 @@ async function loadRecuperacion(){
   const selGrupo = document.getElementById('rec-grupo');
   const valG = selGrupo.value;
   selGrupo.innerHTML = '<option value="">Todos los grupos</option>';
-  grupos.forEach(g => {
-    selGrupo.innerHTML += `<option value="${g.codigo}" ${g.codigo===valG?'selected':''}>${g.nombre}</option>`;
+  gSort(grupos).forEach(g => {
+    selGrupo.innerHTML += `<option value="${g.codigo}" ${g.codigo===valG?'selected':''}>${gLbl(g)}</option>`;
   });
 
   // Traer todos los datos de postpartido_jugador — filtrados por grupos del usuario
@@ -10963,7 +10971,7 @@ async function loadPP(){
   try{
   const gs=await q('grupos?order=nombre.asc&habilitado=eq.true');
   const gsFilt=filtrarGrupos(gs||[]);
-  updSel('pp-grupo',gsFilt.map(g=>({v:g.id+'|'+g.codigo+'|'+g.nombre+'|'+(g.deporte||'fútbol'),l:g.nombre})),'Seleccioná...');
+  updSel('pp-grupo',gSort(gsFilt).map(g=>({v:g.id+'|'+g.codigo+'|'+g.nombre+'|'+(g.deporte||'fútbol'),l:gLbl(g)})),'Seleccioná...');
   // Filtrar partidos por grupos del usuario directamente en la query
   let psUrl='partidos?order=fecha.desc&limit=100';
   if(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol!=='admin'){
@@ -11344,7 +11352,7 @@ const ACCION_ENTRENO={
 async function loadEntreno(){
   const gs=await q('grupos?order=nombre.asc&habilitado=eq.true');
   const gsFilt=filtrarGrupos(gs||[]);
-  updSel('en-grupo',gsFilt.map(g=>({v:g.id+'|'+g.codigo+'|'+g.nombre,l:g.nombre})),'Seleccioná...');
+  updSel('en-grupo',gSort(gsFilt).map(g=>({v:g.id+'|'+g.codigo+'|'+g.nombre,l:gLbl(g)})),'Seleccioná...');
 
   loadRiesgoAbandono(gsFilt);
 
@@ -11789,7 +11797,7 @@ async function evEquipoInit(){
   const gsFilt=filtrarGrupos(gs||[]);
   const sel=document.getElementById('eveq-grupo');
   if(!sel)return;
-  sel.innerHTML='<option value="">Todos los grupos</option>'+(gsFilt.map(g=>`<option value="${g.codigo}">${g.nombre}</option>`).join(''));
+  sel.innerHTML='<option value="">Todos los grupos</option>'+(gSort(gsFilt).map(g=>`<option value="${g.codigo}">${gLbl(g)}</option>`).join(''));
   evEquipoCargar();
 }
 async function evEquipoCargar(){
@@ -12145,7 +12153,7 @@ async function loadEvolucion(){
   const gsFilt=filtrarGrupos(gsAll||[]);
   const sel=document.getElementById('ev-grupo');
   if(!sel)return;
-  sel.innerHTML='<option value="">Todos los grupos</option>'+(gsFilt.map(g=>`<option value="${g.codigo}">${g.nombre}</option>`).join(''));
+  sel.innerHTML='<option value="">Todos los grupos</option>'+(gSort(gsFilt).map(g=>`<option value="${g.codigo}">${gLbl(g)}</option>`).join(''));
   await evPopularJugadores(gsFilt,[]);
 }
 
@@ -14243,7 +14251,7 @@ function loadAsistencia(){
   const grupoSel=document.getElementById('asis-grupo');
   const gruposDisp=filtrarGrupos(AG||[]);
   grupoSel.innerHTML=(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol!=='tecnico'?'<option value="">Seleccioná un grupo</option>':'')+
-    gruposDisp.map(g=>'<option value="'+g.codigo+'">'+g.nombre+'</option>').join('');
+    gSort(gruposDisp).map(g=>'<option value="'+g.codigo+'">'+gLbl(g)+'</option>').join('');
   if(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='tecnico'&&gruposDisp.length===1){
     grupoSel.value=gruposDisp[0].codigo;
   }
@@ -14255,7 +14263,7 @@ function loadAsistencia(){
   const grupoResSel=document.getElementById('asisres-grupo');
   if(grupoResSel){
     grupoResSel.innerHTML='<option value="">Todos los grupos</option>'+
-      gruposDisp.map(g=>'<option value="'+g.codigo+'">'+g.nombre+'</option>').join('');
+      gSort(gruposDisp).map(g=>'<option value="'+g.codigo+'">'+gLbl(g)+'</option>').join('');
   }
 
   loadAsistenciaLista();
@@ -14659,11 +14667,11 @@ function loadPlanificacion(){
   const gruposDisp=filtrarGrupos(AG||[]);
 
   const grupoSel=document.getElementById('plan-grupo');
-  grupoSel.innerHTML=gruposDisp.map(g=>'<option value="'+g.codigo+'">'+g.nombre+'</option>').join('');
+  grupoSel.innerHTML=gSort(gruposDisp).map(g=>'<option value="'+g.codigo+'">'+gLbl(g)+'</option>').join('');
 
   const grupoVerSel=document.getElementById('planver-grupo');
   grupoVerSel.innerHTML='<option value="">Todos los grupos</option>'+
-    gruposDisp.map(g=>'<option value="'+g.codigo+'">'+g.nombre+'</option>').join('');
+    gSort(gruposDisp).map(g=>'<option value="'+g.codigo+'">'+gLbl(g)+'</option>').join('');
 
   const focoSel=document.getElementById('plan-foco');
   focoSel.innerHTML='<option value="">Sin foco específico</option>'+
@@ -16767,7 +16775,7 @@ function predCompletoForm(){
     <div class="pred-dos">${campo('estadio','Estadio','Ej: Estadio de Chacarita')}
       <div><label class="pred-lbl" for="pc-condicion">Condición</label><select id="pc-condicion" style="${inp}">${['Local','Visitante','Neutral'].map(o=>`<option ${prev.condicion===o?'selected':''}>${o}</option>`).join('')}</select></div></div>
     <div><label class="pred-lbl" for="pc-grupo">Vincular a una división de SC360 (opcional)</label>
-      <select id="pc-grupo" style="${inp}"><option value="">Sin vincular · equipo sin perfiles cargados</option>${(AG||[]).map(g=>`<option value="${g.id}" ${gSel&&gSel.id===g.id?'selected':''}>${predEsc(g.nombre)}</option>`).join('')}</select></div>
+      <select id="pc-grupo" style="${inp}"><option value="">Sin vincular · equipo sin perfiles cargados</option>${gSort(AG||[]).map(g=>`<option value="${g.id}" ${gSel&&gSel.id===g.id?'selected':''}>${predEsc(gLbl(g))}</option>`).join('')}</select></div>
 
     <div class="pred-sec">Nuestro equipo</div>
     ${campo('propio_nombre','Nombre','Ej: Deportivo Maipú',club)}
@@ -17023,8 +17031,8 @@ function abrirModalEditarJugador(id) {
   const selGrupo = document.getElementById('edit-jug-grupo');
   if(selGrupo){
     const grupos = AG||[];
-    selGrupo.innerHTML = grupos.map(function(g){
-      return '<option value="'+g.id+'" data-codigo="'+(g.codigo||'')+'" data-nombre="'+(g.nombre||'')+'">'+(g.nombre||g.codigo||'Sin nombre')+'</option>';
+    selGrupo.innerHTML = gSort(grupos).map(function(g){
+      return '<option value="'+g.id+'" data-codigo="'+(g.codigo||'')+'" data-nombre="'+(g.nombre||'')+'">'+(gLbl(g)||g.codigo||'Sin nombre')+'</option>';
     }).join('');
     // Seleccionar el grupo actual del resultado
     if(r.grupo_id){
@@ -17696,12 +17704,12 @@ async function loadEstadisticas() {
   // Poblar selector de grupos
   const sel = document.getElementById('est-grupo');
   if(sel && sel.options.length <= 1) {
-    const grupos = [...new Set(ps.map(p => p.grupo_codigo).filter(Boolean))];
-    grupos.forEach(function(g) {
-      const p2 = ps.find(function(p) { return p.grupo_codigo === g; });
+    const cods = [...new Set(ps.map(p => p.grupo_codigo).filter(Boolean))];
+    const grupos = cods.map(function(c){ const gA=(AG||[]).find(x=>x.codigo===c); const p2=ps.find(p=>p.grupo_codigo===c)||{}; return gA||{codigo:c,nombre:p2.grupo_nombre||c,club:''}; });
+    gSort(grupos).forEach(function(g) {
       const o = document.createElement('option');
-      o.value = g;
-      o.textContent = p2 ? (p2.grupo_nombre || g) : g;
+      o.value = g.codigo;
+      o.textContent = gLbl(g);
       sel.appendChild(o);
     });
   }
@@ -17935,7 +17943,7 @@ function renderEstTablaPartidos(ps) {
     const res = gf > gc ? 'V' : gf < gc ? 'D' : 'E';
     h += '<tr>' +
       '<td><strong>' + (p.rival || '—') + '</strong></td>' +
-      '<td style="font-size:11px;color:#b4c2d4">' + (p.grupo_nombre || '—') + '</td>' +
+      '<td style="font-size:11px;color:#b4c2d4">' + (((AG||[]).find(x=>x.codigo===p.grupo_codigo)&&gLbl((AG||[]).find(x=>x.codigo===p.grupo_codigo))) || p.grupo_nombre || '—') + '</td>' +
       '<td style="font-size:11px;color:#b4c2d4">' + f + '</td>' +
       '<td><strong style="color:' + col + '">' + gf + ' — ' + gc + '</strong></td>' +
       '<td><span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;background:' + col + '22;color:' + col + '">' + res + '</span></td>' +
@@ -20534,7 +20542,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='11/11/2026 · 1';
+const SC360_VERSION='11/11/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -21073,7 +21081,7 @@ let TRK={grupo:'',res:[],ints:[],variable:'regulacion',tab:'partidos'};
 async function loadTracking(){
   const sel=document.getElementById('trk-grupo');
   const gs=filtrarGrupos(AG&&AG.length?AG:(await q('grupos?order=nombre.asc')||[]));
-  if(sel&&!sel.dataset.ok){ sel.innerHTML='<option value="">Todos los planteles</option>'+gs.map(g=>'<option value="'+g.codigo+'">'+g.nombre+'</option>').join(''); sel.dataset.ok='1'; }
+  if(sel&&!sel.dataset.ok){ sel.innerHTML='<option value="">Todos los planteles</option>'+gSort(gs).map(g=>'<option value="'+g.codigo+'">'+gLbl(g)+'</option>').join(''); sel.dataset.ok='1'; }
   const vs=document.getElementById('trk-var');
   if(vs&&!vs.dataset.ok){ vs.innerHTML='<option value="__D">Disponibilidad (D)</option>'+Object.keys(DIM_LABELS).map(k=>'<option value="'+k+'"'+(k==='regulacion'?' selected':'')+'>'+DIM_LABELS[k]+'</option>').join(''); vs.dataset.ok='1'; }
   const cuerpo=document.getElementById('trk-cuerpo'); if(cuerpo) cuerpo.innerHTML='<div class="es">Cargando…</div>';
@@ -21629,7 +21637,7 @@ async function loadCheckin(){
     if(!gs.length){ box.innerHTML='<div class="es">No hay divisiones para mostrar.</div>'; return; }
     let v=''; try{ v=localStorage.getItem('sc360_ck_grupo')||''; }catch(e){}
     if(!gs.some(g=>g.codigo===v)) v=gs[0].codigo;
-    sel.innerHTML=gs.map(g=>'<option value="'+g.codigo+'"'+(g.codigo===v?' selected':'')+'>'+g.nombre+(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin'?' · '+(g.club||''):'')+'</option>').join('');
+    sel.innerHTML=gSort(gs).map(g=>'<option value="'+g.codigo+'"'+(g.codigo===v?' selected':'')+'>'+gLbl(g)+'</option>').join('');
     CK_GRUPO=v; ckRender();
   }catch(e){ box.innerHTML='<div class="es">No se pudo cargar.</div>'; }
 }
