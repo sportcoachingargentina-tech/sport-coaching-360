@@ -8243,8 +8243,9 @@ async function elimR(id,nombre){
 // ordenado por club. Un coordinador o DT ve solo el nombre de la división.
 function clubCorto(c){ return String(c||'').split('—')[0].trim().replace(/^club\s+/i,'').replace(/^((atl[eé]tico|deportivo|social|sportivo)\s+)+/i,'').trim()||String(c||'').trim(); }
 function gMulti(){ if(USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin') return true; const cs=new Set((AG||[]).map(g=>clubCorto(g.club).toLowerCase())); return cs.size>1; }
-function gLbl(g){ if(!g) return ''; const n=g.nombre||g.codigo||''; return gMulti()&&g.club?clubCorto(g.club)+' · '+n:n; }
-function gSort(arr){ arr=Array.isArray(arr)?arr:[]; if(!gMulti()) return arr; return arr.slice().sort((a,b)=>clubCorto(a.club).localeCompare(clubCorto(b.club),'es')||String(a.nombre||'').localeCompare(String(b.nombre||''),'es')); }
+function gClub(g){ return (g&&(g.club||(typeof GRUPO_CLUB!=='undefined'&&g.codigo&&GRUPO_CLUB[g.codigo])))||''; }
+function gLbl(g){ if(!g) return ''; const n=g.nombre||g.codigo||''; const c=gClub(g); return gMulti()&&c?clubCorto(c)+' · '+n:n; }
+function gSort(arr){ arr=Array.isArray(arr)?arr:[]; if(!gMulti()) return arr; return arr.slice().sort((a,b)=>clubCorto(gClub(a)).localeCompare(clubCorto(gClub(b)),'es')||String(a.nombre||'').localeCompare(String(b.nombre||''),'es')); }
 function updSel(id,opts,def){const s=document.getElementById(id);s.innerHTML=`<option value="">${def}</option>`+opts.map(o=>`<option value="${o.v||o}">${o.l||o}</option>`).join('');}
 function cerrar(id){document.getElementById(id).classList.remove('open');}
 
@@ -17703,7 +17704,9 @@ async function loadEstadisticas() {
 
   // Poblar selector de grupos
   const sel = document.getElementById('est-grupo');
-  if(sel && sel.options.length <= 1) {
+  if(!AG||!AG.length){ try{ AG=filtrarGrupos(await q('grupos?order=nombre.asc')||[]); }catch(e){} }
+  if(sel) {
+    const vPrev=sel.value; sel.innerHTML='<option value="">Todos los grupos</option>';
     const cods = [...new Set(ps.map(p => p.grupo_codigo).filter(Boolean))];
     const grupos = cods.map(function(c){ const gA=(AG||[]).find(x=>x.codigo===c); const p2=ps.find(p=>p.grupo_codigo===c)||{}; return gA||{codigo:c,nombre:p2.grupo_nombre||c,club:''}; });
     gSort(grupos).forEach(function(g) {
@@ -17712,6 +17715,7 @@ async function loadEstadisticas() {
       o.textContent = gLbl(g);
       sel.appendChild(o);
     });
+    if(vPrev) sel.value=vPrev;
   }
 
   // Filtrar solo partidos con resultado cargado
@@ -20019,11 +20023,11 @@ function dashPlantelSel(rows){
   const sel=document.getElementById('dash-plantel'); if(!sel) return '';
   const gm={}; (rows||[]).forEach(r=>{ if(r.grupo_codigo){ gm[r.grupo_codigo]=gm[r.grupo_codigo]||{codigo:r.grupo_codigo,nombre:r.grupo_nombre||r.grupo_codigo,n:new Set()}; gm[r.grupo_codigo].n.add(idcNom(r.jugador_nombre)); } });
   // Primera arriba, después el resto por nombre
-  const grupos=Object.values(gm).sort((a,b)=>{ const pa=/primera/i.test(a.nombre)?0:1, pb=/primera/i.test(b.nombre)?0:1; return pa-pb||a.nombre.localeCompare(b.nombre); });
+  const grupos=gMulti()?gSort(Object.values(gm)):Object.values(gm).sort((a,b)=>{ const pa=/primera/i.test(a.nombre)?0:1, pb=/primera/i.test(b.nombre)?0:1; return pa-pb||a.nombre.localeCompare(b.nombre); });
   if(grupos.length<2){ sel.style.display='none'; return ''; }
   let v=''; try{ v=localStorage.getItem(dashPlantelClave())||''; }catch(e){}
   if(v&&!gm[v]) v='';
-  sel.innerHTML='<option value="">Todos los planteles</option>'+grupos.map(g=>'<option value="'+g.codigo+'"'+(g.codigo===v?' selected':'')+'>'+g.nombre+' ('+g.n.size+')</option>').join('');
+  sel.innerHTML='<option value="">Todos los planteles</option>'+grupos.map(g=>'<option value="'+g.codigo+'"'+(g.codigo===v?' selected':'')+'>'+gLbl(g)+' ('+g.n.size+')</option>').join('');
   sel.style.display='inline-block';
   return v;
 }
@@ -20542,7 +20546,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='11/11/2026 · 2';
+const SC360_VERSION='11/11/2026 · 3';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
