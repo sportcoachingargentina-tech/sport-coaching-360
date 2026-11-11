@@ -59,7 +59,13 @@
         }
         if(url.indexOf('/rest/v1/')>=0&&url.indexOf('errores_app')<0&&m!=='GET'&&m!=='HEAD'&&m!=='OPTIONS'){
           var tabla=url.split('/rest/v1/')[1].split('?')[0];
-          p.then(function(res){ if(res&&!res.ok){ var esLectura=tabla.indexOf('rpc/')===0&&res.status===404; res.clone().text().then(function(t){ registrar(esLectura?'consulta':'guardado',(esLectura?'Función no disponible: ':'Falló '+m+' en ')+tabla+' ('+res.status+')',t,!esLectura); }).catch(function(){}); } })
+          p.then(function(res){ if(res&&!res.ok){ var esLectura=tabla.indexOf('rpc/')===0&&res.status===404; res.clone().text().then(function(t){
+              // Sin alerta por mail (11/11/2026): el registro de uso (navegacion_log) es solo estadística,
+              // y en el panel una sesión vencida (401 JWT) se renueva sola y el guardado se repite.
+              var sesionVencida=res.status===401&&/PGRST303|JWT expired|JWT caducado/i.test(t||'');
+              var leve=tabla==='navegacion_log'||(sesionVencida&&PAGINA==='panel');
+              if(leve&&!esLectura){ registrar('sesion',(sesionVencida?'Sesión vencida (se renueva sola) en ':'Falló registro de uso en ')+tabla+' ('+res.status+')',t,false); return; }
+              registrar(esLectura?'consulta':'guardado',(esLectura?'Función no disponible: ':'Falló '+m+' en ')+tabla+' ('+res.status+')',t,!esLectura); }).catch(function(){}); } })
            .catch(function(err){ registrar('red','Sin conexión al guardar en '+tabla,String(err),false); });
         }
       }catch(e){}
