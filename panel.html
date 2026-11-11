@@ -4092,7 +4092,11 @@ function toggleFormPartido(){
 }
 
 async function loadG(){
-  const [gs,rs,cls]=await Promise.all([q('grupos?order=creado_en.desc'),q('resultados?select=grupo_codigo'),q('clubes?select=id,nombre,tipo,activo')]);
+  const esAdm=USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin';
+  const [gs,rs,cls,peds]=await Promise.all([q('grupos?order=creado_en.desc'),q('resultados?select=grupo_codigo,jugador_nombre'),q('clubes?select=id,nombre,tipo,activo'),
+    esAdm?q('cupo_pedidos?estado=eq.pendiente&order=creado_en.asc',{sinCache:true}).catch(()=>[]):Promise.resolve([])]);
+  // Jugadores distintos por división (para el cupo)
+  const jugG={}; (rs||[]).forEach(r=>{ if(r.grupo_codigo&&r.jugador_nombre) (jugG[r.grupo_codigo]=jugG[r.grupo_codigo]||new Set()).add(String(r.jugador_nombre).toLowerCase().trim()); });
   const clubPorId={}; (Array.isArray(cls)?cls:[]).forEach(c=>{ clubPorId[c.id]=c; });
   if(!gs)return;
   // Filtrar por club si no es admin
@@ -4107,6 +4111,7 @@ async function loadG(){
     <div style="font-size:12px;color:#94a3b8">Total grupos: <strong style="color:#00c2ff">${totalGrupos}</strong></div>
     <div style="font-size:12px;color:#94a3b8">Total respuestas: <strong style="color:#22c55e">${totalResp}</strong></div>
   </div>`;
+  html+=cupoPedidosHtml(Array.isArray(peds)?peds:[],gs);
   const filaG=g=>{
     const c=cnt[g.codigo]||0;
     const lk=TU+'?grupo='+g.codigo;
@@ -4129,6 +4134,7 @@ async function loadG(){
         <button class="cb" onclick="cop('${lkEstilo}')" title="Copiar link grupal de Estilo de Pensamiento" style="padding:4px 8px;font-size:11px">🧠 Estilo</button>
         <button class="cb" onclick="editarDeporteGrupo('${g.id}','${g.deporte||'fútbol'}')" title="Corregir deporte" style="padding:4px 8px;font-size:11px">🏉 ${g.deporte||'fútbol'}</button>
         <button class="cb" onclick="editarLogoGrupo('${g.id}','${(g.logo_url||'').replace(/'/g,"\\'")}')" title="Cambiar escudo" style="padding:4px 8px;font-size:11px">🖼 Escudo</button>
+        ${esAdm?(()=>{ const u=(jugG[g.codigo]||new Set()).size, cp=g.cupo||35, lleno=u>=cp, cerca=u>=cp-3; return `<button class="cb" onclick="editarCupoGrupo('${g.id}',${cp},${u})" title="Cupo de jugadores de la división (jugadores distintos con test / cupo)" style="padding:4px 8px;font-size:11px;${lleno?'color:#ef4444;border-color:#ef444466':cerca?'color:#f59e0b;border-color:#f59e0b66':''}">👥 ${u}/${cp}</button>`; })():''}
         <button class="${g.habilitado?'bd':'be'}" onclick="togG('${g.id}',${!g.habilitado})" style="padding:4px 8px;font-size:11px">${g.habilitado?'Deshab.':'Habilitar'}</button>
         <button data-id="${g.id}" style="padding:4px 8px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;background:#1a0a0a;color:#ef4444;border:1px solid #ef444440" onclick="eliminarG(this)">✕</button>
       </div>
@@ -4180,6 +4186,46 @@ async function enviarLinkGrupo(link,nombre){
   const txt='Hola! Te comparto el test de Sport Coaching 360 para '+nombre+'. Lleva unos minutos y es la base de tu perfil de rendimiento mental: '+link;
   if(navigator.share){ try{ await navigator.share({title:'Test Sport Coaching 360 — '+nombre,text:txt}); return; }catch(e){ if(e&&e.name==='AbortError') return; } }
   window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+}
+
+// ── CUPO POR DIVISIÓN (11/11/2026) ─────────────────────────────────
+// 35 jugadores por defecto; si un jugador nuevo lo supera, el test lo frena
+// y queda un pedido acá para que el admin lo autorice.
+function cupoPedidosHtml(peds,gs){
+  if(!peds.length) return '';
+  const gPor={}; (gs||[]).forEach(g=>{ gPor[g.codigo]=g; });
+  const porG={}; peds.forEach(p=>{ (porG[p.grupo_codigo]=porG[p.grupo_codigo]||[]).push(p); });
+  return '<div style="padding:12px 14px;background:#f59e0b12;border:1px solid #f59e0b55;border-radius:12px;margin-bottom:10px">'+
+    '<div style="font-size:13px;font-weight:800;color:#f59e0b;margin-bottom:6px">🔔 Pedidos de cupo ('+peds.length+')</div>'+
+    Object.keys(porG).map(cod=>{ const g=gPor[cod]||{}, l=porG[cod];
+      return '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 0;border-top:1px solid #f59e0b22">'+
+        '<div style="flex:1 1 220px;min-width:0"><div style="font-size:12.5px;font-weight:700;color:#e8eff8">'+decEsc((g.club||'')+' – '+(g.nombre||cod))+' <span style="font-weight:400;color:#94a3b8">· cupo '+(g.cupo||35)+'</span></div>'+
+        '<div style="font-size:11.5px;color:#b4c2d4">Quieren entrar: '+l.map(p=>decEsc(p.jugador_nombre)).join(', ')+'</div></div>'+
+        '<button class="be" onclick="cupoAutorizar(\''+cod+'\','+(g.cupo||35)+','+l.length+')" style="padding:5px 10px;font-size:11.5px">Autorizar +'+Math.max(5,l.length)+'</button>'+
+        '<button class="bd" onclick="cupoRechazar(\''+cod+'\')" style="padding:5px 10px;font-size:11.5px">Rechazar</button></div>';
+    }).join('')+'</div>';
+}
+async function cupoAutorizar(cod,cupo,n){
+  const nuevo=cupo+Math.max(5,n);
+  try{
+    await q('grupos?codigo=eq.'+encodeURIComponent(cod),{m:'PATCH',b:{cupo:nuevo},h:{'Prefer':'return=minimal'}});
+    await q('cupo_pedidos?grupo_codigo=eq.'+encodeURIComponent(cod)+'&estado=eq.pendiente',{m:'PATCH',b:{estado:'autorizado',resuelto_por:(USUARIO_ACTUAL&&USUARIO_ACTUAL.nombre)||null,resuelto_en:new Date().toISOString()},h:{'Prefer':'return=minimal'}});
+    alert('✓ Cupo ampliado a '+nuevo+'. Los jugadores ya pueden volver a abrir el link y hacer el test.');
+  }catch(e){ alert('No se pudo autorizar: '+(e&&e.message||e)); }
+  loadG();
+}
+async function cupoRechazar(cod){
+  if(!confirm('¿Rechazar los pedidos de esta división? El cupo queda igual.')) return;
+  try{ await q('cupo_pedidos?grupo_codigo=eq.'+encodeURIComponent(cod)+'&estado=eq.pendiente',{m:'PATCH',b:{estado:'rechazado',resuelto_por:(USUARIO_ACTUAL&&USUARIO_ACTUAL.nombre)||null,resuelto_en:new Date().toISOString()},h:{'Prefer':'return=minimal'}}); }
+  catch(e){ alert('No se pudo guardar: '+(e&&e.message||e)); }
+  loadG();
+}
+async function editarCupoGrupo(id,actual,usados){
+  const v=prompt('Cupo de jugadores de esta división (hoy hay '+usados+' jugadores con test):',actual);
+  if(v===null) return; const n=parseInt(v,10);
+  if(!(n>0&&n<1000)){ alert('Poné un número válido.'); return; }
+  await q('grupos?id=eq.'+id,{m:'PATCH',b:{cupo:n},h:{'Prefer':'return=minimal'}});
+  loadG();
 }
 
 async function togG(id,h){await q('grupos?id=eq.'+id,{m:'PATCH',b:{habilitado:h}});loadG();}
@@ -4436,8 +4482,19 @@ function rToggleHist(k,ev){ if(ev) ev.stopPropagation(); R_ABIERTOS.has(k)?R_ABI
 function rMenu(ev,id){
   ev.stopPropagation();
   document.querySelectorAll('.r-menu').forEach(m=>{ if(m.id!=='rmenu-'+id) m.style.display='none'; });
-  const m=document.getElementById('rmenu-'+id); if(m) m.style.display=m.style.display==='block'?'none':'block';
+  const m=document.getElementById('rmenu-'+id); if(!m) return;
+  if(m.style.display==='block'){ m.style.display='none'; return; }
+  // Posición fija junto al botón: así no lo corta la tabla (últimas filas)
+  const b=ev.currentTarget&&ev.currentTarget.getBoundingClientRect?ev.currentTarget.getBoundingClientRect():null;
+  m.style.display='block';
+  if(b){
+    m.style.position='fixed'; m.style.zIndex='9999';
+    m.style.right=Math.max(8,window.innerWidth-b.right)+'px'; m.style.left='auto';
+    const alto=m.offsetHeight||220, abajo=window.innerHeight-b.bottom;
+    m.style.top=(abajo>alto+12?b.bottom+4:Math.max(8,b.top-alto-4))+'px';
+  }
 }
+window.addEventListener('scroll',function(){ document.querySelectorAll('.r-menu').forEach(m=>{ if(m.style.display==='block') m.style.display='none'; }); },true);
 document.addEventListener('click',function(){ document.querySelectorAll('.r-menu').forEach(m=>m.style.display='none'); });
 function rSetEstado(v){ const s=document.getElementById('rs'); if(s){ s.value=(s.value===v?'':v); filtrarR(); } }
 
@@ -4481,7 +4538,7 @@ function renderR(rs, yaAgrupado){
     const item=(ico,t,js,col)=>`<div onclick="event.stopPropagation();document.getElementById('rmenu-${r.id}').style.display='none';${js}" style="padding:8px 12px;font-size:12px;color:${col||'#e8eff8'};cursor:pointer;white-space:nowrap" onmouseover="this.style.background='#1a3a6e'" onmouseout="this.style.background='transparent'">${ico} ${t}</div>`;
     const menu=`<div style="position:relative;display:inline-block">
       <button title="Más acciones" onclick="rMenu(event,'${r.id}')" style="padding:5px 10px;font-size:14px;line-height:1;background:#1a3a6e44;color:#b4c2d4;border:1px solid #1a3a6e;border-radius:7px;cursor:pointer">⋯</button>
-      <div id="rmenu-${r.id}" class="r-menu" style="display:none;position:absolute;right:0;top:110%;z-index:50;background:#0d1b3e;border:1px solid #1a3a6e;border-radius:10px;box-shadow:0 8px 24px #0008;min-width:200px;overflow:hidden">
+      <div id="rmenu-${r.id}" class="r-menu" style="display:none;position:absolute;right:0;top:110%;z-index:50;text-align:left;background:#0d1b3e;border:1px solid #1a3a6e;border-radius:10px;box-shadow:0 8px 24px #0008;min-width:200px;overflow:hidden">
         ${item('🪪','Ver perfil completo',`irAPerfilJugador('${r.id}')`)}
         ${item('📄','Ver informe del test',`vI('${r.id}')`)}
         ${esCoordOAdmin&&r.token_perfil?item('📲','Compartir perfil por WhatsApp',`compartirPerfil('${r.token_perfil}','${nomJs}','${baseUrl}')`,'#22c55e'):''}
@@ -19583,7 +19640,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='09/11/2026 · 2';
+const SC360_VERSION='11/11/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────

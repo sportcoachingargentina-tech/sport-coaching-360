@@ -121,7 +121,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="info-pill"><div class="info-pill-val">~10</div><div class="info-pill-lbl">minutos</div></div>
       <div class="info-pill"><div class="info-pill-val">8+1</div><div class="info-pill-lbl">dimensiones</div></div>
     </div>
-    <div class="cover-card">
+    <div class="cover-card" id="codigo-box" style="display:none">
+      <h2>CÓDIGO DE TU EQUIPO</h2>
+      <p style="font-size:14px;color:#8fa3bf;line-height:1.5;margin:-4px 0 12px">Para hacer el test necesitás el código de tu equipo. Te lo da tu entrenador o tu club.</p>
+      <div class="fg"><input id="f-codigo" placeholder="Ej: X8TGB0Y" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.12em" onkeydown="if(event.key==='Enter')entrarConCodigo()"/></div>
+      <div id="codigo-err" style="display:none;color:#f59e0b;font-size:13px;margin:-4px 0 10px"></div>
+      <button class="btn-start" onclick="entrarConCodigo()">ENTRAR</button>
+      <a href="https://wa.me/5492612502454?text=Hola%2C%20quiero%20SC360%20para%20mi%20club" target="_blank" rel="noopener" style="display:block;text-align:center;margin-top:14px;font-size:13.5px;color:#00c2ff;text-decoration:none">¿Querés SC360 para tu club? Escribinos por WhatsApp →</a>
+    </div>
+    <div class="cover-card" id="cupo-box" style="display:none;text-align:center">
+      <div style="font-size:40px;margin-bottom:6px">⏳</div>
+      <h2 style="margin-bottom:8px">CUPO COMPLETO</h2>
+      <p style="font-size:14px;color:#8fa3bf;line-height:1.55">Esta división completó su cupo de jugadores. Ya le avisamos a Sport Coaching 360 para habilitarte. Probá de nuevo más tarde con el mismo link.</p>
+    </div>
+    <div class="cover-card" id="datos-box">
       <h2>TUS DATOS</h2>
       <div class="fg-row">
         <div class="fg"><label>Nombre</label><input id="f-nombre" placeholder="Ej: Matías"/></div>
@@ -155,7 +168,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="fg"><label>Club</label><input id="f-club" placeholder="Club Atlético Argentino"/></div>
       <div class="fg"><label>Categoría</label><input id="f-cat" placeholder="Ej: 2012"/></div>
     </div>
-    <button class="btn-start" onclick="startTest()">COMENZAR TEST</button>
+    <button class="btn-start" id="btn-comenzar" onclick="startTest()">COMENZAR TEST</button>
   </div>
 </div>
 
@@ -442,12 +455,51 @@ function leerFechaNac(){
   return {iso:iso, edad:e};
 }
 
+// ── ACCESO CON CÓDIGO Y CUPO POR DIVISIÓN (11/11/2026) ────────────────
+// Sin código de equipo no se hace el test (salvo links de scouting).
+// Cada división tiene un cupo (35 por defecto); un jugador nuevo que lo
+// supera genera un pedido de autorización para el admin.
+var PARAMS_INI=new URLSearchParams(window.location.search);
+var ES_CANDIDATO=!!PARAMS_INI.get('candidato');
+function mostrarAcceso(modo,msg){
+  var cod=document.getElementById('codigo-box'), cupo=document.getElementById('cupo-box'), datos=document.getElementById('datos-box'), btn=document.getElementById('btn-comenzar');
+  cod.style.display=modo==='codigo'?'':'none';
+  cupo.style.display=modo==='cupo'?'':'none';
+  datos.style.display=modo==='datos'?'':'none';
+  btn.style.display=modo==='datos'?'':'none';
+  var err=document.getElementById('codigo-err');
+  if(err){ err.style.display=msg?'':'none'; err.textContent=msg||''; }
+  if(modo!=='datos') window.scrollTo(0,0);
+}
+function entrarConCodigo(){
+  var c=(document.getElementById('f-codigo').value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!c){ mostrarAcceso('codigo','Escribí el código de tu equipo.'); return; }
+  location.href=location.pathname+'?grupo='+encodeURIComponent(c);
+}
+if(!PARAMS_INI.get('grupo')&&!ES_CANDIDATO) mostrarAcceso('codigo');
+var VERIFICANDO_CUPO=false;
 function startTest(){
   var nombre=document.getElementById('f-nombre').value.trim();
   if(!nombre){alert('Por favor ingresa tu nombre.');return;}
   var fnac=leerFechaNac();
   if(fnac.error){alert(fnac.error);return;}
+  if(!tokenActivo&&!ES_CANDIDATO){
+    if(PARAMS_INI.get('grupo')){ alert('Todavía estamos verificando el código de tu equipo. Esperá unos segundos y volvé a tocar Comenzar.'); detectarGrupo(); }
+    else mostrarAcceso('codigo');
+    return;
+  }
+  if(tokenActivo&&!startTest.cupoOk){
+    if(VERIFICANDO_CUPO) return; VERIFICANDO_CUPO=true;
+    var nomCompleto=nombre+' '+document.getElementById('f-apellido').value.trim();
+    sbRpc('sc_cupo_verificar',{p_codigo:tokenActivo.codigo,p_nombre:nomCompleto}).then(function(r){
+      VERIFICANDO_CUPO=false;
+      if(r&&!r.__error&&r.ok===false){ avisarPedidoCupo(nomCompleto,r); mostrarAcceso('cupo'); return; }
+      startTest.cupoOk=true; startTest();   // si la verificación falla por red, no se frena al jugador
+    });
+    return;
+  }
   playerInfo={nombre:nombre+' '+document.getElementById('f-apellido').value.trim(),edad:fnac.edad,fnac:fnac.iso,pos:document.getElementById('f-pos').value,deporte:document.getElementById('f-deporte').value,club:document.getElementById('f-club').value,cat:document.getElementById('f-cat').value};
+  if(tokenActivo){ if(tokenActivo.club) playerInfo.club=tokenActivo.club; if(catDeGrupo(tokenActivo)) playerInfo.cat=catDeGrupo(tokenActivo); }
   // Buscar si tiene evaluación previa habilitada para segunda evaluación
   if(tokenActivo&&playerInfo.nombre){
     sbRpc('sc_reeval_previa',{p_grupo_id:tokenActivo.id,p_nombre:playerInfo.nombre}).then(function(prev){
@@ -456,6 +508,10 @@ function startTest(){
   }
   current=0;answers=new Array(TOTAL).fill(null);
   renderQ();showScreen('s-test');
+}
+
+function avisarPedidoCupo(nombre,r){
+  try{ if(window.SC360_reportar) window.SC360_reportar('cupo','Pedido de cupo: '+(tokenActivo.club||'')+' – '+(tokenActivo.nombre||tokenActivo.codigo)+' – '+nombre,'Cupo '+(r.cupo||'?')+', ya usados '+(r.usados||'?')+'. Autorizar desde el panel: Pedidos de cupo.',true); }catch(e){}
 }
 
 function isLiderazgo(i){return i>=RADAR_QS.length && i<RADAR_QS.length+LIDERAZGO_QS.length;}
@@ -871,19 +927,30 @@ async function sbRpc(fn, body){
   }catch(e){ console.warn('rpc '+fn+' sin red:',e); return {__error:true,red:true}; }
 }
 
+// Categoría del grupo; si es genérica ("Libre" o vacía), se usa el nombre de la división
+function catDeGrupo(g){ var c=(g&&g.categoria||'').trim(); return (c&&!/^libre$/i.test(c))?c:((g&&g.nombre)||c); }
+function fijarCampoGrupo(id,valor){
+  var el=document.getElementById(id); if(!el||!valor) return;
+  el.value=valor; el.readOnly=true; el.setAttribute('aria-readonly','true');
+  el.style.opacity='0.75'; el.style.cursor='not-allowed'; el.title='Lo define tu club';
+  var lab=el.parentNode&&el.parentNode.querySelector('label');
+  if(lab&&lab.textContent.indexOf('🔒')<0) lab.textContent+=' 🔒';
+}
 function detectarGrupo(){
   var params=new URLSearchParams(window.location.search);
   var grupo=params.get('grupo');
   if(!grupo) return;
   sbRpc('sc_grupo_publico',{p_codigo:grupo}).then(function(g){
-    if(!g||g.__error||!g.codigo) return;
+    if(g&&g.__error){ return; }   // sin red: se reintenta al tocar Comenzar
+    if(!g||!g.codigo){ if(!ES_CANDIDATO){ var fc=document.getElementById('f-codigo'); if(fc) fc.value=grupo; mostrarAcceso('codigo','Ese código no existe. Revisalo con tu entrenador.'); } return; }
     if(!g.habilitado){
       document.getElementById('s-cover').innerHTML='<div style="text-align:center;padding:4rem 2rem"><div style="font-size:48px;margin-bottom:1rem">⛔</div><h2 style="color:#f59e0b;margin-bottom:8px">Link deshabilitado</h2><p style="color:#8fa3bf">Este link fue deshabilitado por el coach. Contactalo para más información.</p></div>';
       return;
     }
     tokenActivo=g;
-    if(g.club) document.getElementById('f-club').value=g.club;
-    if(g.categoria) document.getElementById('f-cat').value=g.categoria;
+    // Club y categoría salen del grupo y no se pueden cambiar (11/11/2026)
+    fijarCampoGrupo('f-club',g.club);
+    fijarCampoGrupo('f-cat',catDeGrupo(g));
     var tag=document.querySelector('.cover-tag');
     if(tag) tag.textContent=(g.nombre||'ANÁLISIS RADAR MENTAL').toUpperCase();
     // Mostrar logo del club si existe

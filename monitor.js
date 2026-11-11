@@ -27,7 +27,7 @@
         headers:{apikey:K,Authorization:'Bearer '+K,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(body)}).catch(function(){});
       if(critico&&mails<2){ mails++;
         of.call(window,MAIL,{method:'POST',keepalive:true,headers:{'Content-Type':'application/json',Accept:'application/json'},
-          body:JSON.stringify({_subject:'⚠ SC360 · error en '+PAGINA,Pantalla:PAGINA,Tipo:tipo,Error:mensaje,Detalle:body.detalle||'',Dispositivo:body.dispositivo,Hora:new Date().toLocaleString('es-AR')})}).catch(function(){});
+          body:JSON.stringify({_subject:(tipo==='cupo'?'🔔 SC360 · '+mensaje:'⚠ SC360 · error en '+PAGINA),Pantalla:PAGINA,Tipo:tipo,Error:mensaje,Detalle:body.detalle||'',Dispositivo:body.dispositivo,Hora:new Date().toLocaleString('es-AR')})}).catch(function(){});
       }
     }catch(e){}
   }
