@@ -805,6 +805,8 @@ tr:hover td{background:#0d1b3e40}
         <!-- Avisos de uso del club (los mismos de "Cuentas a atender" del admin, solo con sus datos) -->
         <!-- ¿Cómo está mi equipo? + Centro de decisiones (lo primero que ve el cuerpo técnico) -->
         <div id="dash-30s"></div>
+        <!-- ⚡ Próximo entrenamiento (Pulso post partido): qué trabajar después del último partido -->
+        <div id="dash-pulso"></div>
         <!-- Acción recomendada — traduce los números en una sola conclusión
              accionable, para que el DT no tenga que interpretar 8 módulos
              de datos por su cuenta antes de saber qué hacer. -->
@@ -10111,16 +10113,17 @@ async function pulsoDatos(gcod){
   return {filas:Array.isArray(filas)?filas:[],trab:Array.isArray(trab)?trab:[]};
 }
 // Partidos del grupo con pulso (≥3 cargas), ordenados por fecha
-function pulsoPartidosGrupo(gcod,filas){
+function pulsoPartidosGrupo(gcod,filas,lista){
   const porCod={}; filas.filter(f=>f.estado==='cargado'&&f.q1!=null&&f.minutos_rango!=='no_jugo').forEach(f=>{ (porCod[f.partido_codigo]=porCod[f.partido_codigo]||[]).push(f); });
-  return (PP_RESP.partidos||[]).filter(p=>p.grupo_codigo===gcod&&porCod[p.codigo]&&porCod[p.codigo].length>=3)
+  return (lista||PP_RESP.partidos||[]).filter(p=>p.grupo_codigo===gcod&&porCod[p.codigo]&&porCod[p.codigo].length>=3)
     .map(p=>({p,filas:porCod[p.codigo],fecha:String(p.fecha||'').slice(0,10)}))
     .sort((a,b)=>a.fecha.localeCompare(b.fecha)||String(a.p.creado_en||'').localeCompare(String(b.p.creado_en||'')));
 }
 function pulsoEquipo(filas,k){ return pulsoProm(filas.map(r=>pulsoBloque(r,k))); }
 
+let PULSO_INI={};
 async function pulsoVer(cod){
-  const p=(PP_RESP.partidos||[]).find(x=>x.codigo===cod); if(!p) return;
+  let p=(PP_RESP.partidos||[]).find(x=>x.codigo===cod)||PULSO_INI[cod]; if(!p) return;
   let ov=document.getElementById('pulso-ov'); if(ov) ov.remove();
   ov=document.createElement('div'); ov.id='pulso-ov';
   ov.style.cssText='position:fixed;inset:0;background:#000b;z-index:9998;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto';
@@ -10131,6 +10134,11 @@ async function pulsoVer(cod){
     const [pl,d,dt]=await Promise.all([ppPlantel(p.grupo_codigo),pulsoDatos(p.grupo_codigo),
       q('postpartido_dt?partido_codigo=eq.'+encodeURIComponent(p.codigo)+'&select=jugador_nombre,q1,q2,q3,q5,q8&limit=200',{sinCache:true}).catch(()=>[])]);
     d.dt=Array.isArray(dt)?dt:[];
+    // Todos los partidos del grupo (para comparar con la fecha anterior y el seguimiento),
+    // aunque no se haya abierto la pantalla Partidos (por ejemplo, desde Inicio)
+    let lista=null; try{ lista=await q('partidos?grupo_codigo=eq.'+encodeURIComponent(p.grupo_codigo)+'&select=*&order=fecha.asc&limit=500',{sinCache:true}); }catch(e){}
+    d.lista=Array.isArray(lista)&&lista.length?lista:(PP_RESP.partidos||[]);
+    const p2=d.lista.find(x=>x.codigo===cod); if(p2) p=p2;
     PULSO_CACHE={p,pl,d};
     pulsoRender();
   }catch(e){ document.getElementById('pulso-box').innerHTML='<div style="color:#fca5a5;font-size:13px">No se pudo cargar el pulso. Probá de nuevo.</div>'; }
@@ -10176,7 +10184,7 @@ function pulsoRender(){
 
 // Lectura del partido → Próximo entrenamiento
 function pulsoLectura(p,d){
-  const hist=pulsoPartidosGrupo(p.grupo_codigo,d.filas);
+  const hist=pulsoPartidosGrupo(p.grupo_codigo,d.filas,d.lista);
   const i=hist.findIndex(x=>x.p.codigo===p.codigo);
   const card=(inner,col)=>'<div style="background:#141f3a;border:1px solid '+(col||'#1a3a6e')+';border-radius:14px;padding:14px;margin-top:12px">'+inner+'</div>';
   if(i<0) return card('<div style="font-size:11px;font-weight:800;color:#00c2ff;letter-spacing:.08em">PRÓXIMO ENTRENAMIENTO</div><div style="font-size:13px;color:#b4c2d4;margin-top:6px">La lectura aparece cuando cargan al menos 3 jugadores.</div>');
@@ -10224,10 +10232,13 @@ function pulsoLectura(p,d){
     item(pri[0],1,false)+item(pri[1],2,false)+item(fort,0,true)+
     '<div style="font-size:11px;color:#64748b;margin-top:8px">Propuestas para el cuerpo técnico, no indicaciones automáticas: se contrastan con lo que vieron en el partido. Basado en '+cur.length+' jugadores.</div>');
   const textos=cur.map(r=>(r.texto_libre||'').trim()).filter(t=>t.length>2);
-  if(textos.length) h+=card('<div style="font-size:11px;font-weight:800;color:#8fa3bf;letter-spacing:.08em">LO QUE DIJERON LOS JUGADORES</div>'+
+  let mas='';
+  if(textos.length) mas+=card('<div style="font-size:11px;font-weight:800;color:#8fa3bf;letter-spacing:.08em">LO QUE DIJERON LOS JUGADORES</div>'+
     textos.slice(0,6).map(t=>'<div style="font-size:13px;color:#e8eff8;background:#0d1b3e;border-left:3px solid #00c2ff;padding:8px 12px;border-radius:6px;margin-top:8px">“'+decEsc(t)+'”</div>').join('')+
     '<div style="font-size:11px;color:#64748b;margin-top:8px">Sin nombres: es la mirada del grupo.</div>');
-  h+=pulsoCruces(p,hist,i,d);
+  mas+=pulsoCruces(p,hist,i,d);
+  // Lo de más detalle va plegado: a primera vista, solo qué trabajar (16/11/2026)
+  h+='<details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px;font-weight:800;color:#00c2ff;padding:10px 12px;border:1px solid #00c2ff44;border-radius:10px;background:#00c2ff0d">Ver más: lo que dijeron, cruces y mirada del DT</summary>'+mas+'</details>';
   return h;
 }
 
@@ -10285,7 +10296,7 @@ function pulsoCruces(p,hist,i,d){
 // Seguimiento: ¿mejoró lo que se trabajó?
 function pulsoSeguimiento(p,d){
   if(!d.trab.length) return '';
-  const hist=pulsoPartidosGrupo(p.grupo_codigo,d.filas);
+  const hist=pulsoPartidosGrupo(p.grupo_codigo,d.filas,d.lista);
   const filas=d.trab.slice(0,6).map(t=>{
     const corte=String(t.marcado_en||'').slice(0,10);
     const antes=hist.filter(x=>x.fecha<corte).slice(-3), despues=hist.filter(x=>x.fecha>=corte).slice(0,3);
@@ -10333,6 +10344,78 @@ async function pulsoReabrir(){
   const r=await q('partidos?id=eq.'+p.id,{m:'PATCH',b:{pulso_hasta:hasta}});
   if(!Array.isArray(r)){ alert('No se pudo reabrir. Probá de nuevo.'); return; }
   p.pulso_hasta=hasta; pulsoRender();
+}
+
+// ── Inicio · ⚡ Próximo entrenamiento (16/11/2026) ─────────────────────
+// Lo esencial del Pulso del último partido de cada división, sin tener que
+// buscar el partido: los dos números del equipo, la prioridad n.º 1 con su
+// ejercicio y "Lo trabajé". El detalle se abre con "Ver detalle".
+// Si el último partido todavía tiene menos de 3 cargas, avisa y lleva a cargar.
+let DASH_PULSO=[];
+async function dashPulsoInicio(cods){
+  const box=document.getElementById('dash-pulso'); if(!box) return;
+  if(!cods||!cods.length){ box.innerHTML=''; return; }
+  try{
+    const enc=cods.map(encodeURIComponent).join(',');
+    const [ps,fil,trab]=await Promise.all([
+      q('partidos?grupo_codigo=in.('+enc+')&fecha=gte.'+segFechaMas(-90)+'&select=*&order=fecha.asc&limit=1000',{sinCache:true}),
+      q('pulso_jugador?grupo_codigo=in.('+enc+')&creado_en=gte.'+segFechaMas(-100)+'&select=*&limit=10000',{sinCache:true}),
+      q('pulso_trabajado?grupo_codigo=in.('+enc+')&select=grupo_codigo,partido_codigo,foco&limit=2000',{sinCache:true})]);
+    const P=Array.isArray(ps)?ps:[], F=Array.isArray(fil)?fil:[], T=Array.isArray(trab)?trab:[];
+    const desde=segFechaMas(-21);
+    DASH_PULSO=[];
+    cods.forEach(g=>{
+      const delG=P.filter(p=>p.grupo_codigo===g);
+      const ult=delG.filter(p=>String(p.fecha||'').slice(0,10)>=desde).slice(-1)[0]; if(!ult) return;
+      PULSO_INI[ult.codigo]=ult;
+      const filasG=F.filter(f=>f.grupo_codigo===g);
+      const hist=pulsoPartidosGrupo(g,filasG,delG);
+      const i=hist.findIndex(x=>x.p.codigo===ult.codigo);
+      const nCarg=filasG.filter(f=>f.partido_codigo===ult.codigo&&f.estado==='cargado').length;
+      if(i<0){ DASH_PULSO.push({g,p:ult,pendiente:true,nCarg}); return; }
+      const cur=hist[i].filas, ant=i>0?hist[i-1].filas:null;
+      const ind=(fs,ks)=>fs?pulsoProm(fs.map(r=>pulsoProm(ks.map(k=>pulsoBloque(r,k))))):null;
+      const bl=Object.keys(PULSO_BLOQ).map(k=>{ const qOrd=PULSO_BLOQ[k].qs.map(qq=>({qq,v:pulsoProm(cur.map(r=>r[qq]))})).sort((a,b)=>a.v-b.v); return {k,v:pulsoEquipo(cur,k),qLow:qOrd[0].qq}; }).sort((a,b)=>a.v-b.v);
+      DASH_PULSO.push({g,p:ult,nCarg:cur.length,I1:ind(cur,['presion','foco']),I1a:ind(ant,['presion','foco']),I2:ind(cur,['error']),I2a:ind(ant,['error']),
+        pri:bl[0],trabajado:T.some(t=>t.partido_codigo===ult.codigo&&t.foco===bl[0].k)});
+    });
+    if(!DASH_PULSO.length){ box.innerHTML=''; return; }
+    DASH_PULSO.sort((a,b)=>String(b.p.fecha||'').localeCompare(String(a.p.fecha||'')));
+    const nomG=c=>{ const gg=(AG||[]).find(x=>x.codigo===c); try{ if(gg&&typeof gLbl==='function') return gLbl(gg); }catch(e){} return gg?gg.nombre:''; };
+    const flecha=(a,b)=>{ if(a==null||b==null) return ''; const dd=a-b; return Math.abs(dd)<0.2?' <span style="color:#8fa3bf">→</span>':dd>0?' <span style="color:#22c55e">↑</span>':' <span style="color:#f59e0b">↓</span>'; };
+    const fch=f=>f?fechaD(f).toLocaleDateString('es-AR',{day:'numeric',month:'short'}):'';
+    const btn='white-space:nowrap;font-size:12px;font-weight:800;padding:7px 12px;border-radius:8px;cursor:pointer';
+    const filas=DASH_PULSO.slice(0,4).map((x,k)=>{
+      const cab='<div style="font-size:14px;font-weight:800;color:#fff">'+decEsc(nomG(x.g)||x.p.grupo_nombre||'')+'</div>'+
+        '<div style="font-size:11.5px;color:#7c8fae">vs '+decEsc(x.p.rival||'—')+' · '+fch(x.p.fecha)+' · '+x.nCarg+' cargaron</div>';
+      if(x.pendiente) return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 0;border-top:1px solid #1a3a6e55">'+
+        '<div style="min-width:0">'+cab+'<div style="font-size:12.5px;color:#fbbf24;margin-top:4px">Faltan cargas: la lectura aparece con al menos 3 jugadores.</div></div>'+
+        '<button onclick="pulsoVer(\''+x.p.codigo+'\')" style="'+btn+';background:#f59e0b;color:#0a0f1e;border:none">⚡ Cargar el Pulso</button></div>';
+      const qd=PULSO_Q[x.pri.qLow];
+      return '<div style="padding:12px 0;border-top:1px solid #1a3a6e55">'+cab+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">'+
+          '<span style="font-size:12.5px;color:#e8eff8;background:#0a1024;border:1px solid #1a3a6e;border-radius:8px;padding:5px 9px">🧠 Con la cabeza <b>'+pulsoF1(x.I1)+'</b>'+flecha(x.I1,x.I1a)+'</span>'+
+          '<span style="font-size:12.5px;color:#e8eff8;background:#0a1024;border:1px solid #1a3a6e;border-radius:8px;padding:5px 9px">🔁 Ante lo que pasó <b>'+pulsoF1(x.I2)+'</b>'+flecha(x.I2,x.I2a)+'</span></div>'+
+        '<div style="font-size:14px;font-weight:800;color:#fbbf24">🎯 Trabajar: '+PULSO_BLOQ[x.pri.k].t+'</div>'+
+        '<div style="font-size:13px;color:#c0d0e8;line-height:1.5;margin-top:3px">'+decEsc(qd.ej)+'</div>'+
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px">'+
+          (x.trabajado?'<span style="'+btn+';background:#22c55e;color:#0a0f1e;cursor:default">✓ Trabajado</span>'
+            :'<button onclick="dashPulsoTrabaje('+k+',this)" style="'+btn+';background:none;color:#00c2ff;border:1px solid #00c2ff">☐ Lo trabajé</button>')+
+          '<button onclick="pulsoVer(\''+x.p.codigo+'\')" style="'+btn+';background:none;color:#b4c2d4;border:1px solid #1a3a6e">Ver detalle →</button></div></div>';
+    }).join('');
+    box.innerHTML='<div class="dsh-card" style="margin:0 0 12px;border:1px solid #f59e0b55">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><div class="dsh-card-t">⚡ Próximo entrenamiento</div>'+
+      '<div style="font-size:11px;color:#7c8fae">Según el Pulso del último partido</div></div>'+filas+
+      '<div style="font-size:10.5px;color:#4a5a78;margin-top:6px">Propuestas para el cuerpo técnico, no indicaciones automáticas. La decisión es del DT.</div></div>';
+  }catch(e){ box.innerHTML=''; }
+}
+async function dashPulsoTrabaje(k,el){
+  const x=DASH_PULSO[k]; if(!x||!x.pri) return;
+  el.disabled=true;
+  const r=await q('pulso_trabajado',{m:'POST',b:{grupo_codigo:x.g,partido_codigo:x.p.codigo,foco:x.pri.k,ejercicio:PULSO_Q[x.pri.qLow].ej,marcado_por:(USUARIO_ACTUAL&&(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email))||null}});
+  if(!Array.isArray(r)){ el.disabled=false; alert('No se pudo guardar. Probá de nuevo.'); return; }
+  x.trabajado=true;
+  el.outerHTML='<span style="white-space:nowrap;font-size:12px;font-weight:800;padding:7px 12px;border-radius:8px;background:#22c55e;color:#0a0f1e">✓ Trabajado</span>';
 }
 
 async function loadPP(){
@@ -19914,7 +19997,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='15/11/2026 · 1';
+const SC360_VERSION='16/11/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -21541,6 +21624,7 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
     dashDTPendiente(cods);
     dashPlanInicio(cods);
     dashReevaluar(jugs);
+    dashPulsoInicio(cods);
     try{ dashCompacto({jugs,res,D,cods,rL,Dp,est,nuevos,jugR,jugN,jugV,nDec,evol,evolN,recP,recs,trDisp,trRec,capas,riesgo,ventana,K,linBody,evoBody,predBody,contra,colD,prom,mismo,fT,fP,nCk,lineaMin,porLinea,semCmp,golesTxt,evoTend}); }catch(e){ console.warn('Inicio compacto:',e); }
   }catch(e){ console.warn('Centro de decisiones:',e); }
 }
