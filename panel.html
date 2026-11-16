@@ -10007,10 +10007,55 @@ async function ppPlantel(gcod){
   const nombres=[...new Set((Array.isArray(r)?r:[]).map(x=>x.nombre).filter(Boolean))];
   PP_RESP.plantel[gcod]=nombres; return nombres;
 }
+// Indicador del Pulso debajo de cada partido (16/11/2026): los dos números del
+// equipo y qué trabajar, o cuántos cargaron si todavía no alcanza para la lectura.
+async function ppPulsoLlenar(partidos){
+  try{
+    const grupos=[...new Set((partidos||[]).map(p=>p.grupo_codigo).filter(Boolean))]; if(!grupos.length) return;
+    const fil=[];
+    for(let i=0;i<grupos.length;i+=20){
+      const r=await q('pulso_jugador?grupo_codigo=in.('+grupos.slice(i,i+20).map(encodeURIComponent).join(',')+')&select=*&limit=10000',{sinCache:true});
+      if(Array.isArray(r)) fil.push(...r);
+    }
+    const hoy=ppHoyISO(), hace4=segFechaMas(-4);
+    const flecha=(a,b)=>{ if(a==null||b==null) return ''; const dd=a-b; return Math.abs(dd)<0.2?' <span style="color:#8fa3bf">→</span>':dd>0?' <span style="color:#22c55e">↑</span>':' <span style="color:#f59e0b">↓</span>'; };
+    const ind=(fs,ks)=>fs?pulsoProm(fs.map(r=>pulsoProm(ks.map(k=>pulsoBloque(r,k))))):null;
+    const est='display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding:7px 10px;border-radius:8px;font-size:12px;';
+    grupos.forEach(g=>{
+      const delG=(partidos||[]).filter(p=>p.grupo_codigo===g).slice().sort((a,b)=>String(a.fecha||'').localeCompare(String(b.fecha||'')));
+      const filasG=fil.filter(f=>f.grupo_codigo===g);
+      const hist=pulsoPartidosGrupo(g,filasG,delG);
+      delG.forEach(p=>{
+        const el=document.querySelector('.pp-pulso[data-cod="'+p.codigo+'"]'); if(!el) return;
+        const i=hist.findIndex(x=>x.p.codigo===p.codigo);
+        const n=filasG.filter(f=>f.partido_codigo===p.codigo&&f.estado==='cargado').length;
+        const fecha=String(p.fecha||'').slice(0,10);
+        if(i>=0){
+          const cur=hist[i].filas, ant=i>0?hist[i-1].filas:null;
+          const pri=Object.keys(PULSO_BLOQ).map(k=>({k,v:pulsoEquipo(cur,k)})).sort((a,b)=>a.v-b.v)[0];
+          el.innerHTML='<div style="'+est+'background:#f59e0b0f;border:1px solid #f59e0b33;color:#e8eff8">'+
+            '<b style="color:#fbbf24">⚡ Pulso · '+n+' cargaron</b>'+
+            '<span>🧠 Con la cabeza <b>'+pulsoF1(ind(cur,['presion','foco']))+'</b>'+flecha(ind(cur,['presion','foco']),ind(ant,['presion','foco']))+'</span>'+
+            '<span>🔁 Ante lo que pasó <b>'+pulsoF1(ind(cur,['error']))+'</b>'+flecha(ind(cur,['error']),ind(ant,['error']))+'</span>'+
+            '<span>🎯 Trabajar: <b style="color:#fbbf24">'+PULSO_BLOQ[pri.k].t+'</b></span>'+
+            '<span style="margin-left:auto;color:#00c2ff;font-weight:700">Ver →</span></div>';
+          el.style.display='block';
+        } else if(n>0){
+          el.innerHTML='<div style="'+est+'background:#0a1024;border:1px solid #1a3a6e;color:#b4c2d4"><b style="color:#fbbf24">⚡ Pulso · '+n+' cargaron</b><span>La lectura aparece con al menos 3.</span><span style="margin-left:auto;color:#00c2ff;font-weight:700">Cargar →</span></div>';
+          el.style.display='block';
+        } else if(fecha&&fecha<=hoy&&fecha>=hace4){
+          el.innerHTML='<div style="'+est+'background:#0a1024;border:1px dashed #f59e0b55;color:#b4c2d4"><b style="color:#fbbf24">⚡ Pulso sin cargar</b><span>2 minutos por jugador, en la tablet o por link.</span><span style="margin-left:auto;color:#00c2ff;font-weight:700">Cargar →</span></div>';
+          el.style.display='block';
+        }
+      });
+    });
+  }catch(e){}
+}
 function ppRespColor(p){ return p==null?'#7c8fae':p>=70?'#22c55e':p>=40?'#f59e0b':'#ef4444'; }
 async function ppRespuestasCargar(partidos){
   try{
     PP_RESP.partidos=partidos||[];
+    ppPulsoLlenar(PP_RESP.partidos);
     const cods=PP_RESP.partidos.map(p=>p.codigo).filter(Boolean);
     if(!cods.length) return;
     const filas=[];
@@ -10477,6 +10522,8 @@ async function loadPP(){
           : '')+
         '<button class="bd" data-id="'+pid+'" data-rival="'+rivalSafe+'" onclick="elimPartido(this.dataset.id,this.dataset.rival)" title="Eliminar">✕</button>'+
       '</div>'+
+      // Indicador del Pulso de este partido (se completa después: ppPulsoLlenar)
+      '<div class="pp-pulso" data-cod="'+pcod+'" onclick="pulsoVer(this.dataset.cod)" style="flex-basis:100%;display:none;cursor:pointer"></div>'+
     '</div>';
   };
 
