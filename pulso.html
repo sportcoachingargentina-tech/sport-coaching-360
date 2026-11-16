@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script src="/monitor.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Pulso Post Partido — Sport Coaching 360</title>
+<meta property="og:title" content="⚡ Pulso Post Partido — Sport Coaching 360">
+<meta property="og:description" content="2 minutos: cómo jugaste con la cabeza. Sport Coaching 360">
+<meta property="og:type" content="website">
+<link rel="icon" href="/icon-192.png">
+<style>
+/* ═══ SC360 · Pulso post partido (15/11/2026) ═══
+   Versión corta del post partido: 9 preguntas del banco actual (misma redacción,
+   escala 1–10) en 3 bloques + 1 pregunta abierta. Se carga por link (cada jugador
+   en su celular) o en la tablet del club (?modo=tablet). No toca el post partido
+   completo ni el puntaje mental: se guarda aparte (pulso_jugador). */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0f1e;color:#e8eff8;min-height:100vh}
+.topbar{background:#0d1b3e;border-bottom:2px solid #00c2ff;padding:.75rem 1rem;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.logo{font-size:13px;font-weight:800;color:#00c2ff;letter-spacing:.08em}
+.sub{font-size:12px;color:#8fa3bf}
+.app{max-width:640px;margin:0 auto;padding:1.25rem 1rem 4rem}
+body.tablet .app{max-width:1100px}
+.screen{display:none}.screen.active{display:block}
+.card{background:#141f3a;border:1px solid #1a3a6e;border-radius:16px;padding:1.1rem;margin-bottom:12px}
+.lbl{font-size:11px;font-weight:700;color:#8fa3bf;letter-spacing:.08em;text-transform:uppercase}
+h1{font-size:22px;color:#fff;line-height:1.25}
+h2{font-size:17px;color:#fff;line-height:1.3}
+p.t{font-size:14px;color:#b8c6da;line-height:1.55}
+.btn{display:block;width:100%;padding:14px;border-radius:12px;border:none;background:#00c2ff;color:#0a0f1e;font-size:15px;font-weight:800;cursor:pointer;text-align:center}
+.btn:disabled{background:#1a3a6e;color:#8fa3bf;cursor:default}
+.btn.sec{background:#141f3a;color:#8fa3bf;border:1px solid #1a3a6e}
+/* plantel */
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.cont{font-size:38px;font-weight:800;color:#fff;line-height:1}.cont small{font-size:17px;color:#8fa3bf;font-weight:700}
+.bar{height:8px;background:#0d1b3e;border-radius:4px;overflow:hidden;margin-top:8px;width:min(280px,70vw)}
+.bar i{display:block;height:100%;background:#00c2ff;border-radius:4px;transition:width .3s}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.pl{background:#141f3a;border:1px solid #1a3a6e;border-radius:12px;padding:13px;display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;min-height:56px}
+.pl b{font-size:14px;color:#fff}
+.pl.ok{border-color:#22c55e55;cursor:default}.pl.au{opacity:.6}
+.st{font-size:11px;font-weight:800;padding:4px 9px;border-radius:20px;white-space:nowrap}
+.st.ok{background:#22c55e22;color:#22c55e}.st.pe{background:#00c2ff1f;color:#00c2ff}.st.au{background:#64748b33;color:#94a3b8}
+.tog{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:9px 14px;border-radius:10px;font-weight:700;font-size:13px;border:1px solid #1a3a6e;background:#141f3a;color:#8fa3bf;cursor:pointer}
+.chip.on{border-color:#f59e0b;color:#f59e0b;background:#1a1200}
+/* preguntas */
+.blk{display:flex;gap:6px;margin-bottom:14px}
+.blk div{flex:1;text-align:center;font-size:11.5px;font-weight:700;padding:8px 4px;border-radius:10px;background:#141f3a;color:#8fa3bf;border:1px solid #1a3a6e}
+.blk .a{background:#00c2ff;color:#0a0f1e;border-color:#00c2ff}.blk .d{color:#22c55e;border-color:#22c55e55}
+.q{font-size:15.5px;font-weight:600;color:#fff;margin-bottom:12px;line-height:1.45}
+.sc{display:flex;gap:5px}
+.sc button{flex:1;min-width:0;padding:12px 0;border-radius:10px;background:#0d1b3e;border:1px solid #1a3a6e;color:#8fa3bf;font-weight:700;font-size:14px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sc button.s{border-color:#00c2ff;background:#0a2050;color:#00c2ff}
+.sl{display:flex;justify-content:space-between;font-size:10.5px;color:#8fa3bf;margin-top:6px}
+textarea{width:100%;background:#0d1b3e;border:1px solid #1a3a6e;border-radius:10px;color:#e8eff8;font-size:15px;padding:12px;min-height:110px;resize:vertical;font-family:inherit}
+textarea:focus{outline:none;border-color:#00c2ff}
+.nav{display:flex;gap:10px;margin-top:6px}.nav .btn.sec{width:auto;padding:14px 20px}
+/* devolución */
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #1a3a6e;font-size:14px}
+.row:last-child{border:none}
+.up{color:#22c55e;font-weight:800}.dn{color:#f59e0b;font-weight:800}.eq{color:#8fa3bf;font-weight:800}
+.best{background:linear-gradient(135deg,#f59e0b22,#00c2ff18);border-color:#f59e0b66}
+.note{font-size:11.5px;color:#64748b;margin-top:10px;line-height:1.5}
+.err{text-align:center;padding:3rem 1rem;color:#b8c6da}
+input.nom{width:100%;padding:12px;border-radius:10px;border:1px solid #1a3a6e;background:#0d1b3e;color:#e8eff8;font-size:15px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="topbar"><div><div class="logo">SC360 · PULSO POST PARTIDO</div><div class="sub" id="top-sub">Cargando…</div></div><div class="sub" id="top-der"></div></div>
+<div class="app">
+
+  <!-- PLANTEL (tablet: grilla con contador · link: elegí tu nombre) -->
+  <div class="screen" id="s-plantel">
+    <div class="head">
+      <div><div class="lbl" id="pl-lbl">Plantel</div><div class="cont"><span id="pl-n">0</span><small id="pl-tot"> / 0 cargados</small></div><div class="bar"><i id="pl-bar" style="width:0"></i></div></div>
+      <div class="tog" id="pl-acc"></div>
+    </div>
+    <div id="pl-intro"></div>
+    <div class="grid" id="pl-grid"></div>
+    <div class="note" id="pl-nota"></div>
+  </div>
+
+  <!-- PREGUNTAS -->
+  <div class="screen" id="s-preg">
+    <div class="blk" id="blk"></div>
+    <div id="preg"></div>
+    <div class="nav"><button class="btn sec" id="b-atras" onclick="atras()">←</button><button class="btn" id="b-sig" onclick="siguiente()" disabled>Siguiente →</button></div>
+  </div>
+
+  <!-- DEVOLUCIÓN -->
+  <div class="screen" id="s-dev"><div id="dev"></div></div>
+
+  <!-- ERROR -->
+  <div class="screen" id="s-error"><div class="err"><p style="font-size:32px;margin-bottom:1rem">⚠️</p><p id="err-txt"></p></div></div>
+</div>
+
+<script>
+const SB='https://gltqhcnusblfovhxljcs.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdHFoY251c2JsZm92aHhsamNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2NzM4NDQsImV4cCI6MjA5MTI0OTg0NH0.FrRzvRzz0k4b3jgHpGsxA10enM9AuSSXTPo7PAgVAXI';
+async function rpc(fn,b){
+  const r=await fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+  if(!r.ok) throw new Error('rpc '+fn+' '+r.status);
+  const t=await r.text(); return t?JSON.parse(t):null;
+}
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Las 9 preguntas salen del post partido completo (misma redacción y número q)
+const BLOQUES=[
+  {k:'error',t:'Después del error',qs:[
+    ['q1','Tras un error: ¿Logré que mi siguiente acción fuera positiva?'],
+    ['q7','Acepté mis errores o los de mis compañeros sin que eso me generara frustración o enojo'],
+    ['q16','Cuando algo salió mal, lo que me dije a mí mismo me ayudó a seguir en vez de hundirme']]},
+  {k:'presion',t:'Bajo presión',qs:[
+    ['q2','Bajo presión máxima, ¿pude elegir el pase o la marca con total consciencia de lo que hacía?'],
+    ['q9','Ejecuté mis acciones técnicas con total convencimiento, sin dudar ni un segundo'],
+    ['q13','Logré mantenerme en eje y enfocado ante situaciones adversas o errores']]},
+  {k:'foco',t:'Foco y energía',qs:[
+    ['q3','Logré mantenerme concentrado en mi posición y tarea asignada sin distraerme por factores externos'],
+    ['q19','Sostuve el plan de juego y las indicaciones durante todo el partido'],
+    ['q12','Sentí que mi nivel de energía y ganas de jugar estuvieron en el punto justo']]}
+];
+const NOMBRE_BLOQUE={error:'Después del error',presion:'Bajo presión',foco:'Foco y energía'};
+const BEST_TXT={error:'Tu mejor partido después del error',presion:'Tu mejor partido bajo presión',foco:'Tu mejor partido en foco y energía'};
+const FOCO_TXT={
+  error:['Volver rápido después de fallar','Después de cada error: respiración corta, una palabra clave y a la siguiente jugada.'],
+  presion:['Decidir con calma cuando aprietan','Antes de recibir, mirá una vez más: que ya sepas qué vas a hacer con la pelota.'],
+  foco:['Sostener tu tarea todo el partido','Elegí una consigna simple para tu puesto y repetítela en cada pausa del juego.']
+};
+
+const P=new URLSearchParams(location.search);
+const PARTIDO=(P.get('partido')||'').trim();
+const TABLET=P.get('modo')==='tablet';
+const STAFF=(P.get('staff')||'').slice(0,80);
+if(TABLET) document.body.classList.add('tablet');
+let INFO=null, JUG=null, PASO=-1, R={}, TEXTO='', MIN=null, MARCAR_AUS=false;
+const MINUTOS=[['no_jugo','No jugué'],['menos_30','Menos de 30\''],['30_60','30 a 60\''],['mas_60','Más de 60\'']];
+
+function ver(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id)); window.scrollTo(0,0); }
+function error(t){ document.getElementById('err-txt').textContent=t; ver('s-error'); }
+
+async function cargarPlantel(){
+  try{ INFO=await rpc('sc_pulso_plantel',{p_partido:PARTIDO}); }catch(e){ INFO=null; }
+  if(!INFO){ error('No hay conexión. Probá de nuevo en un momento.'); return false; }
+  if(!INFO.ok){ error('Link inválido o partido no encontrado.'); return false; }
+  const f=INFO.fecha?new Date(INFO.fecha+'T12:00:00').toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'numeric'}).replace('-','/'):'';
+  document.getElementById('top-sub').textContent=[INFO.club,(INFO.grupo||'').toUpperCase(),'vs. '+(INFO.rival||'—')+(f?' ('+f+')':'')].filter(Boolean).join(' · ');
+  document.getElementById('top-der').innerHTML=TABLET&&STAFF?'Cargado por: <b style="color:#fff">'+esc(STAFF)+'</b>':'';
+  if(!INFO.vigente){ error('La carga de este partido ya cerró. Si todavía querés responder, pedile al cuerpo técnico que la vuelva a abrir.'); return false; }
+  return true;
+}
+
+function renderPlantel(){
+  const pl=INFO.plantel||[];
+  const aus=pl.filter(j=>j.estado==='ausente').length, ok=pl.filter(j=>j.estado==='cargado').length, tot=pl.length-aus;
+  document.getElementById('pl-n').textContent=ok;
+  document.getElementById('pl-tot').textContent=' / '+tot+' cargados';
+  document.getElementById('pl-bar').style.width=(tot?Math.round(ok/tot*100):0)+'%';
+  document.getElementById('pl-lbl').textContent=TABLET?'Plantel':'Elegí tu nombre';
+  document.getElementById('pl-acc').innerHTML=TABLET?'<button class="chip'+(MARCAR_AUS?' on':'')+'" onclick="MARCAR_AUS=!MARCAR_AUS;renderPlantel()">'+(MARCAR_AUS?'✓ Listo con ausentes':'Marcar ausentes')+'</button><button class="chip" onclick="refrescar()">↻ Actualizar</button>':'';
+  document.getElementById('pl-intro').innerHTML=TABLET
+    ?(MARCAR_AUS?'<div class="card" style="border-color:#f59e0b66"><p class="t">Tocá a los que no estuvieron (lesionados, selección, no viajaron). No cuentan para el total.</p></div>':'')
+    :'<div class="card"><h2>¿Cómo jugaste con la cabeza?</h2><p class="t" style="margin-top:6px">Son 9 preguntas, unos 2 minutos. Tocá tu nombre para empezar.</p></div>';
+  const g=document.getElementById('pl-grid');
+  g.innerHTML=pl.map((j,i)=>{
+    const st=j.estado==='cargado'?'<span class="st ok">✓ Listo</span>':j.estado==='ausente'?'<span class="st au">Ausente</span>':'<span class="st pe">'+(TABLET?'Cargar':'Empezar')+'</span>';
+    return '<div class="pl'+(j.estado==='cargado'?' ok':j.estado==='ausente'?' au':'')+'" data-i="'+i+'"><b>'+esc(j.nombre)+'</b>'+st+'</div>';
+  }).join('')||'<div class="note">Todavía no hay jugadores en esta división.</div>';
+  g.querySelectorAll('.pl').forEach(el=>el.onclick=()=>tocar(pl[+el.dataset.i]));
+  document.getElementById('pl-nota').textContent=TABLET
+    ?'Tocás un jugador → responde él solo (2 min) → vuelve a esta grilla. El staff no ve sus respuestas.'
+    :'¿No aparecés? Tu nombre figura cuando ya hiciste el test inicial de SC360. Avisale al cuerpo técnico.';
+  ver('s-plantel');
+}
+
+async function tocar(j){
+  if(!j||j.estado==='cargado') return;
+  if(TABLET&&MARCAR_AUS){
+    try{ await rpc('sc_pulso_ausente',{p_partido:PARTIDO,p_nombre:j.nombre,p_ausente:j.estado!=='ausente'}); j.estado=j.estado==='ausente'?null:'ausente'; }catch(e){ alert('Sin conexión, probá de nuevo.'); }
+    renderPlantel(); return;
+  }
+  if(j.estado==='ausente') return;
+  if(!TABLET&&!confirm('¿Sos '+j.nombre+'?')) return;
+  JUG=j.nombre; PASO=-1; R={}; TEXTO=''; MIN=null;
+  document.getElementById('top-der').innerHTML=esc(JUG);
+  renderPaso();
+}
+
+function renderPaso(){
+  const blk=document.getElementById('blk');
+  blk.innerHTML=BLOQUES.map((b,i)=>'<div class="'+(i===PASO?'a':i<PASO?'d':'')+'">'+(i<PASO?'✓ ':(i+1)+' · ')+b.t+'</div>').join('')+'<div class="'+(PASO===3?'a':'')+'">✎ Tu partido</div>';
+  const cont=document.getElementById('preg');
+  if(PASO===-1){
+    blk.innerHTML='<div class="a">⏱ Minutos</div>'+BLOQUES.map((b,i)=>'<div>'+(i+1)+' · '+b.t+'</div>').join('')+'<div>✎ Tu partido</div>';
+    cont.innerHTML='<div class="card"><div class="q">¿Cuánto jugaste hoy?</div><div class="sc" style="flex-wrap:wrap">'+
+      MINUTOS.map(([k,t])=>'<button data-m="'+k+'" class="'+(MIN===k?'s':'')+'" style="flex:1 1 40%;padding:16px 4px">'+t+'</button>').join('')+'</div></div>';
+    cont.querySelectorAll('.sc button').forEach(b=>b.onclick=()=>{ MIN=b.dataset.m; cont.querySelectorAll('.sc button').forEach(x=>x.classList.toggle('s',x===b)); chequear(); });
+  } else if(PASO<3){
+    cont.innerHTML=BLOQUES[PASO].qs.map(([k,t])=>'<div class="card"><div class="q">'+esc(t)+'</div><div class="sc">'+
+      [1,2,3,4,5,6,7,8,9,10].map(v=>'<button data-k="'+k+'" data-v="'+v+'" class="'+(R[k]===v?'s':'')+'">'+v+'</button>').join('')+
+      '</div><div class="sl"><span>Nada / Nunca</span><span>Totalmente / Siempre</span></div></div>').join('');
+    cont.querySelectorAll('.sc button').forEach(b=>b.onclick=()=>{ R[b.dataset.k]=+b.dataset.v; b.parentNode.querySelectorAll('button').forEach(x=>x.classList.toggle('s',x===b)); chequear(); });
+  } else {
+    cont.innerHTML='<div class="card"><div class="q">¿Qué fue lo que más influyó en tu partido?</div><textarea id="txt" maxlength="500" placeholder="Opcional · una o dos frases"></textarea></div>';
+    const ta=document.getElementById('txt'); ta.value=TEXTO; ta.oninput=()=>{ TEXTO=ta.value; };
+  }
+  document.getElementById('b-atras').style.visibility=(PASO===-1&&!TABLET)?'hidden':'visible';
+  document.getElementById('b-sig').textContent=(PASO===-1&&MIN==='no_jugo')?'Enviar ✓':PASO<3?'Siguiente →':'Enviar ✓';
+  chequear(); ver('s-preg');
+}
+function chequear(){
+  const b=document.getElementById('b-sig');
+  if(PASO===-1){ b.disabled=!MIN; b.textContent=MIN==='no_jugo'?'Enviar ✓':'Siguiente →'; return; }
+  b.disabled=PASO<3&&!BLOQUES[PASO].qs.every(([k])=>R[k]);
+}
+function atras(){ if(PASO>-1){ PASO--; renderPaso(); } else if(TABLET&&confirm('¿Volver a la grilla sin guardar?')){ JUG=null; refrescar(); } }
+async function siguiente(){
+  if(PASO<3&&!(PASO===-1&&MIN==='no_jugo')){ PASO++; renderPaso(); return; }
+  const b=document.getElementById('b-sig'); b.disabled=true; b.textContent='Enviando…';
+  const datos={p_partido:PARTIDO,p_nombre:JUG,p_r:MIN==='no_jugo'?{}:R,p_texto:MIN==='no_jugo'?'':TEXTO,p_modo:TABLET?'tablet':'link',p_cargado_por:TABLET?(STAFF||null):null,p_minutos:MIN};
+  let res=null;
+  try{ res=await rpc('sc_pulso_guardar',datos); }
+  catch(e){
+    // Sin señal: queda guardado en el dispositivo y se envía solo al volver la conexión
+    if(window.SC360_guardarPendiente){ window.SC360_guardarPendiente('rpc/sc_pulso_guardar',datos); mostrarDev(null,'pendiente'); return; }
+    alert('Sin conexión. Probá de nuevo.'); b.disabled=false; b.textContent='Enviar ✓'; return;
+  }
+  if(!res||!res.ok){
+    const m=res&&res.motivo;
+    if(m==='ya_cargo'){ mostrarDev(null,'ya'); return; }
+    if(m==='cerrado'){ error('La carga de este partido ya cerró.'); return; }
+    alert('No se pudo guardar ('+(m||'error')+'). Probá de nuevo.'); b.disabled=false; b.textContent='Enviar ✓'; return;
+  }
+  mostrarDev(res.devolucion,res.no_jugo?'nojugo':'ok');
+}
+
+function mostrarDev(d,estado){
+  let h='';
+  if(estado==='pendiente') h+='<div class="card"><h2>Guardado en este dispositivo</h2><p class="t" style="margin-top:6px">No hay señal ahora. Tus respuestas se envían solas cuando vuelva la conexión.</p></div>';
+  else if(estado==='nojugo') h+='<div class="card"><h2>¡Gracias!</h2><p class="t" style="margin-top:6px">Quedó registrado que hoy no jugaste. El próximo partido que juegues vas a ver cómo venís.</p></div>';
+  else if(estado==='ya') h+='<div class="card"><h2>Ya habías respondido este partido</h2><p class="t" style="margin-top:6px">Tu pulso ya estaba cargado. ¡Gracias!</p></div>';
+  else {
+    h+='<div class="lbl" style="margin-bottom:8px">¡Listo! Esto dejó tu partido</div>';
+    if(d&&d.best) h+='<div class="card best"><div class="lbl" style="color:#f59e0b">⭐ Tu mejor marca</div><h2 style="margin-top:6px">'+BEST_TXT[d.best.k]+'</h2><div class="sub" style="margin-top:4px">tu mejor registro en las últimas '+d.best.n+' fechas</div></div>';
+    if(d&&d.ok&&d.nprev>0){
+      h+='<div class="card"><div class="lbl">Comparado con tus últimos partidos</div>'+(d.bloques||[]).map(b=>{
+        const t=b.tend==='sube'?'<span class="up">↑ mejor</span>':b.tend==='baja'?'<span class="dn">↓ más bajo</span>':'<span class="eq">→ igual</span>';
+        return '<div class="row"><span>'+NOMBRE_BLOQUE[b.k]+'</span>'+t+'</div>'; }).join('')+'</div>';
+    } else h+='<div class="card"><h2>Es tu primer pulso</h2><p class="t" style="margin-top:6px">Desde el próximo partido vas a ver si venís mejorando, comparado siempre con vos mismo.</p></div>';
+    const f=d&&d.foco&&FOCO_TXT[d.foco];
+    if(f) h+='<div class="card" style="border-color:#00c2ff55"><div class="lbl" style="color:#00c2ff">Tu foco para esta semana</div><h2 style="margin-top:6px">'+f[0]+'</h2><p class="t" style="margin-top:6px">'+f[1]+'</p></div>';
+  }
+  h+=TABLET?'<button class="btn" onclick="JUG=null;refrescar()">Pasar la tablet al siguiente</button>'
+           :'<p class="note" style="text-align:center">Ya podés cerrar esta pantalla. ¡Gracias!</p>';
+  h+='<div class="note">Se compara solo con vos mismo. Sin ranking y sin comparar con compañeros.</div>';
+  document.getElementById('dev').innerHTML=h; ver('s-dev');
+}
+
+async function refrescar(){ if(await cargarPlantel()) renderPlantel(); }
+if(!PARTIDO) error('Link inválido o partido no encontrado.'); else refrescar();
+</script>
+</body>
+</html>

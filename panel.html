@@ -10074,6 +10074,267 @@ function ppRespRecordar(cod){
   const txt='⚽ *Post Partido vs '+(p.rival||'')+'*\n\nTodavía falta que respondan:\n'+st.faltan.map(n=>'• '+n).join('\n')+'\n\nSon 2 minutos y nos ayuda a preparar la semana 👇\n'+link;
   window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
 }
+// ═══════════════════════════════════════════════════════════════
+// PULSO POST PARTIDO (15/11/2026)
+// Versión corta del post partido (9 preguntas del banco actual, 1–10) que
+// carga el staff en la tablet del club o cada jugador por link. Se guarda
+// aparte (pulso_jugador): NO cambia el post partido completo, el puntaje
+// mental ni los umbrales. Acá: contador del plantel, link/tablet, lectura
+// "Próximo entrenamiento" (2 prioridades + 1 fortaleza con ejercicio y
+// "Lo trabajé") y seguimiento antes/después de lo trabajado.
+// Ejercicios: borrador de Claude para que Eduardo revise y ajuste.
+// ═══════════════════════════════════════════════════════════════
+const PULSO_U=window.location.origin+'/pulso.html';
+const PULSO_BLOQ={
+  error:{t:'Volver después del error',qs:['q1','q7','q16']},
+  presion:{t:'Decidir bajo presión',qs:['q2','q9','q13']},
+  foco:{t:'Foco y plan de juego',qs:['q3','q19','q12']}
+};
+const PULSO_Q={
+  q1:{t:'siguiente acción positiva tras el error',ej:'Juego reducido con transición inmediata después de la pérdida: quien pierde la pelota tiene 5 segundos para recuperarla.'},
+  q7:{t:'aceptar el error sin frustrarse',ej:'En los ejercicios, cuando hay un error se sigue sin parar ni reclamar: el DT corta solo las protestas, nunca el error.'},
+  q16:{t:'lo que se dicen después de un error',ej:'Rutina de reinicio: después de cada error, respiración corta + una palabra clave propia. Practicarla en cada reanudación del entrenamiento.'},
+  q2:{t:'decidir con claridad bajo presión',ej:'Rondos a 2 toques en espacio reducido, para obligar a decidir rápido con el rival encima.'},
+  q9:{t:'ejecutar sin dudar',ej:'Definición repetida: el que falla repite la misma acción hasta que le sale, sin cambiar de ejercicio.'},
+  q13:{t:'mantener el eje en la adversidad',ej:'Partido condicionado que arranca 0-1 abajo, con 8 minutos para darlo vuelta sin perder la estructura.'},
+  q3:{t:'concentración en la tarea',ej:'Entrada en calor con atención dividida: pases + una consigna que cambia por voz (color, número o lado).'},
+  q19:{t:'sostener el plan de juego',ej:'Juego en espacio reducido con una consigna táctica por puesto que el DT cambia cada 4 minutos.'},
+  q12:{t:'energía en el punto justo',ej:'Activación previa corta y pareja para todos (5 minutos de intensidad creciente) antes del partido y del entrenamiento fuerte.'}
+};
+let PULSO_CACHE={};
+function pulsoProm(arr){ const v=arr.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; }
+function pulsoBloque(r,k){ return pulsoProm(PULSO_BLOQ[k].qs.map(q=>r[q])); }
+function pulsoF1(x){ return x==null?'—':x.toFixed(1).replace('.',','); }
+async function pulsoDatos(gcod){
+  const filas=await q('pulso_jugador?grupo_codigo=eq.'+encodeURIComponent(gcod)+'&select=*&order=creado_en.asc&limit=5000',{sinCache:true});
+  const trab=await q('pulso_trabajado?grupo_codigo=eq.'+encodeURIComponent(gcod)+'&select=*&order=marcado_en.desc&limit=200',{sinCache:true});
+  return {filas:Array.isArray(filas)?filas:[],trab:Array.isArray(trab)?trab:[]};
+}
+// Partidos del grupo con pulso (≥3 cargas), ordenados por fecha
+function pulsoPartidosGrupo(gcod,filas){
+  const porCod={}; filas.filter(f=>f.estado==='cargado'&&f.q1!=null&&f.minutos_rango!=='no_jugo').forEach(f=>{ (porCod[f.partido_codigo]=porCod[f.partido_codigo]||[]).push(f); });
+  return (PP_RESP.partidos||[]).filter(p=>p.grupo_codigo===gcod&&porCod[p.codigo]&&porCod[p.codigo].length>=3)
+    .map(p=>({p,filas:porCod[p.codigo],fecha:String(p.fecha||'').slice(0,10)}))
+    .sort((a,b)=>a.fecha.localeCompare(b.fecha)||String(a.p.creado_en||'').localeCompare(String(b.p.creado_en||'')));
+}
+function pulsoEquipo(filas,k){ return pulsoProm(filas.map(r=>pulsoBloque(r,k))); }
+
+async function pulsoVer(cod){
+  const p=(PP_RESP.partidos||[]).find(x=>x.codigo===cod); if(!p) return;
+  let ov=document.getElementById('pulso-ov'); if(ov) ov.remove();
+  ov=document.createElement('div'); ov.id='pulso-ov';
+  ov.style.cssText='position:fixed;inset:0;background:#000b;z-index:9998;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow:auto';
+  ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  ov.innerHTML='<div id="pulso-box" style="background:#0a0f1e;border:1px solid #1a3a6e;border-radius:16px;max-width:860px;width:100%;padding:16px;margin:auto 0"><div style="color:#7c8fae;font-size:13px">Cargando pulso…</div></div>';
+  document.body.appendChild(ov);
+  try{
+    const [pl,d,dt]=await Promise.all([ppPlantel(p.grupo_codigo),pulsoDatos(p.grupo_codigo),
+      q('postpartido_dt?partido_codigo=eq.'+encodeURIComponent(p.codigo)+'&select=jugador_nombre,q1,q2,q3,q5,q8&limit=200',{sinCache:true}).catch(()=>[])]);
+    d.dt=Array.isArray(dt)?dt:[];
+    PULSO_CACHE={p,pl,d};
+    pulsoRender();
+  }catch(e){ document.getElementById('pulso-box').innerHTML='<div style="color:#fca5a5;font-size:13px">No se pudo cargar el pulso. Probá de nuevo.</div>'; }
+}
+
+function pulsoRender(){
+  const {p,pl,d}=PULSO_CACHE, box=document.getElementById('pulso-box'); if(!box) return;
+  const deEste=d.filas.filter(f=>f.partido_codigo===p.codigo);
+  const est={}; deEste.forEach(f=>{ est[idcNom(f.jugador_nombre)]=f.estado; });
+  const aus=pl.filter(n=>est[idcNom(n)]==='ausente'), ok=deEste.filter(f=>f.estado==='cargado');
+  const faltan=pl.filter(n=>!est[idcNom(n)]);
+  const tot=Math.max(pl.length-aus.length,ok.length), pct=tot?Math.round(ok.length/tot*100):0;
+  const hasta=p.pulso_hasta?new Date(p.pulso_hasta):(p.fecha?new Date(String(p.fecha).slice(0,10)+'T03:00:00Z'):null);
+  if(!p.pulso_hasta&&hasta) hasta.setUTCDate(hasta.getUTCDate()+4);
+  const abierto=!hasta||hasta>=new Date();
+  const staff=encodeURIComponent((USUARIO_ACTUAL&&(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email))||'');
+  const linkT=PULSO_U+'?partido='+encodeURIComponent(p.codigo)+'&modo=tablet&staff='+staff;
+  const btn=(txt,fn,c)=>'<button onclick="'+fn+'" style="padding:9px 13px;border-radius:10px;font-size:12.5px;font-weight:800;cursor:pointer;background:'+c+'18;color:'+c+';border:1px solid '+c+'55">'+txt+'</button>';
+  let h='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'+
+    '<div><div style="font-size:11px;font-weight:800;color:#fbbf24;letter-spacing:.08em">⚡ PULSO POST PARTIDO</div>'+
+    '<div style="font-size:17px;font-weight:800;color:#fff;margin-top:2px">vs '+decEsc(p.rival||'—')+'</div>'+
+    '<div style="font-size:12px;color:#7c8fae">'+decEsc(p.grupo_nombre||'')+' · '+(p.fecha?fechaD(p.fecha).toLocaleDateString('es-AR',{day:'numeric',month:'short'}):'')+'</div></div>'+
+    '<button onclick="document.getElementById(\'pulso-ov\').remove()" style="background:none;border:none;color:#7c8fae;font-size:20px;cursor:pointer">✕</button></div>';
+  // Contador + acciones
+  h+='<div style="background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:14px;margin-top:12px">'+
+    '<div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:34px;font-weight:900;color:#fff">'+ok.length+'</span><span style="font-size:15px;color:#8fa3bf;font-weight:700">/ '+tot+' cargados</span>'+(aus.length?'<span style="font-size:12px;color:#94a3b8">· '+aus.length+' ausente'+(aus.length>1?'s':'')+'</span>':'')+
+    (ok.filter(f=>f.minutos_rango==='no_jugo').length?'<span style="font-size:12px;color:#94a3b8">· '+ok.filter(f=>f.minutos_rango==='no_jugo').length+' no jugaron</span>':'')+'</div>'+
+    '<div style="height:7px;background:#0d1b3e;border-radius:4px;overflow:hidden;margin:6px 0 12px"><div style="height:100%;width:'+pct+'%;background:#00c2ff"></div></div>'+
+    (abierto
+      ?'<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+        '<a href="'+linkT+'" target="_blank" style="text-decoration:none;padding:9px 13px;border-radius:10px;font-size:12.5px;font-weight:800;background:#00c2ff;color:#0a0f1e">📱 Cargar en esta tablet</a>'+
+        btn('📲 Link a jugadores','pulsoLink(false)','#22c55e')+
+        (faltan.length&&ok.length?btn('🔔 Recordar a los que faltan ('+faltan.length+')','pulsoLink(true)','#f59e0b'):'')+
+        btn('🔗 Copiar link','cop(\''+PULSO_U+'?partido='+encodeURIComponent(p.codigo)+'\')','#7c8fae')+
+      '</div><div style="font-size:11px;color:#7c8fae;margin-top:8px">Link abierto hasta el '+hasta.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'numeric'}).replace('-','/')+'. Las dos formas suman en el mismo contador.</div>'
+      :'<div style="font-size:12.5px;color:#fca5a5;margin-bottom:8px">La carga de este partido está cerrada.</div>'+btn('↻ Reabrir 72 horas','pulsoReabrir()','#00c2ff'))+
+    (faltan.length?'<details style="margin-top:10px"><summary style="font-size:12px;color:#b4c2d4;cursor:pointer">Faltan '+faltan.length+'</summary><div style="font-size:12.5px;color:#e8eff8;margin-top:6px;line-height:1.7">'+faltan.map(decEsc).join(' · ')+'</div></details>':'')+
+  '</div>';
+  h+=pulsoLectura(p,d);
+  h+=pulsoSeguimiento(p,d);
+  box.innerHTML=h;
+}
+
+// Lectura del partido → Próximo entrenamiento
+function pulsoLectura(p,d){
+  const hist=pulsoPartidosGrupo(p.grupo_codigo,d.filas);
+  const i=hist.findIndex(x=>x.p.codigo===p.codigo);
+  const card=(inner,col)=>'<div style="background:#141f3a;border:1px solid '+(col||'#1a3a6e')+';border-radius:14px;padding:14px;margin-top:12px">'+inner+'</div>';
+  if(i<0) return card('<div style="font-size:11px;font-weight:800;color:#00c2ff;letter-spacing:.08em">PRÓXIMO ENTRENAMIENTO</div><div style="font-size:13px;color:#b4c2d4;margin-top:6px">La lectura aparece cuando cargan al menos 3 jugadores.</div>');
+  const cur=hist[i].filas, prevs=hist.slice(Math.max(0,i-4),i);
+  const prevFilas=[].concat(...prevs.map(x=>x.filas));
+  const anterior=i>0?hist[i-1].filas:null;
+  const ind=(ks)=>pulsoProm(cur.map(r=>pulsoProm(ks.map(k=>pulsoBloque(r,k)))));
+  const indAnt=(ks)=>anterior?pulsoProm(anterior.map(r=>pulsoProm(ks.map(k=>pulsoBloque(r,k))))):null;
+  const delta=(a,b)=>{ if(a==null||b==null) return '<span style="font-size:12px;color:#7c8fae">primer pulso</span>'; const dd=a-b; const c=dd>=0.2?'#22c55e':dd<=-0.2?'#f59e0b':'#8fa3bf'; if(Math.abs(dd)<0.2) return '<span style="font-size:13px;font-weight:800;color:#8fa3bf">→ igual que la fecha anterior</span>'; return '<span style="font-size:13px;font-weight:800;color:'+c+'">'+(dd>0?'↑ +':'↓ ')+pulsoF1(dd).replace('-','−')+' vs. fecha anterior</span>'; };
+  const I1=ind(['presion','foco']), I1a=indAnt(['presion','foco']), I2=ind(['error']), I2a=indAnt(['error']);
+  let h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:12px">'+
+    [['CÓMO JUGÓ CON LA CABEZA',I1,I1a,'Decisiones, convicción, foco y plan de juego'],['CÓMO RESPONDIÓ A LO QUE PASÓ',I2,I2a,'Error, frustración y lo que se dicen']].map(([t,v,a,s])=>
+      '<div style="background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:14px"><div style="font-size:11px;font-weight:800;color:#8fa3bf;letter-spacing:.08em">'+t+'</div>'+
+      '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span style="font-size:38px;font-weight:900;color:#fff">'+pulsoF1(v)+'</span>'+delta(v,a)+'</div><div style="font-size:11.5px;color:#7c8fae">'+s+'</div></div>').join('')+'</div>';
+  h=pulsoResultadoLinea(p)+h;
+  // Bloques: promedio del equipo, y cuántos quedaron por debajo de su propio promedio
+  const bl=Object.keys(PULSO_BLOQ).map(k=>{
+    const v=pulsoEquipo(cur,k);
+    let debajo=0, conHist=0;
+    cur.forEach(r=>{ const propios=prevFilas.filter(f=>idcNom(f.jugador_nombre)===idcNom(r.jugador_nombre)).map(f=>pulsoBloque(f,k)); const m=pulsoProm(propios); if(m!=null){ conHist++; if(pulsoBloque(r,k)<m-0.3) debajo++; } });
+    const qOrd=PULSO_BLOQ[k].qs.map(qq=>({qq,v:pulsoProm(cur.map(r=>r[qq]))})).sort((a,b)=>a.v-b.v);
+    const qLow=qOrd[0].qq, qHigh=qOrd[qOrd.length-1].qq;
+    const best6=hist.slice(Math.max(0,i-5),i).map(x=>pulsoEquipo(x.filas,k));
+    const esMejor=best6.length>=2&&v>Math.max(...best6);
+    return {k,v,debajo,conHist,qLow,qHigh,esMejor,nHist:best6.length};
+  });
+  const orden=bl.slice().sort((a,b)=>a.v-b.v);
+  const pri=orden.slice(0,2), fort=orden[2];
+  const yaTrab=new Set(d.trab.filter(t=>t.partido_codigo===p.codigo).map(t=>t.foco));
+  const item=(b,n,esF)=>{
+    const qd=PULSO_Q[esF?b.qHigh:b.qLow];
+    const porque=esF
+      ?(b.esMejor?'Mejor registro del equipo en '+(b.nHist+1)+' fechas.':'El bloque más alto del equipo en este partido ('+pulsoF1(b.v)+').')
+      :(b.conHist>=3&&b.debajo>0?b.debajo+' de '+b.conHist+' jugadores por debajo de su propio promedio en este bloque.':'Promedio del equipo '+pulsoF1(b.v)+'. Lo más bajo: '+qd.t+'.');
+    const marcado=yaTrab.has(b.k);
+    return '<div style="display:flex;flex-wrap:wrap;gap:12px;padding:12px 0;border-top:1px solid #1a3a6e">'+
+      '<div style="width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:900;color:#0a0f1e;background:'+(esF?'#22c55e':'#00c2ff')+'">'+(esF?'✓':n)+'</div>'+
+      '<div style="flex:1 1 240px;min-width:0"><div style="font-size:15px;font-weight:800;color:#fff">'+PULSO_BLOQ[b.k].t+' <span style="font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px;background:'+(esF?'#22c55e22;color:#22c55e':'#f59e0b22;color:#f59e0b')+'">'+(esF?'Fortaleza':'Prioridad')+'</span></div>'+
+      '<div style="font-size:13px;color:#b8c6da;line-height:1.5;margin-top:4px">'+(esF?'Sostener: ':'Ejercicio: ')+decEsc(qd.ej)+'</div>'+
+      '<div style="font-size:11.5px;color:#7c8fae;margin-top:3px">'+porque+'</div></div>'+
+      (esF?'':'<button '+(marcado?'disabled':'')+' onclick="pulsoTrabaje(\''+b.k+'\',this)" data-ej="'+decEsc(qd.ej)+'" style="align-self:center;margin-left:auto;white-space:nowrap;padding:8px 12px;border-radius:10px;font-weight:800;font-size:12.5px;cursor:'+(marcado?'default':'pointer')+';'+(marcado?'background:#22c55e;color:#0a0f1e;border:1px solid #22c55e':'background:none;color:#00c2ff;border:1px solid #00c2ff')+'">'+(marcado?'✓ Trabajado':'☐ Lo trabajé')+'</button>')+
+    '</div>';
+  };
+  h+=card('<div style="font-size:11px;font-weight:800;color:#00c2ff;letter-spacing:.08em">PRÓXIMO ENTRENAMIENTO</div><div style="font-size:19px;font-weight:800;color:#fff;margin:2px 0 6px">3 prioridades de trabajo</div>'+
+    item(pri[0],1,false)+item(pri[1],2,false)+item(fort,0,true)+
+    '<div style="font-size:11px;color:#64748b;margin-top:8px">Propuestas para el cuerpo técnico, no indicaciones automáticas: se contrastan con lo que vieron en el partido. Basado en '+cur.length+' jugadores.</div>');
+  const textos=cur.map(r=>(r.texto_libre||'').trim()).filter(t=>t.length>2);
+  if(textos.length) h+=card('<div style="font-size:11px;font-weight:800;color:#8fa3bf;letter-spacing:.08em">LO QUE DIJERON LOS JUGADORES</div>'+
+    textos.slice(0,6).map(t=>'<div style="font-size:13px;color:#e8eff8;background:#0d1b3e;border-left:3px solid #00c2ff;padding:8px 12px;border-radius:6px;margin-top:8px">“'+decEsc(t)+'”</div>').join('')+
+    '<div style="font-size:11px;color:#64748b;margin-top:8px">Sin nombres: es la mirada del grupo.</div>');
+  h+=pulsoCruces(p,hist,i,d);
+  return h;
+}
+
+// ── Datos del partido: resultado, minutos y evaluación del DT (15/11/2026) ──
+function pulsoRes(p){ if(p.goles_favor==null||p.goles_contra==null) return null; const f=+p.goles_favor,c=+p.goles_contra; return f>c?'gano':f<c?'perdio':'empato'; }
+function pulsoResultadoLinea(p){
+  const r=pulsoRes(p); if(!r) return '<div style="font-size:12px;color:#7c8fae;margin-top:12px">Sin resultado cargado: cargalo en el partido para ver cómo influye.</div>';
+  const col=r==='gano'?'#22c55e':r==='perdio'?'#ef4444':'#f59e0b', txt=r==='gano'?'Ganó':r==='perdio'?'Perdió':'Empató';
+  let det='';
+  try{ const gd=typeof p.goles_detalle==='string'?JSON.parse(p.goles_detalle):p.goles_detalle; const con=(gd&&gd.contra)||[];
+    if(con.length){ const pt=con.filter(g=>/PT|1/.test(g.periodo||'')).length, st=con.length-pt; det=' · goles en contra: '+[pt?pt+' en el 1er tiempo':'',st?st+' en el 2do':''].filter(Boolean).join(', '); } }catch(e){}
+  return '<div style="margin-top:12px;font-size:13px;color:#b4c2d4"><span style="font-weight:900;color:'+col+';background:'+col+'18;border:1px solid '+col+'44;padding:3px 10px;border-radius:8px;margin-right:6px">'+txt+' '+p.goles_favor+'-'+p.goles_contra+'</span>'+det+'</div>';
+}
+function pulsoCruces(p,hist,i,d){
+  const cur=hist[i].filas, lineas=[];
+  // 1) Según el resultado (historial del grupo)
+  const porRes={gano:[],empato:[],perdio:[]};
+  hist.slice(0,i+1).forEach(x=>{ const r=pulsoRes(x.p); if(r) porRes[r].push(x); });
+  if(porRes.gano.length&&porRes.perdio.length){
+    const dif=Object.keys(PULSO_BLOQ).map(k=>({k,g:pulsoProm(porRes.gano.map(x=>pulsoEquipo(x.filas,k))),pe:pulsoProm(porRes.perdio.map(x=>pulsoEquipo(x.filas,k)))})).map(o=>Object.assign(o,{dd:o.g-o.pe})).sort((a,b)=>b.dd-a.dd)[0];
+    lineas.push(dif.dd>=0.5
+      ?'<b style="color:#fff">Según el resultado:</b> cuando pierde, <b>'+PULSO_BLOQ[dif.k].t.toLowerCase()+'</b> cae '+pulsoF1(dif.dd)+' puntos ('+pulsoF1(dif.pe)+' vs. '+pulsoF1(dif.g)+' cuando gana). El resultado le pega en lo mental.'
+      :'<b style="color:#fff">Según el resultado:</b> el equipo responde parecido gane o pierda. El resultado no le cambia la cabeza.');
+    lineas[lineas.length-1]+=' <span style="color:#7c8fae">('+porRes.gano.length+' ganados, '+porRes.perdio.length+' perdidos con pulso)</span>';
+  } else lineas.push('<span style="color:#7c8fae"><b>Según el resultado:</b> hace falta al menos un partido ganado y uno perdido con pulso para comparar.</span>');
+  // 2) Según los minutos jugados (este partido)
+  const mas=cur.filter(r=>r.minutos_rango==='mas_60'), menos=cur.filter(r=>r.minutos_rango==='menos_30'||r.minutos_rango==='30_60');
+  if(mas.length>=3&&menos.length>=3){
+    const dif=Object.keys(PULSO_BLOQ).map(k=>({k,a:pulsoEquipo(mas,k),b:pulsoEquipo(menos,k)})).map(o=>Object.assign(o,{dd:o.a-o.b})).sort((x,y)=>Math.abs(y.dd)-Math.abs(x.dd))[0];
+    lineas.push(Math.abs(dif.dd)>=0.5
+      ?'<b style="color:#fff">Según los minutos:</b> los que jugaron más de 60\' terminaron '+(dif.dd<0?'más bajos':'más altos')+' en <b>'+PULSO_BLOQ[dif.k].t.toLowerCase()+'</b> ('+pulsoF1(dif.a)+' vs. '+pulsoF1(dif.b)+' de los que jugaron menos).'
+      :'<b style="color:#fff">Según los minutos:</b> titulares y los que entraron terminaron parecido.');
+  } else if(cur.some(r=>r.minutos_rango)) lineas.push('<span style="color:#7c8fae"><b>Según los minutos:</b> hacen falta al menos 3 que jugaron más de 60\' y 3 que jugaron menos.</span>');
+  // 3) Mirada del DT vs. cómo se ven los jugadores
+  const DTMAP={error:['q1','q3'],presion:['q5'],foco:['q2','q8']};
+  const dt=(d.dt||[]);
+  let dtHtml='';
+  if(dt.length){
+    const pares=cur.map(r=>{ const e=dt.find(x=>idcNom(x.jugador_nombre)===idcNom(r.jugador_nombre)); return e?{r,e}:null; }).filter(Boolean);
+    if(pares.length>=3){
+      const bl=Object.keys(PULSO_BLOQ).map(k=>({k,yo:pulsoProm(pares.map(x=>pulsoBloque(x.r,k))),dt:pulsoProm(pares.map(x=>pulsoProm(DTMAP[k].map(qq=>x.e[qq]))))})).map(o=>Object.assign(o,{dd:o.yo-o.dt}));
+      const gap=pares.map(x=>{ const yo=pulsoProm(Object.keys(PULSO_BLOQ).map(k=>pulsoBloque(x.r,k))), el=pulsoProm(Object.values(DTMAP).flat().map(qq=>x.e[qq])); return {n:x.r.jugador_nombre,yo,el,dd:yo-el}; }).filter(x=>x.yo!=null&&x.el!=null&&Math.abs(x.dd)>=2).sort((a,b)=>Math.abs(b.dd)-Math.abs(a.dd)).slice(0,4);
+      dtHtml='<div style="margin-top:10px"><b style="color:#fff">Cómo se ven ellos y cómo los ve el DT</b> <span style="color:#7c8fae">('+pares.length+' jugadores con las dos miradas)</span>'+
+        bl.map(o=>'<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #1a3a6e66"><span>'+PULSO_BLOQ[o.k].t+'</span><span>ellos <b style="color:#fff">'+pulsoF1(o.yo)+'</b> · DT <b style="color:#c4b5fd">'+pulsoF1(o.dt)+'</b>'+(Math.abs(o.dd)>=1?' <span style="color:#f59e0b">· brecha '+pulsoF1(Math.abs(o.dd))+'</span>':'')+'</span></div>').join('')+
+        (gap.length?'<div style="margin-top:6px;color:#b4c2d4">Para charlar: '+gap.map(x=>decEsc(x.n)+' <span style="color:#f59e0b">('+(x.dd>0?'se ve mejor de lo que lo ve el DT':'se ve peor de lo que lo ve el DT')+')</span>').join(' · ')+'</div>':'')+
+      '</div>';
+    }
+  }
+  if(!dtHtml) dtHtml='<div style="margin-top:10px;color:#7c8fae"><b>Mirada del DT:</b> cuando el cuerpo técnico hace la evaluación del partido (link 📲 DT), acá aparece la brecha entre cómo se ven los jugadores y cómo los ve el DT. <a href="'+DTU+'?partido='+encodeURIComponent(p.codigo)+'" target="_blank" style="color:#c4b5fd;font-weight:800">Hacer la evaluación →</a></div>';
+  return '<div style="background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:14px;margin-top:12px;font-size:13px;color:#b8c6da;line-height:1.55">'+
+    '<div style="font-size:11px;font-weight:800;color:#8fa3bf;letter-spacing:.08em;margin-bottom:6px">EL PARTIDO Y LA CABEZA</div>'+
+    lineas.map(l=>'<div style="padding:4px 0">'+l+'</div>').join('')+dtHtml+'</div>';
+}
+
+// Seguimiento: ¿mejoró lo que se trabajó?
+function pulsoSeguimiento(p,d){
+  if(!d.trab.length) return '';
+  const hist=pulsoPartidosGrupo(p.grupo_codigo,d.filas);
+  const filas=d.trab.slice(0,6).map(t=>{
+    const corte=String(t.marcado_en||'').slice(0,10);
+    const antes=hist.filter(x=>x.fecha<corte).slice(-3), despues=hist.filter(x=>x.fecha>=corte).slice(0,3);
+    const a=pulsoProm(antes.map(x=>pulsoEquipo(x.filas,t.foco))), dd=pulsoProm(despues.map(x=>pulsoEquipo(x.filas,t.foco)));
+    const f=new Date(t.marcado_en).toLocaleDateString('es-AR',{day:'numeric',month:'numeric'});
+    let res;
+    if(a==null||dd==null||!despues.length) res='<span style="color:#7c8fae">esperando partidos</span>';
+    else { const pc=Math.round((dd-a)/a*100); res=pc>=5?'<span style="color:#22c55e;font-weight:800">+'+pc+'% ✓</span>':pc<=-5?'<span style="color:#f59e0b;font-weight:800">'+pc+'%</span>':'<span style="color:#f59e0b;font-weight:800">'+(pc>=0?'+':'')+pc+'% · sin cambio claro</span>'; }
+    // Quiénes más crecieron en ese bloque
+    let crecieron='';
+    if(antes.length&&despues.length){
+      const prom=(xs,n)=>pulsoProm([].concat(...xs.map(x=>x.filas)).filter(r=>idcNom(r.jugador_nombre)===n).map(r=>pulsoBloque(r,t.foco)));
+      const noms=[...new Set([].concat(...despues.map(x=>x.filas)).map(r=>idcNom(r.jugador_nombre)))];
+      const orig={}; [].concat(...despues.map(x=>x.filas)).forEach(r=>{ orig[idcNom(r.jugador_nombre)]=r.jugador_nombre; });
+      const cambios=noms.map(n=>({n:orig[n],a:prom(antes,n),b:prom(despues,n)})).filter(x=>x.a!=null&&x.b!=null).sort((x,y)=>(y.b-y.a)-(x.b-x.a));
+      const top=cambios.filter(x=>x.b-x.a>=0.5).slice(0,3);
+      if(top.length) crecieron='<div style="font-size:11.5px;color:#b4c2d4;margin-top:3px">Más crecieron: '+top.map(x=>decEsc(x.n)+' <span style="color:#22c55e">'+pulsoF1(x.a)+'→'+pulsoF1(x.b)+'</span>').join(' · ')+'</div>';
+    }
+    return '<div style="padding:10px 0;border-top:1px solid #1a3a6e"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13.5px;color:#e8eff8"><span>'+PULSO_BLOQ[t.foco].t+' · '+f+'</span>'+res+'</div>'+crecieron+'</div>';
+  }).join('');
+  return '<div style="background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:14px;margin-top:12px"><div style="font-size:11px;font-weight:800;color:#8fa3bf;letter-spacing:.08em">SEGUIMIENTO · ¿FUNCIONÓ LO QUE TRABAJASTE?</div>'+
+    '<div style="font-size:11.5px;color:#7c8fae;margin:4px 0 2px">Promedio del equipo en el bloque: 3 partidos antes vs. hasta 3 después de marcarlo.</div>'+filas+'</div>';
+}
+
+async function pulsoTrabaje(foco,el){
+  const {p}=PULSO_CACHE; if(!p) return;
+  el.disabled=true;
+  const r=await q('pulso_trabajado',{m:'POST',b:{grupo_codigo:p.grupo_codigo,partido_codigo:p.codigo,foco,ejercicio:el.dataset.ej||null,marcado_por:(USUARIO_ACTUAL&&(USUARIO_ACTUAL.nombre||USUARIO_ACTUAL.email))||null}});
+  if(!Array.isArray(r)){ el.disabled=false; alert('No se pudo guardar. Probá de nuevo.'); return; }
+  PULSO_CACHE.d.trab.unshift(r[0]); pulsoRender();
+}
+function pulsoLink(soloFaltan){
+  const {p,pl,d}=PULSO_CACHE; if(!p) return;
+  const link=PULSO_U+'?partido='+encodeURIComponent(p.codigo);
+  const hechos=new Set(d.filas.filter(f=>f.partido_codigo===p.codigo).map(f=>idcNom(f.jugador_nombre)));
+  const faltan=pl.filter(n=>!hechos.has(idcNom(n)));
+  const txt=soloFaltan
+    ?'⚡ *Pulso post partido vs '+(p.rival||'')+'*\n\nTodavía falta:\n'+faltan.map(n=>'• '+n).join('\n')+'\n\nSon 2 minutos 👇\n'+link
+    :'⚡ *Pulso post partido vs '+(p.rival||'')+'*\n\n¿Cómo jugaste con la cabeza? Son 9 preguntas, 2 minutos.\nTocá tu nombre y respondé 👇\n'+link;
+  window.open('https://wa.me/?text='+encodeURIComponent(txt),'_blank');
+}
+async function pulsoReabrir(){
+  const {p}=PULSO_CACHE; if(!p) return;
+  const hasta=new Date(Date.now()+72*3600*1000).toISOString();
+  const r=await q('partidos?id=eq.'+p.id,{m:'PATCH',b:{pulso_hasta:hasta}});
+  if(!Array.isArray(r)){ alert('No se pudo reabrir. Probá de nuevo.'); return; }
+  p.pulso_hasta=hasta; pulsoRender();
+}
+
 async function loadPP(){
   try{
   const gs=await q('grupos?order=nombre.asc&habilitado=eq.true');
@@ -10121,6 +10382,7 @@ async function loadPP(){
 
       // Derecha — todas las acciones agrupadas, compactas
       '<div class="partido-actions">'+
+        '<button data-cod="'+pcod+'" onclick="pulsoVer(this.dataset.cod)" title="Pulso post partido: carga en tablet o por link, y lectura para el próximo entrenamiento" style="background:#f59e0b18;color:#fbbf24;border:1px solid #f59e0b44;font-weight:800">⚡ Pulso</button>'+
         '<button data-link="'+linkJ+'" data-rival="'+rivalSafe+'" onclick="enviarLinkPP(this.dataset.link,this.dataset.rival,\'jugadores\')" title="Enviar el Post Partido a los jugadores (WhatsApp u otra app)" style="background:#22c55e18;color:#4ade80;border:1px solid #22c55e44;font-weight:800">📲 Jugadores</button>'+
         '<button data-link="'+linkDT+'" data-rival="'+rivalSafe+'" onclick="enviarLinkPP(this.dataset.link,this.dataset.rival,\'dt\')" title="Enviar la evaluación al cuerpo técnico" style="background:#7c3aed18;color:#c4b5fd;border:1px solid #7c3aed44;font-weight:800">📲 DT</button>'+
         '<button data-link="'+linkJ+'" onclick="cop(this.dataset.link)" title="Copiar link para jugadores" style="background:#00c2ff14;color:#3dd1ff;border:1px solid #00c2ff33">🔵</button>'+
@@ -19652,7 +19914,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='11/11/2026 · 3';
+const SC360_VERSION='15/11/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
