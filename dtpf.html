@@ -558,7 +558,8 @@ function evalOtro(){
   jugadorSeleccionado='';
   answers=new Array(PREGUNTAS.length).fill(null);
   current=0;
-  document.getElementById('nombre-manual').value='';
+  // El campo de nombre manual ya no existe en todas las versiones de la pantalla: no fallar si falta
+  const nm=document.getElementById('nombre-manual'); if(nm) nm.value='';
   document.querySelectorAll('.jugador-item').forEach(el=>el.classList.remove('selected'));
   showScreen('s-select');
 }
