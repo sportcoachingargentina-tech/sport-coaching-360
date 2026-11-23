@@ -2833,9 +2833,10 @@ tr:hover td{background:#0d1b3e40}
       <div class="page-title">🃏 Perfil de Jugador</div>
       <div class="page-sub">Carta de rendimiento, lista para compartir</div>
     </div>
-    <div style="min-width:260px;display:flex;gap:8px;align-items:center">
+    <div style="min-width:260px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button id="pj-btn-editar" onclick="pjEditarJugador()" title="Editar datos del jugador (nombre, posición, categoría, DNI, foto…)" style="display:none;padding:8px 12px;font-size:12.5px;font-weight:700;background:#00c2ff18;color:#00c2ff;border:1px solid #00c2ff55;border-radius:10px;cursor:pointer;white-space:nowrap">✏️ Editar datos</button>
-      <select id="pj-selector" onchange="cargarPerfilJugador()" style="width:100%;padding:9px 12px;border:1px solid #1a3a6e;border-radius:10px;font-size:13px;background:#0d1b3e;color:#e8eff8">
+      <button id="pj-btn-sumar" onclick="pjSumarCategoria()" title="Sumar este jugador también a otra categoría del club, con el mismo análisis (sin repetir el test)" style="display:none;padding:8px 12px;font-size:12.5px;font-weight:700;background:#22c55e14;color:#22c55e;border:1px solid #22c55e55;border-radius:10px;cursor:pointer;white-space:nowrap">➕ Otra categoría</button>
+      <select id="pj-selector" onchange="cargarPerfilJugador()" style="flex:1 1 220px;width:100%;padding:9px 12px;border:1px solid #1a3a6e;border-radius:10px;font-size:13px;background:#0d1b3e;color:#e8eff8">
         <option value="">Seleccioná un jugador...</option>
       </select>
     </div>
@@ -18770,6 +18771,69 @@ const PJ_DISC_INFO = {
 };
 
 // Editar el jugador desde su Perfil (usa el mismo formulario que Resultados)
+// ── Sumar el jugador a otra categoría (23/11/2026) ─────────────────────
+// Copia su último análisis a otra categoría del mismo club: aparece en las
+// dos (por ejemplo, un jugador que sube a entrenar o a jugar con la de arriba)
+// sin repetir el test. No borra ni cambia nada de la categoría original.
+// Para PASARLO del todo a otra categoría está "✏️ Editar datos → Grupo".
+// Respeta el cupo: si la categoría destino está llena, solo el administrador
+// puede sumarlo (es su autorización).
+function pjGruposMismoClub(r){
+  const nom=x=>String(x||'').toLowerCase().trim();
+  const actual=(AG||[]).find(g=>g.codigo===r.grupo_codigo||g.id===r.grupo_id);
+  const clubId=actual&&actual.club_id, clubNom=nom((actual&&actual.club)||r.jugador_club);
+  return (AG||[]).filter(g=>g.codigo&&g.codigo!==r.grupo_codigo&&g.habilitado!==false&&
+    ((clubId&&g.club_id===clubId)||(!clubId&&nom(g.club)===clubNom)));
+}
+async function pjSumarCategoria(){
+  const r=PJ_ACTUAL; if(!r) return;
+  if(!(AG||[]).length){ try{ await loadG(); }catch(e){} }
+  const ops=pjGruposMismoClub(r);
+  let mo=document.getElementById('mo-sumar-cat'); if(mo) mo.remove();
+  mo=document.createElement('div'); mo.id='mo-sumar-cat'; mo.className='mo open';
+  mo.innerHTML='<div class="md" style="max-width:460px"><h2>➕ Sumar a otra categoría</h2>'+
+    '<p style="font-size:13px;color:#b4c2d4;line-height:1.5;margin:6px 0 12px"><b>'+decEsc(r.jugador_nombre||'')+'</b> va a aparecer también en la categoría que elijas, con el mismo análisis. No repite el test y sigue en <b>'+decEsc(r.grupo_nombre||'su categoría')+'</b>.</p>'+
+    (ops.length
+      ?'<select id="sumar-cat-sel" style="width:100%;padding:9px 12px;border:1px solid #1a3a6e;border-radius:10px;font-size:13px;background:#0d1b3e;color:#e8eff8">'+
+         ops.map(g=>'<option value="'+g.codigo+'">'+decEsc((typeof gLbl==='function'?gLbl(g):g.nombre)||g.nombre)+'</option>').join('')+'</select>'
+      :'<div style="font-size:13px;color:#fbbf24">Este club no tiene otra categoría habilitada.</div>')+
+    '<div style="font-size:11.5px;color:#7c8fae;margin-top:10px;line-height:1.5">Ocupa un lugar en el cupo de esa categoría. Para <b>pasarlo</b> del todo (que deje la suya), usá ✏️ Editar datos → Grupo.</div>'+
+    '<div id="sumar-cat-msg" style="font-size:12.5px;margin-top:10px"></div>'+
+    '<div class="mdf"><button class="bg" onclick="document.getElementById(\'mo-sumar-cat\').remove()">Cancelar</button>'+
+    (ops.length?'<button class="btn-p" id="sumar-cat-ok" onclick="pjSumarCategoriaOk()">Sumar</button>':'')+'</div></div>';
+  mo.onclick=e=>{ if(e.target===mo) mo.remove(); };
+  document.body.appendChild(mo);
+}
+async function pjSumarCategoriaOk(){
+  const r=PJ_ACTUAL, sel=document.getElementById('sumar-cat-sel'), msg=document.getElementById('sumar-cat-msg'), ok=document.getElementById('sumar-cat-ok');
+  if(!r||!sel) return;
+  const g=(AG||[]).find(x=>x.codigo===sel.value); if(!g) return;
+  const norm=x=>String(x||'').toLowerCase().replace(/\s+/g,' ').trim();
+  ok.disabled=true; msg.style.color='#7c8fae'; msg.textContent='Revisando la categoría…';
+  try{
+    const ya=await q('resultados?grupo_codigo=eq.'+encodeURIComponent(g.codigo)+'&select=jugador_nombre&limit=2000',{sinCache:true});
+    const lista=Array.isArray(ya)?ya:[];
+    const noms=new Set(lista.map(x=>norm(x.jugador_nombre)));
+    if(noms.has(norm(r.jugador_nombre))){ msg.style.color='#fbbf24'; msg.textContent='Ya está en '+g.nombre+'.'; ok.disabled=false; return; }
+    const cupo=g.cupo||35, esAdm=USUARIO_ACTUAL&&USUARIO_ACTUAL.rol==='admin';
+    if(noms.size>=cupo&&!esAdm){ msg.style.color='#fca5a5'; msg.textContent='La categoría '+g.nombre+' está completa ('+noms.size+'/'+cupo+'). Para sumarlo hace falta que el administrador amplíe el cupo.'; ok.disabled=false; return; }
+    if(noms.size>=cupo&&esAdm&&!confirm(g.nombre+' está completa ('+noms.size+'/'+cupo+'). ¿Lo sumás igual y ampliás el cupo a '+(noms.size+1)+'?')){ ok.disabled=false; msg.textContent=''; return; }
+    // Copia del último análisis, en la otra categoría
+    // Se lee la fila tal como está en la base (sin campos que agrega el panel)
+    const fila=await q('resultados?id=eq.'+encodeURIComponent(r.id)+'&select=*',{sinCache:true});
+    if(!Array.isArray(fila)||!fila.length) throw new Error('no encontrado');
+    const copia=Object.assign({},fila[0]);
+    ['id','token_perfil','nueva_eval_habilitada'].forEach(k=>delete copia[k]);
+    copia.grupo_id=g.id; copia.grupo_codigo=g.codigo; copia.grupo_nombre=g.nombre;
+    const res=await q('resultados',{m:'POST',b:copia});
+    if(!Array.isArray(res)||!res.length) throw new Error(typeof res==='string'?res:'sin respuesta');
+    if(noms.size>=cupo&&esAdm){ await q('grupos?codigo=eq.'+encodeURIComponent(g.codigo),{m:'PATCH',b:{cupo:noms.size+1},h:{'Prefer':'return=minimal'}}); g.cupo=noms.size+1; }
+    try{ if(Array.isArray(AR)) AR.push(res[0]); }catch(e){}
+    msg.style.color='#22c55e'; msg.textContent='✓ Listo: '+r.jugador_nombre+' ya aparece también en '+g.nombre+'.';
+    ok.style.display='none'; const bc=document.querySelector('#mo-sumar-cat .bg'); if(bc) bc.textContent='Cerrar';
+  }catch(e){ msg.style.color='#fca5a5'; msg.textContent='No se pudo sumar. Probá de nuevo.'; ok.disabled=false; }
+}
+
 function pjEditarJugador(){
   if(!PJ_ACTUAL) return;
   if(!(AR||[]).some(x=>x.id===PJ_ACTUAL.id)) AR.push(PJ_ACTUAL);
@@ -19018,6 +19082,8 @@ function cargarPerfilJugador() {
   PJ_ACTUAL = r;
   const btnEd=document.getElementById('pj-btn-editar');
   if(btnEd) btnEd.style.display=(USUARIO_ACTUAL&&(USUARIO_ACTUAL.rol==='admin'||USUARIO_ACTUAL.rol==='coordinador'))?'inline-block':'none';
+  const btnSu=document.getElementById('pj-btn-sumar');
+  if(btnSu) btnSu.style.display=(USUARIO_ACTUAL&&(USUARIO_ACTUAL.rol==='admin'||USUARIO_ACTUAL.rol==='coordinador'))?'inline-block':'none';
 
   vacio.style.display = 'none';
   ficha.style.display = 'block';
@@ -20044,7 +20110,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='16/11/2026 · 1';
+const SC360_VERSION='23/11/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
