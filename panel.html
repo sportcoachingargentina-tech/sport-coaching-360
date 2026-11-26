@@ -20216,7 +20216,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='26/11/2026 · 2';
+const SC360_VERSION='26/11/2026 · 3';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -22371,7 +22371,7 @@ function renderTableroPJ(){
       '<div class="dsh-card"><div class="dsh-card-t">📈 Estado mental por partido</div>'+linea+'<div class="dsh-card-p">Post Partido del jugador. La línea punteada marca 80 (nivel óptimo).</div></div>'+
     '</div></div>';
   const slot=document.getElementById('pj-patron-slot');
-  if(slot){ try{ slot.innerHTML=patronesHtmlPJ(r,st)||''; }catch(e){ console.warn('Patrones:',e); slot.innerHTML=''; } }
+  if(slot){ try{ slot.innerHTML=patronesHtmlPJ(r,st)||''; }catch(e){ console.warn('Patrones:',e); slot.innerHTML=''; } pjBalancear(); }
   // Perfil compacto: capas y gráfico de partidos van dentro de sus desplegables
   try{ pjxArmar();
     const cx=document.getElementById('pjx-capas'); if(cx) cx.innerHTML='<div style="margin-bottom:8px">'+barras+'</div>';
@@ -22380,6 +22380,32 @@ function renderTableroPJ(){
 }
 
 
+// Perfil sin huecos (26/11/2026): en computadora, el Patrón mental va a la
+// columna que quede más corta, así no queda espacio vacío debajo de ninguna.
+function pjBalancear(){
+  const run=()=>{ const slot=document.getElementById('pj-patron-slot'), L=document.getElementById('pj-left-col'), Rc=document.getElementById('pj-grid-detalle');
+    if(!slot||!L||!Rc) return;
+    const lado=Math.abs(L.getBoundingClientRect().top-Rc.getBoundingClientRect().top)<40&&Rc.getBoundingClientRect().left>L.getBoundingClientRect().left+100;
+    const tab=document.getElementById('pj-tablero');
+    const pm=slot.querySelector('.pj-patron'); if(pm) pm.style.margin=slot.parentElement===L?'10px 0':'0';
+    const aIzq=()=>{ L.appendChild(slot); if(pm) pm.style.margin='10px 0'; slot.style.width='370px'; slot.style.margin='0 auto'; if(tab) tab.style.flex='1'; };
+    const aDer=()=>{ Rc.insertBefore(slot,tab?tab.nextSibling:null); slot.style.width='100%'; slot.style.margin='0'; if(pm) pm.style.margin='0'; if(tab) tab.style.flex='0 0 auto';
+      // mismo espacio que entre las tarjetas del tablero (8px)
+      const ult=tab&&[...tab.querySelectorAll('.pjx-box')].filter(x=>x.offsetHeight).pop();
+      if(ult){ const g=slot.getBoundingClientRect().top-ult.getBoundingClientRect().bottom; if(g>8) slot.style.marginTop=(8-g)+'px'; } };
+    if(!lado||!slot.textContent.trim()){ if(slot.parentElement!==L) aIzq(); return; }
+    const enL=slot.parentElement===L, hs=slot.offsetHeight+10;
+    const a1=L.style.alignSelf, a2=Rc.style.alignSelf; L.style.alignSelf=Rc.style.alignSelf='flex-start';
+    const tf=tab?tab.style.flex:''; if(tab) tab.style.flex='0 0 auto';
+    const hL=L.offsetHeight-(enL?hs:0), hR=Rc.offsetHeight-(enL?0:hs);
+    if(tab) tab.style.flex=tf;
+    L.style.alignSelf=a1; Rc.style.alignSelf=a2;
+    const irR=hR+hs-hL < hL+hs-hR; // la diferencia que queda es menor si va a la derecha
+    if(irR&&enL) aDer(); else if(!irR&&!enL) aIzq();
+  };
+  requestAnimationFrame(run); setTimeout(run,700); setTimeout(run,2000);
+}
+window.addEventListener('resize',()=>{ clearTimeout(window._pjBalT); window._pjBalT=setTimeout(()=>{ if(document.getElementById('pj-patron-slot')) pjBalancear(); },250); });
 // ═══════════════════════════════════════════════════════════════
 // PATRONES MENTALES (Fase 2) — lectura con nombre y acción para el DT
 // Un jugador puede tener más de uno: se muestra el principal y los demás.
