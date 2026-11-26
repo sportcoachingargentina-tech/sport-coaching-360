@@ -111,6 +111,10 @@ body.es-admin .solo-admin{display:inline!important}
 .pjx-s{font-size:10.5px;color:#7c8fae;line-height:1.35}
 .pjx-btn{margin-top:8px;font-size:12px;font-weight:700;padding:7px 12px;border-radius:8px;border:1px solid #00c2ff66;color:#00c2ff;background:#00c2ff12;cursor:pointer}
 .pjx-tit{font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#5d7391;margin:6px 2px 0}
+.cdx-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;position:relative}
+.cdx-st{position:relative;border-radius:12px;padding:10px 10px 9px;background:#0a1024;border:1px solid #1a3a6e;min-width:0}
+.cdx-st+.cdx-st::before{content:'→';position:absolute;left:-9px;top:50%;transform:translate(-50%,-50%);color:#3d5a8a;font-size:13px}
+@media(max-width:620px){.cdx-row{grid-template-columns:1fr}.cdx-st+.cdx-st::before{content:'↓';left:50%;top:-9px;transform:translate(-50%,-50%)}}
 .pjx-det{background:rgba(255,255,255,0.03);border:1px solid #1a3a6e;border-radius:14px;overflow:hidden}
 .pjx-det>summary{list-style:none;cursor:pointer;padding:11px 12px;display:flex;align-items:center;gap:10px}
 .pjx-det>summary::-webkit-details-marker{display:none}
@@ -19005,6 +19009,66 @@ function feBrecha(nombre,t,acc){
   if(acc-t>=15) return '<b>'+nombre+'</b>: en la acción muestra más de lo que se reconoce.';
   return null;
 }
+// ═══════════════════════════════════════════════════════════════
+// CICLO DE DECISIÓN (capítulo 4 de ATRAPADO, 26/11/2026)
+// Sensación → Percepción → Emoción → Pensamiento → Acción. La interferencia
+// entra en Percepción y en Pensamiento. Cada paso se lee de datos que ya
+// existen (dimensiones del test ×20 y Nivel de energía del Post Partido).
+// Es una lectura para el cuerpo técnico: no cambia D = T − I ni el IDC.
+// ═══════════════════════════════════════════════════════════════
+const CICLO_PASOS=[
+  {k:'sensacion', n:'Sensación', q:'Lo que el cuerpo registra', fuente:'Energía en partidos', pp:'q12_pct',
+   corte:'Llega con poca energía y todo el ciclo arranca apagado.', trab:'Recuperación: sueño, pausas sin pantallas y el cierre del día.'},
+  {k:'percepcion', n:'Percepción', q:'Qué mira y qué deja afuera', fuente:'Atención · test', dim:'atencion', inter:true,
+   corte:'Lo que mira se llena de ruido: la tribuna, el banco, el error anterior.', trab:'Atención selectiva: una referencia clave por jugada y anclaje visual.'},
+  {k:'emocion', n:'Emoción', q:'Qué le pasa con lo que ve', fuente:'Regulación · test', dim:'regulacion',
+   corte:'La emoción llega antes que la lectura y lo desborda.', trab:'Regulación: respiración y bajar o subir la activación a tiempo.'},
+  {k:'pensamiento', n:'Pensamiento', q:'Qué se dice en ese momento', fuente:'Metacognición · test', dim:'metacognicion', inter:true,
+   corte:'Aparece el “¿y si fallo?” y empieza a jugar las consecuencias.', trab:'Autodiálogo: cambiar el juicio por una instrucción de acción.'},
+  {k:'accion', n:'Acción', q:'Lo que hace en la cancha', fuente:'Decisión · test', dim:'decision',
+   corte:'Lee bien, pero la decisión llega tarde.', trab:'Tareas con tiempo límite: decidir en 1 o 2 toques.'},
+];
+async function renderCicloPJ(r,intento){
+  const box=document.getElementById('pj-ciclo');
+  if(!box){ if(!intento) setTimeout(()=>{ if(PJ_ACTUAL&&PJ_ACTUAL.id===r.id) renderCicloPJ(r,1); },400); return; }
+  const lista=typeof PJ_RESULTADOS!=='undefined'?PJ_RESULTADOS:[];
+  const conDims=[r].concat(lista.filter(x=>x!==r&&feMismo(x,r))).filter(x=>x&&x.dims).sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')))[0];
+  const dims=(conDims&&conDims.dims)||{};
+  let ener=null;
+  try{ const nom=encodeURIComponent((r.jugador_nombre||'').trim());
+    const filtro=r.jugador_uid?'or=(jugador_uid.eq.'+r.jugador_uid+',jugador_nombre.ilike.'+nom+')':'jugador_nombre=ilike.'+nom;
+    const pp=await q('postpartido_jugador?'+filtro+'&select=q12_pct&order=partido_codigo.desc&limit=5').catch(()=>[]);
+    const vs=(pp||[]).map(x=>x.q12_pct).filter(v=>v!=null); if(vs.length) ener={v:Math.round(feProm(vs)),n:vs.length};
+  }catch(e){}
+  if(PJ_ACTUAL&&PJ_ACTUAL.id!==r.id) return;
+  const pasos=CICLO_PASOS.map(p=>{ let v=null, sub=p.fuente;
+    if(p.dim&&dims[p.dim]>0) v=Math.round(dims[p.dim]*20);
+    if(p.pp&&ener){ v=ener.v; sub=p.fuente+' · '+ener.n+' partido'+(ener.n>1?'s':''); }
+    return Object.assign({},p,{v,sub}); });
+  const conV=pasos.filter(p=>p.v!=null);
+  if(!conV.length){ box.innerHTML='<div class="es">Sin test todavía: el ciclo se arma con el primer test.</div>'; pjxSet('ciclo','Sin test todavía','—','#7c8fae'); return; }
+  const corte=conV.slice().sort((a,b)=>a.v-b.v||(b.inter?1:0)-(a.inter?1:0))[0];
+  const hayCorte=corte.v<80;
+  const fila=pasos.map(p=>{ const c=feCol(p.v), es=hayCorte&&p.k===corte.k;
+    return '<div class="cdx-st" style="'+(es?'border-color:'+c+';box-shadow:0 0 0 1px '+c+'55 inset;background:'+c+'12':'')+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:#fff">'+p.n+'</span>'+
+        (p.inter?'<span title="Acá entra la interferencia" style="font-size:9px;font-weight:800;color:#f59e0b;background:#f59e0b18;border:1px solid #f59e0b55;border-radius:8px;padding:1px 6px;white-space:nowrap">⚡ INTERF.</span>':'')+'</div>'+
+      '<div style="font-size:10.5px;color:#94a3b8;margin-top:2px;line-height:1.3">'+p.q+'</div>'+
+      (p.v!=null?'<div style="font-size:22px;font-weight:900;color:'+c+';margin-top:6px;line-height:1">'+p.v+'</div>'+
+        '<div style="height:4px;background:#132449;border-radius:3px;overflow:hidden;margin-top:5px"><div style="height:100%;width:'+Math.max(0,Math.min(100,p.v))+'%;background:'+c+'"></div></div>'
+        :'<div style="font-size:13px;font-weight:700;color:#4a5a78;margin-top:8px">—</div>')+
+      '<div style="font-size:9.5px;color:#5d7391;margin-top:4px;line-height:1.3">'+(p.v!=null?p.sub:(p.pp?'Sin Post Partido':'Sin dato'))+'</div></div>'; }).join('');
+  const cc=feCol(corte.v);
+  box.innerHTML='<div style="font-size:11.5px;color:#94a3b8;margin-bottom:10px;line-height:1.45">Cada jugada pasa por estos 5 pasos. La interferencia entra en la <b style="color:#f59e0b">percepción</b> y en el <b style="color:#f59e0b">pensamiento</b>: ahí se pierde talento disponible.</div>'+
+    '<div class="cdx-row">'+fila+'</div>'+
+    (hayCorte?'<div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:'+cc+'12;border:1px solid '+cc+'55">'+
+        '<div style="font-size:10px;font-weight:800;color:'+cc+';letter-spacing:.06em">DÓNDE SE LE CORTA EL CICLO · '+corte.n.toUpperCase()+'</div>'+
+        '<div style="font-size:12.5px;color:#e8eff8;margin-top:4px;line-height:1.5">'+corte.corte+'</div>'+
+        '<div style="font-size:12.5px;color:#e8eff8;margin-top:4px;line-height:1.5"><b>Qué trabajar:</b> '+corte.trab+'</div></div>'
+      :'<div style="margin-top:12px;font-size:12.5px;color:#22c55e">✓ Ciclo fluido: ningún paso por debajo de 80.</div>')+
+    '<div style="font-size:10.5px;color:#5d7391;margin-top:8px;line-height:1.45">Ruta corta (~80 ms): la respuesta automática, la que sale cuando está disponible. Ruta larga (200–500 ms): la que piensa. Bajo presión, la interferencia lo empuja a pensar cuando necesitaba responder. Escala 0–100 · no entra en D = T − I ni en el IDC.</div>';
+  pjxSet('ciclo',hayCorte?'Se le corta en '+corte.n.toLowerCase():'Ciclo fluido',hayCorte?corte.n:'✓',hayCorte?cc:'#22c55e');
+}
 async function renderFEPJ(r){
   const box=document.getElementById('pj-fe'); if(!box||!r) return;
   box.innerHTML='<div class="es">Cargando…</div>';
@@ -19349,6 +19413,7 @@ function cargarPerfilJugador() {
 
   renderCuadrantePJ(r);
   try{ renderFEPJ(r); }catch(e){ console.warn('Funciones ejecutivas:',e); }
+  try{ renderCicloPJ(r); }catch(e){ console.warn('Ciclo de decisión:',e); }
   try{ pjCritCargar(r); }catch(e){}
 
   // Motivación + Entorno — "Modo Promoción/Prevención" ahora es un tag
@@ -20151,7 +20216,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='26/11/2026 · 1';
+const SC360_VERSION='26/11/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -22171,6 +22236,7 @@ function pjxArmar(){
   det('capas','⚠️','Capas MDC · D = T − I',[nuevo('pjx-capas'),document.getElementById('pj-dti'),tw('pj-dims')]);
   det('idc','📊','IDC por módulos',[document.getElementById('pj-idc')]);
   det('partidos','⚽','Partidos',[nuevo('pjx-linea'),document.getElementById('pj-reset'),document.getElementById('pj-cuadrante-pp')]);
+  det('ciclo','🔄','Ciclo de decisión',[nuevo('pj-ciclo')]);
   det('fe','🧩','Funciones ejecutivas · capa 3',[tw('pj-fe')]);
   det('como','🎭','Cómo es',[fila3]);
   const guia=tw('pj-guia-ct');
