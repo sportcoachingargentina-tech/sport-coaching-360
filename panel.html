@@ -10141,7 +10141,7 @@ const PULSO_BLOQ={
 const PULSO_Q={
   q1:{t:'siguiente acción positiva tras el error',ej:'Juego reducido con transición inmediata después de la pérdida: quien pierde la pelota tiene 5 segundos para recuperarla.'},
   q7:{t:'aceptar el error sin frustrarse',ej:'En los ejercicios, cuando hay un error se sigue sin parar ni reclamar: el DT corta solo las protestas, nunca el error.'},
-  q16:{t:'lo que se dicen después de un error',ej:'Rutina de reinicio: después de cada error, respiración corta + una palabra clave propia. Practicarla en cada reanudación del entrenamiento.'},
+  q16:{t:'lo que se dicen después de un error',ej:'Protocolo del error en 3 pasos (menos de 10 segundos): “Pasó” (nombrarlo sin juicio), “Terminó” (un gesto físico: aplaudir, tocar el piso o sacudir los brazos) y “Siguiente jugada” (atención a la próxima acción). Practicarlo en cada reanudación del entrenamiento.'},
   q2:{t:'decidir con claridad bajo presión',ej:'Rondos a 2 toques en espacio reducido, para obligar a decidir rápido con el rival encima.'},
   q9:{t:'ejecutar sin dudar',ej:'Definición repetida: el que falla repite la misma acción hasta que le sale, sin cambiar de ejercicio.'},
   q13:{t:'mantener el eje en la adversidad',ej:'Partido condicionado que arranca 0-1 abajo, con 8 minutos para darlo vuelta sin perder la estructura.'},
@@ -10364,7 +10364,7 @@ function pulsoSeguimiento(p,d){
     return '<div style="padding:10px 0;border-top:1px solid #1a3a6e"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13.5px;color:#e8eff8"><span>'+PULSO_BLOQ[t.foco].t+' · '+f+'</span>'+res+'</div>'+crecieron+'</div>';
   }).join('');
   return '<div style="background:#141f3a;border:1px solid #1a3a6e;border-radius:14px;padding:14px;margin-top:12px"><div style="font-size:11px;font-weight:800;color:#8fa3bf;letter-spacing:.08em">SEGUIMIENTO · ¿FUNCIONÓ LO QUE TRABAJASTE?</div>'+
-    '<div style="font-size:11.5px;color:#7c8fae;margin:4px 0 2px">Promedio del equipo en el bloque: 3 partidos antes vs. hasta 3 después de marcarlo.</div>'+filas+'</div>';
+    '<div style="font-size:11.5px;color:#7c8fae;margin:4px 0 2px">Promedio del equipo en el bloque: 3 partidos antes vs. hasta 3 después de marcarlo. Lo mental tarda: los primeros cambios suelen verse entre las 3 y 6 semanas, y se consolidan entre las 8 y 12.</div>'+filas+'</div>';
 }
 
 async function pulsoTrabaje(foco,el){
@@ -20110,7 +20110,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='23/11/2026 · 1';
+const SC360_VERSION='25/11/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
@@ -21116,6 +21116,7 @@ async function dashCompacto(o){
       '<span class="dcx-chip" onclick="go(\'decisiones\')"><span style="color:#f59e0b">●</span> '+jugN.length+' observar</span>'+
       (jugV.length?'<span class="dcx-chip" onclick="go(\'decisiones\')"><span style="color:#22c55e">●</span> '+jugV.length+' favorable</span>':'')+
       (nRe?'<span class="dcx-chip" onclick="'+abrir+'">🔁 '+nRe+' a re-evaluar</span>':'')+
+      '<span class="dcx-chip" id="dcx-chip-fat" onclick="'+abrir+'" style="'+(DASH_FATIGA_N?'':'display:none')+'">🔋 '+DASH_FATIGA_N+' con fatiga mental</span>'+
       (ventana&&ventana.tot>=8?'<span class="dcx-chip" onclick="'+abrir+'">⚽ Ojo '+['0–15','15–30','30–45','45–60','60–75','75–90'][ventana.i]+'\'</span>':'')+
       '<span class="dcx-chip" id="dcx-chip-al" onclick="go(\'alertas\')" style="'+(nAl?'':'display:none')+'">🔔 '+nAl+' alerta'+(nAl!==1?'s':'')+'</span></div>';
     boxC.innerHTML='<div class="dcx-h"><b><i>C</i>Centro de decisiones</b>'+dcxI('Señales armadas con los datos cargados para decidir qué mirar primero. No son certezas ni diagnósticos: la decisión final es del cuerpo técnico.')+'<a onclick="go(\'decisiones\')">Ver las '+nDec+' →</a></div>'+
@@ -21731,12 +21732,13 @@ async function dashCentroDecisiones(jugs,res,D,cods,rL){
       '<div style="padding:0.3rem 0.95rem 0.7rem">'+priHtml+
         '<div id="dash-pri-alertas">'+dashPriAlertasHtml()+'</div>'+
         '<div style="font-size:10.5px;color:#4a5a78;margin-top:8px">Basado en los datos cargados. Son señales para decidir qué mirar primero, no certezas ni diagnósticos. La decisión final es del cuerpo técnico.</div></div></div>'+
-      '<div id="dash-dt-pend"></div><div id="dash-reeval"></div><div id="dash-acciones"></div>'+proxHtml;
+      '<div id="dash-dt-pend"></div><div id="dash-fatiga"></div><div id="dash-reeval"></div><div id="dash-acciones"></div>'+proxHtml;
     dashAccionesRevisar(cods,jugs);
     dashProximoRival(cods);
     dashDTPendiente(cods);
     dashPlanInicio(cods);
     dashReevaluar(jugs);
+    dashFatiga(cods);
     dashPulsoInicio(cods);
     try{ dashCompacto({jugs,res,D,cods,rL,Dp,est,nuevos,jugR,jugN,jugV,nDec,evol,evolN,recP,recs,trDisp,trRec,capas,riesgo,ventana,K,linBody,evoBody,predBody,contra,colD,prom,mismo,fT,fP,nCk,lineaMin,porLinea,semCmp,golesTxt,evoTend}); }catch(e){ console.warn('Inicio compacto:',e); }
   }catch(e){ console.warn('Centro de decisiones:',e); }
@@ -21871,6 +21873,33 @@ async function dashHabilitarReeval(btn){
   alert('✓ Re-evaluación habilitada para '+ok+' jugador'+(ok===1?'':'es')+'.\nAhora mandales el link del test desde Grupos (📲 Enviar).');
   go('grupos');
 }
+// Fatiga mental acumulada (capítulo 4 de ATRAPADO, 25/11/2026): jugadores
+// con energía o sueño en 2 o menos (escala 1–5) en sus últimos 3 check-ins
+// de los últimos 7 días. Es una señal para bajar carga, no un diagnóstico.
+let DASH_FATIGA_N=0;
+function dashFatigaChip(){ const c=document.getElementById('dcx-chip-fat'); if(c){ c.style.display=DASH_FATIGA_N?'':'none'; c.innerHTML='🔋 '+DASH_FATIGA_N+' con fatiga mental'; } }
+async function dashFatiga(cods){
+  const box=document.getElementById('dash-fatiga'); if(!box||!cods||!cods.length) return;
+  DASH_FATIGA_N=0;
+  try{
+    await planCargar();
+    const pro=cods.filter(c=>planDeCodigo(c)==='pro'); if(!pro.length){ box.innerHTML=''; return; }
+    const cr=await q('checkin_diario?grupo_codigo=in.('+pro.map(encodeURIComponent).join(',')+')&fecha=gte.'+ckDiasAtras(6)+'&select=jugador_nombre,fecha,energia,sueno,creado_en&order=creado_en.desc&limit=3000',{sinCache:true});
+    if(!Array.isArray(cr)||!cr.length){ box.innerHTML=''; return; }
+    const por={};
+    cr.forEach(x=>{ const n=idcNom(x.jugador_nombre); if(!n) return; const o=por[n]||(por[n]={nom:x.jugador_nombre,dias:{}}); if(!o.dias[x.fecha]) o.dias[x.fecha]=x; });
+    const bajo=x=>(x.energia!=null&&x.energia<=2)||(x.sueno!=null&&x.sueno<=2);
+    const cans=Object.values(por).filter(o=>{ const u=Object.keys(o.dias).sort().reverse().slice(0,3).map(f=>o.dias[f]); return u.length===3&&u.every(bajo); });
+    DASH_FATIGA_N=cans.length; dashFatigaChip();
+    if(!cans.length){ box.innerHTML=''; return; }
+    const nombres=cans.slice(0,4).map(o=>decEsc(String(o.nom||'').split(' ').slice(0,2).join(' '))).join(', ');
+    box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#f59e0b10;border:1px solid #f59e0b55">'+
+      '<div style="min-width:0"><div style="font-size:12px;font-weight:800;color:#fbbf24;letter-spacing:0.04em">🔋 FATIGA MENTAL · '+cans.length+' JUGADOR'+(cans.length===1?'':'ES')+'</div>'+
+      '<div style="font-size:12px;color:#b4c2d4;margin-top:2px">Energía o sueño bajos en sus últimos 3 check-ins: '+nombres+(cans.length>4?' y '+(cans.length-4)+' más':'')+'. La fatiga mental no se recupera solo durmiendo: conviene bajar la carga de tareas complejas y sumar juego libre, tiempo con el grupo o sin pantallas.</div></div>'+
+      '<button onclick="go(\'checkin\')" style="white-space:nowrap;font-size:11.5px;font-weight:800;padding:6px 11px;border-radius:7px;cursor:pointer;color:#fbbf24;background:transparent;border:1px solid #f59e0b66">Ver check-in →</button></div>';
+  }catch(e){ box.innerHTML=''; DASH_FATIGA_N=0; }
+  dashFatigaChip();
+}
 async function dashReevaluar(jugs){
   const box=document.getElementById('dash-reeval'); if(!box) return;
   try{
@@ -21882,7 +21911,7 @@ async function dashReevaluar(jugs){
     const nombres=viejos.slice(0,4).map(x=>decEsc((x.r.jugador_nombre||'').split(' ').slice(0,2).join(' '))+' ('+Math.round(x.d/7)+' sem.)').join(', ');
     box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#00c2ff0d;border:1px solid #00c2ff44">'+
       '<div style="min-width:0"><div style="font-size:12px;font-weight:800;color:#7fd8ff;letter-spacing:0.04em">🔁 TOCA RE-EVALUAR · '+viejos.length+' JUGADOR'+(viejos.length===1?'':'ES')+'</div>'+
-      '<div style="font-size:12px;color:#b4c2d4;margin-top:2px">Su último test tiene más de 8 semanas: '+nombres+(viejos.length>4?' y '+(viejos.length-4)+' más':'')+'. Con un segundo test se ve si su perfil cambió.</div></div>'+
+      '<div style="font-size:12px;color:#b4c2d4;margin-top:2px">Su último test tiene más de 8 semanas: '+nombres+(viejos.length>4?' y '+(viejos.length-4)+' más':'')+'. El cambio mental se consolida entre las 8 y 12 semanas de trabajo: es el momento de medirlo con un segundo test.</div></div>'+
       (DASH_REEVAL.length?'<button onclick="dashHabilitarReeval(this)" title="Habilita el test de nuevo para estos jugadores; después mandá el link desde Grupos" style="white-space:nowrap;font-size:11.5px;font-weight:800;padding:6px 11px;border-radius:7px;cursor:pointer;color:#04101f;background:#00c2ff;border:none">Habilitar re-evaluación ('+DASH_REEVAL.length+') →</button>'
         :'<button onclick="go(\'grupos\')" style="white-space:nowrap;font-size:11.5px;font-weight:800;padding:6px 11px;border-radius:7px;cursor:pointer;color:#00c2ff;background:transparent;border:1px solid #00c2ff66">Ya habilitada · enviar el link →</button>')+'</div>';
   }catch(e){ box.innerHTML=''; }
@@ -22224,7 +22253,7 @@ function renderTableroPJ(){
   box.innerHTML='<div class="pj-tab">'+
     '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 2px 8px"><div style="font-size:16px;font-weight:900;color:#fff">¿Cómo está '+nom+'?</div><div style="font-size:10px;color:#7c8fae;letter-spacing:0.08em">'+(r.jugador_pos||'').toUpperCase()+'</div></div>'+
     '<div class="dsh-tiles">'+
-      tile('Disponibilidad',D||'—','<b style="color:'+colD(D)+'">'+est+'</b>'+(r.fecha?'<br><span style="color:'+(testDias>56?'#fbbf24':'#7c8fae')+'">test del '+mptFecha(r.fecha)+(testDias>56?' · re-evaluar':'')+'</span>':''),colD(D))+
+      tile('Disponibilidad',D||'—','<b style="color:'+colD(D)+'">'+est+'</b>'+(r.fecha?'<br><span style="color:'+(testDias>56?'#fbbf24':'#7c8fae')+'">test del '+mptFecha(r.fecha)+(testDias>56?' · re-evaluar':'')+'</span>'+(testDias<=56?(function(){ const f0=new Date(String(r.fecha).slice(0,10)+'T12:00:00'), fm=n=>{ const d=new Date(f0); d.setDate(d.getDate()+n); return d.toLocaleDateString('es-AR',{day:'numeric',month:'numeric'}); }; return '<br><span title="El cambio mental se consolida entre las 8 y 12 semanas de trabajo" style="color:#7fd8ff">🔁 próximo test: '+fm(56)+' al '+fm(84)+'</span>'; })():''):''),colD(D))+
       tile('IDC',idc==null?(PJ_TAB.idc?'—':cargando):idc,idcCob==null?'índice competitivo':(idcCob<=1?'<span style="color:#fbbf24">solo con el test (1 de 6 módulos)</span>':'índice competitivo · '+idcCob+' de 6 módulos'),idc==null?'#94a3b8':colD(idc))+
       tile('Evolución',evol==null?(st?'—':cargando):(evol>0?'▲ +':evol<0?'▼ ':'')+evol,evol==null?'necesita 2 evaluaciones':'vs. evaluación anterior',evol==null?'#94a3b8':evol>0?'#22c55e':evol<0?'#ef4444':'#e8eff8')+
       tile('En partidos',mentalPP==null?(st?'—':cargando):mentalPP,mentalPP==null?'sin Post Partido':'estado mental · últimos '+ult3.length,mentalPP==null?'#94a3b8':colD(mentalPP))+
