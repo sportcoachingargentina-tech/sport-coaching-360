@@ -11949,7 +11949,7 @@ const KIT_HERRAMIENTAS={
     respiracion:'Respiración Cuadrada 4x4 — Inhalá 4 segundos, retené 4, exhalá 4, vacío 4.',
   },
   error:{
-    anclaje:'Palabra Clave (Cue Word) — una palabra de reinicio ("Siguiente", "Acá", "Reset") combinada con una exhalación forzada para cortar el bucle de frustración.',
+    anclaje:'Protocolo del error (menos de 10 segundos) — "Pasó": lo nombrás sin juzgarte · "Terminó": un gesto físico (palmada, tocar el piso) con una exhalación larga · "Siguiente jugada": los ojos en la próxima acción.',
     respiracion:'Respiración Cuadrada 4x4 — Inhalá 4 segundos, retené 4, exhalá 4, vacío 4.',
   },
   ansiedad:{
@@ -11962,6 +11962,16 @@ const KIT_HERRAMIENTAS={
   },
 };
 
+// Herramientas por nivel (capítulo 4 de ATRAPADO, 25/11/2026). Se suman a
+// anclaje y respiración: lo que se entrena entre partidos (nivel 2 · procesos)
+// y la base que regula el sistema nervioso (nivel 1). Reglas fijas, sin IA.
+const KIT_PROCESO={
+  foco:'Visualización (Nivel 2 · procesos) — 3 minutos antes de entrenar: ver en primera persona 3 jugadas de su puesto, con el ruido y la presión reales.',
+  error:'Autodiálogo (Nivel 2 · procesos) — escribir la frase que se dice después de fallar y cambiarla por una instrucción de acción ("cuerpo de frente", "pedila otra vez").',
+  ansiedad:'Visualización con presión (Nivel 2 · procesos) — imaginar la jugada difícil, sentir la activación y verse resolviéndola. Antes de cada partido.',
+  energia:'Gestión de pausas (Niveles 1 y 2) — en cada pausa del juego, 2 respiraciones y una palabra de activación; entre entrenamientos, una pausa sin pantallas.',
+};
+const KIT_BASE='Cierre del día (Nivel 1 · base) — antes de dormir, 3 minutos: qué salió bien, qué dejo para mañana y 5 respiraciones lentas. Cerrar el ciclo ayuda a recuperar la cabeza, no solo el cuerpo.';
 // Arma el kit completo con reglas fijas (sin IA) — el mismo foco que ya
 // usamos para los objetivos determina qué herramienta corresponde.
 // Cálculo puro del kit — sin tocar el DOM, para que lo pueda usar tanto
@@ -11999,7 +12009,7 @@ function evComputeKit(data){
   const trendEnergia=energias.length>1?energias[energias.length-1]-energias[0]:null;
   const cruce=(trendMental!=null&&trendMental<-0.3&&trendEnergia!=null&&trendEnergia<-0.3);
 
-  return {foco:foco,mejor:mejor,minimo:minimo,herr:herr,cruce:cruce};
+  return {foco:foco,mejor:mejor,minimo:minimo,herr:Object.assign({},herr,{proceso:KIT_PROCESO[cat]||KIT_PROCESO.foco,base:KIT_BASE}),cruce:cruce};
 }
 
 function evMostrarKitCompleto(nombre){
@@ -12017,6 +12027,7 @@ function evMostrarKitCompleto(nombre){
   let html='<div class="tw" style="background:#0d1b3e">';
   html+='<div style="padding:0.85rem 1rem">';
 
+  html+='<div style="font-size:10px;color:#7c8fae;font-weight:800;letter-spacing:0.06em;margin-bottom:8px">EN EL MOMENTO · NIVEL 3, LO QUE SE VE</div>';
   html+='<div style="font-size:10px;color:#f59e0b;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">🧰 Kit de emergencia de anclaje</div>';
   html+='<div style="font-size:12.5px;color:#e8eff8;margin-bottom:12px;line-height:1.5">'+herr.anclaje+'</div>';
 
@@ -12024,12 +12035,17 @@ function evMostrarKitCompleto(nombre){
   html+='<div style="font-size:12.5px;color:#e8eff8;margin-bottom:12px;line-height:1.5">'+herr.respiracion+'</div>';
 
   html+='<div style="font-size:10px;color:#f59e0b;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">🚦 Tu semáforo de autopercepción</div>';
-  html+='<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:'+(cruce?'12px':'2px')+'">';
+  html+='<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:2px">';
   html+='<div style="display:flex;gap:8px;align-items:flex-start"><span style="color:#22c55e;font-weight:800;flex-shrink:0">●</span><span style="font-size:12px;color:#cbd5e1"><b>Verde:</b> '+(mejor?mejor.lbl:'tu variable más fuerte')+' — así rendís cuando estás en eje.</span></div>';
   html+='<div style="display:flex;gap:8px;align-items:flex-start"><span style="color:#f59e0b;font-weight:800;flex-shrink:0">●</span><span style="font-size:12px;color:#cbd5e1"><b>Amarillo (activá el anclaje acá):</b> '+(foco?foco.lbl:'primeros síntomas de dispersión')+' empieza a bajar.</span></div>';
   html+='<div style="display:flex;gap:8px;align-items:flex-start"><span style="color:#ef4444;font-weight:800;flex-shrink:0">●</span><span style="font-size:12px;color:#cbd5e1"><b>Rojo:</b> '+(minimo?minimo.lbl+' cae a '+minimo.val+'/10':'punto crítico de dispersión')+' — ahí ya perdiste el eje.</span></div>';
   html+='</div>';
 
+  html+='<div style="font-size:10px;color:#7c8fae;font-weight:800;letter-spacing:0.06em;margin:12px 0 8px;padding-top:10px;border-top:1px solid #1a3a6e">ENTRE PARTIDOS · NIVELES 1 Y 2</div>';
+  html+='<div style="font-size:10px;color:#00c2ff;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">🧠 Se entrena en la semana</div>';
+  html+='<div style="font-size:12.5px;color:#e8eff8;margin-bottom:12px;line-height:1.5">'+herr.proceso+'</div>';
+  html+='<div style="font-size:10px;color:#00c2ff;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">🌙 La base</div>';
+  html+='<div style="font-size:12.5px;color:#e8eff8;margin-bottom:'+(cruce?'12px':'2px')+';line-height:1.5">'+herr.base+'</div>';
   if(cruce){
     html+='<div style="border-top:1px solid #1a3a6e;padding-top:10px;margin-top:4px">';
     html+='<div style="font-size:10px;color:#00c2ff;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">😴 Energía y rendimiento mental caen juntos</div>';
@@ -12746,6 +12762,13 @@ async function generarPDFEvolucion(){
     doc.setTextColor(...C.txt);doc.setFontSize(8.5);doc.setFont('helvetica','normal');
     lines=doc.splitTextToSize(n(k.herr.respiracion),182);
     doc.text(lines,14,y);y+=lines.length*4+6;
+    [['SE ENTRENA EN LA SEMANA',k.herr.proceso],['LA BASE',k.herr.base]].forEach(function(x){
+      if(!x[1]) return; if(y>265){doc.addPage();y=15;}
+      doc.setTextColor(14,116,144);doc.setFontSize(8);doc.setFont('helvetica','bold');
+      doc.text(x[0],14,y); y+=5;
+      doc.setTextColor(...C.txt);doc.setFontSize(8.5);doc.setFont('helvetica','normal');
+      lines=doc.splitTextToSize(n(x[1]),182); doc.text(lines,14,y); y+=lines.length*4+6;
+    });
 
     if(y>260){doc.addPage();y=15;}
     doc.setTextColor(217,119,6);doc.setFontSize(8);doc.setFont('helvetica','bold');
@@ -18896,11 +18919,20 @@ const CAPAS_DEF_PJ = [
 // No entra en D = T − I, ni en el IDC, ni en el estado mental del Post Partido.
 // ═══════════════════════════════════════════════════════════════
 const FE_DESDE='noviembre 2026';
+// 25/11/2026 · capítulo 4 de ATRAPADO: se suman atención selectiva, regulación
+// emocional y planificación. No agregan preguntas: en el test se leen de las
+// dimensiones MDC que ya existen (dim, escala ×20 como en la carta) y en el
+// Post Partido de preguntas de siempre. Siguen fuera de D = T − I y del IDC.
 const FE_FUNCS=[
+  {k:'atencion_selectiva', nombre:'Atención selectiva', que:'Elegir qué mirar y dejar afuera lo que no suma: tribuna, banco, el error anterior.', dim:'atencion', pp:['q3_pct'], ppTxt:'Concentración y foco', gym:'stroop', rel:['Control de zona']},
   {k:'control_inhibitorio', nombre:'Control inhibitorio', que:'Frenar el impulso a tiempo: no responder la provocación, no apurarse después del error.', pp:['q17_pct','q18_pct'], ppTxt:'Preguntas 17 y 18', gym:'go_nogo', rel:['Concentración y foco','Eje ante adversidad','Recuperación tras error']},
   {k:'memoria_trabajo', nombre:'Memoria de trabajo', que:'Sostener la información en la cabeza mientras juega: indicaciones, plan y posiciones.', pp:['q19_pct'], ppTxt:'Pregunta 19', gym:'memoria_trabajo', rel:['Confianza táctica','Control de zona']},
-  {k:'flexibilidad', nombre:'Flexibilidad cognitiva', que:'Cambiar de plan cuando cambia el partido y probar otra solución.', pp:['q20_pct'], ppTxt:'Pregunta 20', gym:null, rel:['Aceptación del error','Recuperación tras error']}
+  {k:'flexibilidad', nombre:'Flexibilidad cognitiva', que:'Cambiar de plan cuando cambia el partido y probar otra solución.', pp:['q20_pct'], ppTxt:'Pregunta 20', gym:null, rel:['Aceptación del error','Recuperación tras error']},
+  {k:'regulacion_emocional', nombre:'Regulación emocional', que:'Sentir la emoción sin que maneje la jugada: bajar o subir la activación a tiempo.', dim:'regulacion', pp:['q5_pct','q13_pct'], ppTxt:'Fluidez y respiración · Eje ante adversidad', gym:null, rel:['Lenguaje corporal']},
+  {k:'planificacion', nombre:'Planificación y anticipación', que:'Leer antes de recibir: prever la jugada y tener la próxima acción decidida.', dim:'decision', pp:['q2_pct','q14_pct'], ppTxt:'Decisión bajo presión · Confianza táctica', gym:null, rel:['Acciones progresivas']}
 ];
+// Orden del capítulo 4: atención, memoria, inhibición, flexibilidad, regulación, planificación
+FE_FUNCS.splice(0,FE_FUNCS.length,...['atencion_selectiva','memoria_trabajo','control_inhibitorio','flexibilidad','regulacion_emocional','planificacion'].map(k=>FE_FUNCS.find(f=>f.k===k)));
 // Preguntas de siempre del Post Partido que reflejan funciones ejecutivas (indirectas)
 const FE_REL_PP=new Set(['Concentración y foco','Eje ante adversidad','Recuperación tras error','Confianza táctica','Control de zona','Aceptación del error','Decisión bajo presión']);
 // Línea "En partidos": valor (últimos 5) y tendencia (últimos 3 vs. 3 anteriores) de cada relacionada
@@ -18917,8 +18949,13 @@ function feEsc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</
 function feProm(a){ const v=a.filter(x=>x!=null&&!isNaN(x)); return v.length?v.reduce((s,x)=>s+x,0)/v.length:null; }
 function feMismo(a,b){ return (a.jugador_uid&&b.jugador_uid&&a.jugador_uid===b.jugador_uid)||(String(a.jugador_nombre||'').trim().toLowerCase()===String(b.jugador_nombre||'').trim().toLowerCase()); }
 // Test: la evaluación más reciente del jugador que tenga esa función
-function feTest(r,lista,k){
+function feTest(r,lista,k,dim){
   k=k||'control_inhibitorio';
+  if(dim){ // función leída de una dimensión MDC del test (1–5 → ×20, igual que la carta)
+    const rd=[r].concat((lista||[]).filter(x=>x!==r&&feMismo(x,r))).filter(x=>x&&x.dims&&x.dims[dim]>0)
+      .sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')));
+    return rd.length?{v:Math.round(rd[0].dims[dim]*20), fecha:rd[0].fecha}:null;
+  }
   const rows=[r].concat((lista||[]).filter(x=>x!==r&&feMismo(x,r)))
     .filter(x=>x&&x.funciones_ejecutivas&&x.funciones_ejecutivas[k])
     .sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')));
@@ -18945,6 +18982,10 @@ function feGym(cog,tipo){
     if(!gn&&!st) return null;
     const costo=st&&st.detalle.tiempo_incongruente_prom!=null&&st.detalle.tiempo_congruente_prom!=null?Math.round(st.detalle.tiempo_incongruente_prom-st.detalle.tiempo_congruente_prom):null;
     return {v:gn?Math.round(gn.detalle.inhibicion_pct):null, txt:(gn?'Go/No-Go '+decFechaCorta(gn.creado_en):'Sin Go/No-Go')+(st?' · Stroop '+Math.round(st.detalle.precision_pct)+'%'+(costo!=null?', interferencia '+costo+' ms':''):'')};
+  }
+  if(tipo==='stroop'){
+    const st=(cog||[]).find(c=>c.tipo==='stroop'&&c.detalle&&c.detalle.precision_pct!=null);
+    return st?{v:Math.round(st.detalle.precision_pct), txt:'Stroop · precisión '+decFechaCorta(st.creado_en)}:null;
   }
   if(tipo==='memoria_trabajo'){
     const m=(cog||[]).find(c=>c.tipo==='memoria_trabajo'&&c.detalle&&c.detalle.nivel_alcanzado!=null);
@@ -18978,7 +19019,7 @@ async function renderFEPJ(r){
   if(PJ_ACTUAL&&PJ_ACTUAL.id!==r.id) return; // cambió de jugador mientras cargaba
   const brechas=[];
   const filas=FE_FUNCS.map(fx=>{
-    const t=feTest(r,lista,fx.k), pp=fePPResumen(fePPFilas(ppRows,fx.pp)), g=fx.gym?feGym(cog,fx.gym):null;
+    const t=feTest(r,lista,fx.k,fx.dim), pp=fePPResumen(fePPFilas(ppRows,fx.pp)), g=fx.gym?feGym(cog,fx.gym):null;
     const tend=pp&&pp.tend!=null?(Math.abs(pp.tend)<3?' · estable':' · '+(pp.tend>0?'▲ +':'▼ ')+pp.tend):'';
     const b=feBrecha(fx.nombre,t&&t.v,pp?pp.v:(g&&g.v!=null?g.v:null)); if(b) brechas.push(b);
     const gymCelda=!fx.gym?'<div style="font-size:10px;color:#5d7391;line-height:1.3">Ejercicio en preparación</div>'
@@ -18986,15 +19027,15 @@ async function renderFEPJ(r){
       :feCelda(g?g.v:null,g?g.txt:'','Sin ejercicio cargado');
     return '<div class="fe-fila" style="display:grid;grid-template-columns:minmax(0,1.3fr) repeat(3,minmax(0,1fr));gap:12px;align-items:start;padding:11px 0;border-top:1px solid #1a3a6e66">'+
       '<div style="min-width:0"><div style="font-size:13px;font-weight:800;color:#fff">'+fx.nombre+'</div><div style="font-size:10.5px;color:#94a3b8;margin-top:2px;line-height:1.35">'+fx.que+'</div>'+feRelLinea(ppRows,fx.rel)+'</div>'+
-      feCelda(t?t.v:null,t?'Test '+decFechaCorta(t.fecha):'','Desde el test de '+FE_DESDE)+
-      feCelda(pp?pp.v:null,pp?pp.n+' partido'+(pp.n>1?'s':'')+tend:'','Con el Post Partido nuevo')+
+      feCelda(t?t.v:null,t?'Test '+decFechaCorta(t.fecha):'',fx.dim?'Sin test':'Desde el test de '+FE_DESDE)+
+      feCelda(pp?pp.v:null,pp?pp.n+' partido'+(pp.n>1?'s':'')+tend:'',fx.dim?'Sin Post Partido':'Con el Post Partido nuevo')+
       gymCelda+'</div>';
   }).join('');
   box.innerHTML='<div class="fe-fila fe-cab" style="display:grid;grid-template-columns:minmax(0,1.3fr) repeat(3,minmax(0,1fr));gap:12px;font-size:9.5px;font-weight:800;color:#7c8fae;letter-spacing:.06em;padding-bottom:6px">'+
       '<span>FUNCIÓN</span><span>CÓMO SE PERCIBE<br><span style="font-weight:500;letter-spacing:0">Test MDC</span></span><span>CÓMO ACTUÓ<br><span style="font-weight:500;letter-spacing:0">Post Partido</span></span><span>CÓMO RINDE<br><span style="font-weight:500;letter-spacing:0">Gimnasio</span></span></div>'+
     filas+
     (brechas.length?'<div style="margin-top:8px;padding:9px 12px;border-radius:10px;background:#06b6d414;border:1px solid #06b6d444;font-size:12px;color:#e8eff8;line-height:1.5">'+brechas.join('<br>')+'</div>':'')+
-    '<div style="font-size:10.5px;color:#5d7391;margin-top:8px">Escala 0–100 · verde desde 80 · en amarillo desde 65. No entra en D = T − I ni en el IDC.</div>';
+    '<div style="font-size:10.5px;color:#5d7391;margin-top:8px">Escala 0–100 · verde desde 80 · en amarillo desde 65. Atención, regulación y planificación se leen de dimensiones del test y preguntas de siempre del Post Partido. No entra en D = T − I ni en el IDC.</div>';
 }
 // Informe grupal: promedio del plantel por función y fuente, y jugadores con valores bajos
 async function igRenderFE(f){
@@ -19004,9 +19045,9 @@ async function igRenderFE(f){
   const N=f.length;
   let ppAll=[];
   try{ const cods=[...new Set(f.map(r=>r.grupo_codigo).filter(Boolean))];
-    if(cods.length) ppAll=await q('postpartido_jugador?grupo_codigo=in.('+cods.map(encodeURIComponent).join(',')+')&or=(q17.not.is.null,q18.not.is.null,q19.not.is.null,q20.not.is.null)&select=jugador_uid,jugador_nombre,partido_codigo,q17_pct,q18_pct,q19_pct,q20_pct&order=partido_codigo.desc&limit=3000')||[]; }catch(e){}
+    if(cods.length) ppAll=await q('postpartido_jugador?grupo_codigo=in.('+cods.map(encodeURIComponent).join(',')+')&select=jugador_uid,jugador_nombre,partido_codigo,q2_pct,q3_pct,q5_pct,q13_pct,q14_pct,q17_pct,q18_pct,q19_pct,q20_pct&order=partido_codigo.desc&limit=3000')||[]; }catch(e){}
   const ppDe=r=>ppAll.filter(p=>feMismo(p,r));
-  const datos=f.map(r=>{ const pr=ppDe(r); const o={r}; FE_FUNCS.forEach(fx=>{ const t=feTest(r,AR,fx.k), pp=fePPResumen(fePPFilas(pr,fx.pp)); o[fx.k]={t:t?t.v:null,pp:pp?pp.v:null}; }); return o; });
+  const datos=f.map(r=>{ const pr=ppDe(r); const o={r}; FE_FUNCS.forEach(fx=>{ const t=feTest(r,AR,fx.k,fx.dim), pp=fePPResumen(fePPFilas(pr,fx.pp)); o[fx.k]={t:t?t.v:null,pp:pp?pp.v:null}; }); return o; });
   const celda=(v,n)=>v==null?'<span style="color:#4a5a78">—</span>':'<b style="font-size:17px;color:'+feCol(v)+'">'+v+'</b> <span style="font-size:10.5px;color:#7c8fae">'+n+'/'+N+'</span>';
   const filas=FE_FUNCS.map(fx=>{
     const ts=datos.map(d=>d[fx.k].t).filter(v=>v!=null), ps=datos.map(d=>d[fx.k].pp).filter(v=>v!=null);
@@ -20110,7 +20151,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='25/11/2026 · 1';
+const SC360_VERSION='26/11/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
