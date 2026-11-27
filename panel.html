@@ -175,6 +175,9 @@ body.es-admin .solo-admin{display:inline!important}
 .nav-main.active{color:#00c2ff!important}
 .nav-section-label.nav-main:hover{background:#0d1b3e;border-radius:0 8px 8px 0;margin-right:8px}
 .nav-sub{margin:2px 10px 8px 28px;padding:4px 0;border-left:2px solid #00c2ff55;background:#0b1530;border-radius:0 10px 10px 0}
+.nav-rubro{font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#5d7391;padding:10px 12px 3px}
+.nav-rubro:first-child{padding-top:4px}
+.sidebar.mobile-open .nav-rubro{font-size:11px}
 .nav-sub .nav-item{padding:6px 10px 6px 12px;font-size:12px;color:#8aa0bf;margin-right:4px;border-left:none}
 .nav-sub .nav-item .nav-icon{font-size:13px;width:18px}
 .nav-sub .nav-item:hover{background:#12214a;color:#e8eff8}
@@ -603,18 +606,23 @@ tr:hover td{background:#0d1b3e40}
     <div data-nav="evolucion" class="nav-item nav-main" onclick="go('evolucion')"><span class="nav-icon">📈</span> Evolución <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
     <div class="nav-main nav-section-label" onclick="toggleNavGroup('mas')" style="margin-top:6px"><span><span class="nav-icon">➕</span> Más herramientas</span><span class="nav-chevron" id="chev-mas">▾</span></div>
     <div id="navgroup-mas" class="nav-sub">
-      <div data-nav="roles" class="nav-item" onclick="go('roles')"><span class="nav-icon">🎭</span> Roles y desarrollo</div>
-      <div data-nav="tracking" class="nav-item" onclick="go('tracking')"><span class="nav-icon">🧠</span> Tracking mental</div>
+      <div class="nav-rubro">Partidos</div>
       <div data-nav="estadisticas" class="nav-item" onclick="go('estadisticas')"><span class="nav-icon">📊</span> Estadísticas <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
-      <div data-nav="alertas" class="nav-item" onclick="go('alertas')"><span class="nav-icon">🔔</span> Alertas <span id="alertas-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:2px">0</span></div>
-      <div data-nav="plantel" class="nav-item" onclick="go('plantel')"><span class="nav-icon">🔮</span> Predicción <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
+      <div class="nav-rubro">Rendimiento mental</div>
+      <div data-nav="tracking" class="nav-item" onclick="go('tracking')"><span class="nav-icon">🧠</span> Tracking mental</div>
       <div data-nav="checkin" class="nav-item" onclick="go('checkin')"><span class="nav-icon">⚡</span> Check-in diario</div>
       <div data-nav="cognitivo" class="nav-item" onclick="go('cognitivo')"><span class="nav-icon">🧪</span> Ejercicios cognitivos</div>
       <div data-nav="entreno" class="nav-item" onclick="go('entreno')"><span class="nav-icon">💪</span> Post entreno</div>
+      <div data-nav="racha" class="nav-item" onclick="go('racha')"><span class="nav-icon">🎮</span> Racha <span class="solo-admin" style="font-size:8px;font-weight:700;color:#f59e0b">PILOTO</span></div>
+      <div class="nav-rubro">Equipo y roles</div>
+      <div data-nav="roles" class="nav-item" onclick="go('roles')"><span class="nav-icon">🎭</span> Roles y desarrollo</div>
+      <div data-nav="plantel" class="nav-item" onclick="go('plantel')"><span class="nav-icon">🔮</span> Predicción <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
+      <div class="nav-rubro">Bienestar</div>
       <div data-nav="recuperacion" class="nav-item" onclick="go('recuperacion')"><span class="nav-icon">🫀</span> Recuperación</div>
       <div data-nav="nutricion" class="nav-item" id="nav-nutricion" onclick="go('nutricion')"><span class="nav-icon">🥗</span> Nutrición</div>
+      <div class="nav-rubro">Seguimiento</div>
+      <div data-nav="alertas" class="nav-item" onclick="go('alertas')"><span class="nav-icon">🔔</span> Alertas <span id="alertas-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:2px">0</span></div>
       <div data-nav="planificacion" class="nav-item" id="nav-planificacion" style="display:none" onclick="go('planificacion')"><span class="nav-icon">📅</span> Plan de trabajo</div>
-      <div data-nav="racha" class="nav-item" onclick="go('racha')"><span class="nav-icon">🎮</span> Racha <span class="solo-admin" style="font-size:8px;font-weight:700;color:#f59e0b">PILOTO</span></div>
     </div>
     <div class="nav-divider" style="margin-top:1rem"></div>
     <div class="nav-section-label nav-admin" id="nav-admin-label" onclick="toggleNavGroup('gestion')"><span id="nav-admin-txt">⚙ Administración</span><span class="nav-chevron" id="chev-gestion">▾</span></div>
@@ -3449,7 +3457,7 @@ function mostrarPanel(){
   // cualquiera sin que tenga acceso al resto del club.
   const modoKiosko = puedeIngreso && rol==='tecnico';
   if(modoKiosko){
-    document.querySelectorAll('.nav-item, .nav-section-label, .nav-divider').forEach(function(el){
+    document.querySelectorAll('.nav-item, .nav-section-label, .nav-divider, .nav-rubro').forEach(function(el){
       if(el.dataset && el.dataset.nav==='asistencia') return;
       el.style.display='none';
     });
@@ -3842,6 +3850,13 @@ function toggleMenuMobile(){
 // Grupos de menú plegables — el estado (abierto/cerrado) se guarda en el
 // navegador, así cada persona lo deja como prefiere y no se resetea al
 // recargar la página.
+function navRubros(){
+  document.querySelectorAll('.nav-rubro').forEach(function(r){
+    let el=r.nextElementSibling, alguno=false;
+    while(el&&!el.classList.contains('nav-rubro')){ if(el.style.display!=='none') alguno=true; el=el.nextElementSibling; }
+    r.style.display=alguno?'':'none';
+  });
+}
 function toggleNavGroup(nombre){
   const cont=document.getElementById('navgroup-'+nombre);
   const chev=document.getElementById('chev-'+nombre);
@@ -3998,6 +4013,7 @@ function go(name){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   const navEl=document.querySelector('.nav-item[data-nav="'+name+'"]');
+  try{ navRubros(); }catch(e){}
   if(navEl){ navEl.classList.add('active'); const gp=navEl.closest('.nav-sub'); if(gp&&gp.style.display==='none'){ const k=gp.id.replace('navgroup-',''); toggleNavGroup(k); } }
   // Cerrar el menú desplegable mobile al elegir una pantalla
   const sb=document.querySelector('.sidebar');
@@ -20211,7 +20227,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='27/11/2026 · 3';
+const SC360_VERSION='27/11/2026 · 4';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
