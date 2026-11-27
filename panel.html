@@ -583,46 +583,38 @@ tr:hover td{background:#0d1b3e40}
 <!-- MOBILE BOTTOM NAV — solo visible en mobile via CSS -->
 <nav id="mobile-nav">
   <div class="mn-item active" id="mn-dashboard" onclick="go('dashboard')"><span class="mn-icon">🏠</span>Inicio</div>
-  <div class="mn-item" id="mn-resultados" onclick="go('resultados')"><span class="mn-icon">👥</span>Plantel</div>
-  <div class="mn-item" id="mn-tracking" onclick="go('tracking')"><span class="mn-icon">⚡</span>Rendimiento</div>
+  <div class="mn-item" id="mn-resultados" onclick="go('resultados')"><span class="mn-icon">👥</span>Jugadores</div>
+  <div class="mn-item" id="mn-perfiljugador" onclick="go('perfiljugador')"><span class="mn-icon">🪪</span>Perfil</div>
   <div class="mn-item" id="mn-postpartido" onclick="go('postpartido')"><span class="mn-icon">⚽</span>Partidos</div>
-  <div class="mn-item" id="mn-evolucion" onclick="go('evolucion')"><span class="mn-icon">📈</span>Evolución</div>
-  <div class="mn-item" id="mn-plantel" onclick="go('plantel')"><span class="mn-icon">🔮</span>Predicción</div>
   <div class="mn-item" id="mn-decisiones" onclick="go('decisiones')"><span class="mn-icon">🎯</span>Decisiones</div>
+  <div class="mn-item" id="mn-evolucion" onclick="go('evolucion')"><span class="mn-icon">📈</span>Evolución</div>
   <div class="mn-item" id="mn-mas" onclick="toggleMenuMobile()"><span class="mn-icon">☰</span>Más</div>
 </nav>
 <div class="layout">
   <div class="sidebar">
+    <!-- Menú corto (26/11/2026, auditoría de uso): las 6 pantallas que más se usan.
+         Lo demás queda en "Más herramientas", sin borrar nada. -->
     <div data-nav="dashboard" class="nav-item nav-main active" onclick="go('dashboard')"><span class="nav-icon">🏠</span> Inicio</div>
-    <div class="nav-main nav-section-label" onclick="toggleNavGroup('plantel')"><span><span class="nav-icon">👥</span> Plantel</span><span class="nav-chevron" id="chev-plantel">▾</span></div>
-    <div id="navgroup-plantel" class="nav-sub">
-      <div data-nav="resultados" class="nav-item" onclick="go('resultados')"><span class="nav-icon">📋</span> Jugadores</div>
-      <div data-nav="perfiljugador" class="nav-item" onclick="go('perfiljugador')"><span class="nav-icon">🪪</span> Perfil de jugador <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
+    <div data-nav="resultados" class="nav-item nav-main" onclick="go('resultados')"><span class="nav-icon">📋</span> Jugadores</div>
+    <div data-nav="perfiljugador" class="nav-item nav-main" onclick="go('perfiljugador')"><span class="nav-icon">🪪</span> Perfil de jugador <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
+    <div data-nav="postpartido" class="nav-item nav-main" onclick="go('postpartido')"><span class="nav-icon">📝</span> Post partido</div>
+    <div data-nav="decisiones" class="nav-item nav-main" onclick="go('decisiones')"><span class="nav-icon">🧭</span> Decisiones de hoy <span id="decisiones-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:9px;margin-left:4px"></span></div>
+    <div data-nav="evolucion" class="nav-item nav-main" onclick="go('evolucion')"><span class="nav-icon">📈</span> Evolución <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
+    <div class="nav-main nav-section-label" onclick="toggleNavGroup('mas')" style="margin-top:6px"><span><span class="nav-icon">➕</span> Más herramientas</span><span class="nav-chevron" id="chev-mas">▾</span></div>
+    <div id="navgroup-mas" class="nav-sub">
       <div data-nav="grupal" class="nav-item" onclick="go('grupal')"><span class="nav-icon">🧩</span> Informe grupal <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
       <div data-nav="roles" class="nav-item" onclick="go('roles')"><span class="nav-icon">🎭</span> Roles y desarrollo</div>
-    </div>
-    <div class="nav-main nav-section-label" onclick="toggleNavGroup('mental')"><span><span class="nav-icon">⚡</span> Rendimiento</span><span class="nav-chevron" id="chev-mental">▾</span></div>
-    <div id="navgroup-mental" class="nav-sub">
       <div data-nav="tracking" class="nav-item" onclick="go('tracking')"><span class="nav-icon">🧠</span> Tracking mental</div>
+      <div data-nav="estadisticas" class="nav-item" onclick="go('estadisticas')"><span class="nav-icon">📊</span> Estadísticas <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
+      <div data-nav="alertas" class="nav-item" onclick="go('alertas')"><span class="nav-icon">🔔</span> Alertas <span id="alertas-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:2px">0</span></div>
+      <div data-nav="plantel" class="nav-item" onclick="go('plantel')"><span class="nav-icon">🔮</span> Predicción <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
       <div data-nav="checkin" class="nav-item" onclick="go('checkin')"><span class="nav-icon">⚡</span> Check-in diario</div>
       <div data-nav="cognitivo" class="nav-item" onclick="go('cognitivo')"><span class="nav-icon">🧪</span> Ejercicios cognitivos</div>
       <div data-nav="entreno" class="nav-item" onclick="go('entreno')"><span class="nav-icon">💪</span> Post entreno</div>
       <div data-nav="recuperacion" class="nav-item" onclick="go('recuperacion')"><span class="nav-icon">🫀</span> Recuperación</div>
       <div data-nav="nutricion" class="nav-item" id="nav-nutricion" onclick="go('nutricion')"><span class="nav-icon">🥗</span> Nutrición</div>
-      <div data-nav="racha" class="nav-item" onclick="go('racha')"><span class="nav-icon">🎮</span> Racha <span class="solo-admin" style="font-size:8px;font-weight:700;color:#f59e0b">PILOTO</span></div>
-    </div>
-    <div class="nav-main nav-section-label" onclick="toggleNavGroup('partidos')"><span><span class="nav-icon">⚽</span> Partidos</span><span class="nav-chevron" id="chev-partidos">▾</span></div>
-    <div id="navgroup-partidos" class="nav-sub">
-      <div data-nav="postpartido" class="nav-item" onclick="go('postpartido')"><span class="nav-icon">📝</span> Post partido</div>
-      <div data-nav="estadisticas" class="nav-item" onclick="go('estadisticas')"><span class="nav-icon">📊</span> Estadísticas <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
-    </div>
-    <div data-nav="evolucion" class="nav-item nav-main" onclick="go('evolucion')"><span class="nav-icon">📈</span> Evolución <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
-    <div data-nav="plantel" class="nav-item nav-main" onclick="go('plantel')"><span class="nav-icon">🔮</span> Predicción <span class="ia-badge" title="Esta sección tiene análisis con inteligencia artificial">✦ IA</span></div>
-    <div class="nav-main nav-section-label" onclick="toggleNavGroup('decisiones')"><span><span class="nav-icon">🎯</span> Decisiones <span id="decisiones-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:2px">0</span></span><span class="nav-chevron" id="chev-decisiones">▾</span></div>
-    <div id="navgroup-decisiones" class="nav-sub">
-      <div data-nav="decisiones" class="nav-item" onclick="go('decisiones')"><span class="nav-icon">🧭</span> Decisiones de hoy</div>
-      <div data-nav="alertas" class="nav-item" onclick="go('alertas')"><span class="nav-icon">🔔</span> Alertas <span id="alertas-badge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;margin-left:2px">0</span></div>
       <div data-nav="planificacion" class="nav-item" id="nav-planificacion" style="display:none" onclick="go('planificacion')"><span class="nav-icon">📅</span> Plan de trabajo</div>
+      <div data-nav="racha" class="nav-item" onclick="go('racha')"><span class="nav-icon">🎮</span> Racha <span class="solo-admin" style="font-size:8px;font-weight:700;color:#f59e0b">PILOTO</span></div>
     </div>
     <div class="nav-divider" style="margin-top:1rem"></div>
     <div class="nav-section-label nav-admin" id="nav-admin-label" onclick="toggleNavGroup('gestion')"><span id="nav-admin-txt">⚙ Administración</span><span class="nav-chevron" id="chev-gestion">▾</span></div>
@@ -3861,7 +3853,7 @@ function toggleNavGroup(nombre){
   try{ localStorage.setItem('navgroup_'+nombre, cerrado?'abierto':'cerrado'); }catch(e){}
 }
 function restaurarNavGroups(){
-  ['plantel','mental','partidos','decisiones','gestion'].forEach(function(nombre){
+  ['mas','gestion'].forEach(function(nombre){
     let estado=null;
     try{ estado=localStorage.getItem('navgroup_'+nombre); }catch(e){}
     // Menú corto por defecto: los grupos arrancan plegados (se abre solo el de la pantalla actual).
@@ -4012,7 +4004,7 @@ function go(name){
   if(sb)sb.classList.remove('mobile-open');
   // Sync mobile bottom nav
   document.querySelectorAll('.mn-item').forEach(n=>n.classList.remove('active'));
-  const MN_TAB={perfiljugador:'resultados',grupal:'resultados',roles:'resultados',cognitivo:'tracking',entreno:'tracking',recuperacion:'tracking',nutricion:'tracking',racha:'tracking',estadisticas:'postpartido',planificacion:'decisiones',alertas:'decisiones',checkin:'tracking'};
+  const MN_TAB={grupal:'mas',roles:'mas',tracking:'mas',plantel:'mas',cognitivo:'mas',entreno:'mas',recuperacion:'mas',nutricion:'mas',racha:'mas',checkin:'mas',estadisticas:'postpartido',planificacion:'decisiones',alertas:'decisiones'};
   const mn=document.getElementById('mn-'+(MN_TAB[name]||name));
   if(mn)mn.classList.add('active');
   // Scroll mobile nav so active item is visible
@@ -20219,7 +20211,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='27/11/2026 · 1';
+const SC360_VERSION='27/11/2026 · 2';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
