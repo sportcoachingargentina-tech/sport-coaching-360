@@ -1180,8 +1180,8 @@ tr:hover td{background:#0d1b3e40}
         <div id="ig-capa-alerta" style="margin:0 14px 14px"></div>
       </div>
       <div class="tw" id="ig-fe-w" style="display:none">
-        <div class="th">🔄 CICLO DE DECISIÓN DEL EQUIPO</div>
-        <div style="font-size:11px;color:#b4c2d4;padding:10px 14px 0">Dónde se le corta el ciclo de decisión al equipo y en qué grupo de trabajo queda cada jugador. Tocá un nombre para ver su perfil.</div>
+        <div class="th">🔄 CICLO DE DECISIÓN Y FUNCIONES EJECUTIVAS</div>
+        <div style="font-size:11px;color:#b4c2d4;padding:10px 14px 0">Tablero del equipo. Elegí un jugador en el selector para compararlo con el promedio del equipo.</div>
         <div id="ig-fe" style="padding:10px 14px 14px"></div>
       </div>
       <div class="tw" id="ig-disc-w" style="display:none">
@@ -19163,52 +19163,60 @@ async function igRenderFE(f){
     return o; });
   const hayCiclo=datos.some(d=>d.min!=null);
   if(!hayCiclo){ box.innerHTML='<div class="es">Sin test todavía: el ciclo del equipo se arma con los tests de los jugadores.</div>'; const fr1=document.getElementById('ig-fe-res'); if(fr1) fr1.style.display='none'; return; }
-  // 1 · Ciclo del equipo
-  const eq=CICLO_PASOS.map(ps=>{ const vs=datos.map(d=>d.ciclo[ps.k]).filter(v=>v!=null); return Object.assign({},ps,{v:vs.length?Math.round(feProm(vs)):null,cnt:vs.length}); });
-  const eqV=eq.filter(x=>x.v!=null);
-  const eqC=eqV.slice().sort((a,b)=>a.v-b.v||(b.inter?1:0)-(a.inter?1:0))[0];
-  const eqCorta=eqC&&eqC.v<80;
-  const cuenta={}; datos.forEach(d=>{ if(d.corte) cuenta[d.corte.k]=(cuenta[d.corte.k]||0)+1; });
-  const fila=eq.map(ps=>{ const c=feCol(ps.v), es=eqCorta&&ps.k===eqC.k;
-    return '<div class="cdx-st" style="'+(es?'border-color:'+c+';box-shadow:0 0 0 1px '+c+'55 inset;background:'+c+'12':'')+'">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:#fff">'+ps.n+'</span>'+
-        (ps.inter?'<span title="Acá entra la interferencia" style="font-size:9px;font-weight:800;color:#f59e0b;background:#f59e0b18;border:1px solid #f59e0b55;border-radius:8px;padding:1px 6px">⚡ INTERF.</span>':'')+'</div>'+
-      (ps.v!=null?'<div style="font-size:22px;font-weight:900;color:'+c+';margin-top:6px;line-height:1">'+ps.v+'</div>'+
-        '<div style="height:4px;background:#132449;border-radius:3px;overflow:hidden;margin-top:5px"><div style="height:100%;width:'+ps.v+'%;background:'+c+'"></div></div>'
-        :'<div style="font-size:13px;font-weight:700;color:#4a5a78;margin-top:8px">—</div>')+
-      '<div style="font-size:9.5px;color:#5d7391;margin-top:4px">'+(ps.v!=null?ps.cnt+'/'+N+' jugadores':'Sin dato')+(cuenta[ps.k]?' · <b style="color:#fbbf24">'+cuenta[ps.k]+(cuenta[ps.k]===1?' se corta acá':' se cortan acá')+'</b>':'')+'</div></div>'; }).join('');
-  const ecc=eqC?feCol(eqC.v):'#22c55e';
-  let h='<div class="cdx-row">'+fila+'</div>'+
-    (eqCorta?'<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:'+ecc+'12;border:1px solid '+ecc+'55">'+
-      '<div style="font-size:10px;font-weight:800;color:'+ecc+';letter-spacing:.06em">EL EQUIPO SE CORTA EN · '+eqC.n.toUpperCase()+'</div>'+
-      '<div style="font-size:12.5px;color:#e8eff8;margin-top:4px;line-height:1.5">'+eqC.corte+' <b>Trabajo colectivo:</b> '+eqC.trab+'</div></div>'
-     :'<div style="margin-top:10px;font-size:12.5px;color:#22c55e">✓ Ciclo del equipo fluido: ningún paso por debajo de 80 en promedio.</div>');
-  // 2 · Grupos de trabajo: cada jugador en el paso donde se le corta el ciclo
-  //     (tocar un nombre abre su perfil, con "Volver al equipo")
-  const chip=d=>{ const c=d.corte?feCol(d.min):'#22c55e';
-    return '<button onclick="igAbrirPerfil(\''+d.r.id+'\')" title="Ver perfil" style="display:inline-flex;align-items:center;gap:6px;max-width:100%;margin:0 6px 6px 0;padding:5px 9px;border-radius:16px;border:1px solid '+c+'55;background:'+c+'12;color:#e8eff8;font-size:12px;font-weight:600;cursor:pointer">'+
-      '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+feEsc(String(d.r.jugador_nombre||'').split(' ').slice(0,2).join(' '))+'</span>'+(d.corte?'<b style="color:'+c+'">'+d.min+'</b>':'')+'</button>'; };
+  // Tablero (27/11/2026): un selector arriba (equipo o un jugador) y dos tarjetas
+  // con barras — ciclo de decisión y funciones ejecutivas. Sin listas largas.
+  const prom=a=>{ const v=a.filter(x=>x!=null); return v.length?Math.round(feProm(v)):null; };
+  const feVal=(d,fx)=>d[fx.k].t!=null?d[fx.k].t:d[fx.k].pp;
+  const eq={ciclo:{},fe:{},feTest:{},fePP:{}};
+  CICLO_PASOS.forEach(ps=>eq.ciclo[ps.k]=prom(datos.map(d=>d.ciclo[ps.k])));
+  FE_FUNCS.forEach(fx=>{ eq.fe[fx.k]=prom(datos.map(d=>feVal(d,fx))); eq.feTest[fx.k]=prom(datos.map(d=>d[fx.k].t)); eq.fePP[fx.k]=prom(datos.map(d=>d[fx.k].pp)); });
+  const cv=CICLO_PASOS.filter(ps=>eq.ciclo[ps.k]!=null);
+  const ec=cv.slice().sort((a,b)=>eq.ciclo[a.k]-eq.ciclo[b.k]||(b.inter?1:0)-(a.inter?1:0))[0];
+  eq.corte=ec&&eq.ciclo[ec.k]<80?ec:null;
+  IG_CF={datos,eq,N};
   const conDato=datos.filter(d=>d.min!=null);
   const grupos=CICLO_PASOS.map(ps=>({ps,js:conDato.filter(d=>d.corte&&d.corte.k===ps.k).sort((a,b)=>a.min-b.min)})).filter(g=>g.js.length).sort((a,b)=>b.js.length-a.js.length);
   const fluidos=conDato.filter(d=>!d.corte);
-  h+='<div style="margin-top:16px;font-size:10px;font-weight:800;color:#7c8fae;letter-spacing:.06em">GRUPOS DE TRABAJO · DÓNDE SE LE CORTA A CADA JUGADOR</div>'+
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px;margin-top:8px;align-items:start">'+
-    grupos.map(g=>'<div style="border:1px solid #1a3a6e;border-radius:12px;padding:10px 12px;background:#0a1024">'+
-      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px"><b style="font-size:13px;color:#fff">'+g.ps.n+(g.ps.inter?' <span style="font-size:10px;color:#f59e0b">⚡</span>':'')+'</b><span style="font-size:11px;color:#7c8fae">'+g.js.length+' jugador'+(g.js.length>1?'es':'')+'</span></div>'+
-      '<div style="font-size:11px;color:#94a3b8;margin:3px 0 8px;line-height:1.35">'+g.ps.trab+'</div>'+g.js.map(chip).join('')+'</div>').join('')+
-    (fluidos.length?'<div style="border:1px solid #22c55e44;border-radius:12px;padding:10px 12px;background:#22c55e0a">'+
-      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px"><b style="font-size:13px;color:#22c55e">✓ Ciclo fluido</b><span style="font-size:11px;color:#7c8fae">'+fluidos.length+' jugador'+(fluidos.length>1?'es':'')+'</span></div>'+
-      '<div style="font-size:11px;color:#94a3b8;margin:3px 0 8px">Ningún paso por debajo de 80: sostener y darles responsabilidad.</div>'+fluidos.map(chip).join('')+'</div>':'')+
-    '</div>';
-  // 3 · Funciones ejecutivas → en el resumen del equipo (arriba)
-  const fe=FE_FUNCS.map(fx=>{ const ts=datos.map(d=>d[fx.k].t).filter(v=>v!=null), ps=datos.map(d=>d[fx.k].pp).filter(v=>v!=null);
-    const t=ts.length?Math.round(feProm(ts)):null, pp=ps.length?Math.round(feProm(ps)):null;
-    return '<div style="flex:1 1 140px;min-width:0;border:1px solid #1a3a6e;border-radius:10px;padding:7px 10px;background:#0a102499"><div style="font-size:10.5px;font-weight:700;color:#cbd5e1;line-height:1.25">'+fx.nombre+'</div>'+
-      '<div style="margin-top:3px;font-size:10px;color:#7c8fae">Test <b style="font-size:15px;color:'+(t==null?'#4a5a78':feCol(t))+'">'+(t==null?'—':t)+'</b> · Partidos <b style="font-size:15px;color:'+(pp==null?'#4a5a78':feCol(pp))+'">'+(pp==null?'—':pp)+'</b></div></div>'; }).join('');
-  const fr=document.getElementById('ig-fe-res');
-  if(fr){ fr.style.display='block'; fr.innerHTML='<div style="font-size:10px;font-weight:700;color:#00c2ff;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px">🧩 Funciones ejecutivas del equipo</div><div style="display:flex;flex-wrap:wrap;gap:8px">'+fe+'</div>'; }
-  h+='<div style="font-size:10.5px;color:#5d7391;margin-top:10px">Escala 0–100 · verde desde 80 · amarillo desde 65. Mismos datos del perfil individual. Las funciones ejecutivas del equipo están en el resumen de arriba. No entra en D = T − I ni en el IDC.</div>';
-  box.innerHTML=h;
+  const nom=d=>feEsc(String(d.r.jugador_nombre||''));
+  const opts='<option value="">👥 Equipo completo ('+N+' jugadores)</option>'+
+    grupos.map(g=>'<optgroup label="Se corta en '+g.ps.n+' ('+g.js.length+')">'+g.js.map(d=>'<option value="'+d.r.id+'">'+nom(d)+' · '+d.min+'</option>').join('')+'</optgroup>').join('')+
+    (fluidos.length?'<optgroup label="Ciclo fluido ('+fluidos.length+')">'+fluidos.map(d=>'<option value="'+d.r.id+'">'+nom(d)+'</option>').join('')+'</optgroup>':'');
+  const dist=grupos.map(g=>'<span style="font-size:11px;color:#b4c2d4;white-space:nowrap">'+g.ps.n+' <b style="color:#fbbf24">'+g.js.length+'</b></span>').join('<span style="color:#3d5a8a"> · </span>')+
+    (fluidos.length?'<span style="color:#3d5a8a"> · </span><span style="font-size:11px;color:#b4c2d4">Fluido <b style="color:#22c55e">'+fluidos.length+'</b></span>':'');
+  box.innerHTML='<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px">'+
+      '<select id="ig-cf-sel" onchange="igCFRender()" style="flex:1 1 260px;max-width:420px;padding:9px 12px;border-radius:10px;border:1px solid #1e6fd9;background:#0d1b3e;color:#e8eff8;font-size:13px;font-weight:600">'+opts+'</select>'+
+      '<div style="flex:1 1 260px;text-align:right;line-height:1.6"><span style="font-size:10px;font-weight:800;color:#7c8fae;letter-spacing:.06em">DÓNDE SE CORTA · </span>'+dist+'</div></div>'+
+    '<div id="ig-cf-body"></div>';
+  igCFRender();
+  const fr=document.getElementById('ig-fe-res'); if(fr) fr.style.display='none';
+}
+let IG_CF=null;
+function igCFRender(){
+  const body=document.getElementById('ig-cf-body'); if(!body||!IG_CF) return;
+  const {datos,eq,N}=IG_CF, id=(document.getElementById('ig-cf-sel')||{}).value||'';
+  const d=id?datos.find(x=>String(x.r.id)===String(id)):null;
+  const feVal=(dd,fx)=>dd[fx.k].t!=null?dd[fx.k].t:dd[fx.k].pp;
+  const fila=(nombre,v,ref,extra)=>{ const c=v==null?'#4a5a78':feCol(v);
+    return '<div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1.6fr) 34px;gap:10px;align-items:center;padding:6px 0">'+
+      '<div style="font-size:12px;font-weight:700;color:#e8eff8;line-height:1.25;min-width:0">'+nombre+(extra||'')+'</div>'+
+      '<div style="position:relative;height:9px;background:#132449;border-radius:5px">'+(v!=null?'<div style="height:100%;width:'+v+'%;background:'+c+';border-radius:5px"></div>':'')+
+        (ref!=null?'<div title="Promedio del equipo: '+ref+'" style="position:absolute;top:-4px;bottom:-4px;left:calc('+ref+'% - 1px);width:2px;background:#e8eff8;border-radius:1px;opacity:.85"></div>':'')+'</div>'+
+      '<div style="font-size:15px;font-weight:900;color:'+c+';text-align:right">'+(v==null?'—':v)+'</div></div>'; };
+  const ciclo=CICLO_PASOS.map(ps=>fila(ps.n,d?d.ciclo[ps.k]:eq.ciclo[ps.k],d?eq.ciclo[ps.k]:null,ps.inter?' <span title="Acá entra la interferencia" style="font-size:9px;font-weight:800;color:#f59e0b">⚡</span>':'')).join('');
+  const fe=FE_FUNCS.map(fx=>fila(fx.nombre,d?feVal(d,fx):eq.fe[fx.k],d?eq.fe[fx.k]:null,!d&&eq.feTest[fx.k]!=null&&eq.fePP[fx.k]!=null?'<div style="font-size:9.5px;font-weight:500;color:#7c8fae">test '+eq.feTest[fx.k]+' · partidos '+eq.fePP[fx.k]+'</div>':'')).join('');
+  const feBaja=FE_FUNCS.filter(fx=>(d?feVal(d,fx):eq.fe[fx.k])!=null).sort((a,b)=>(d?feVal(d,a):eq.fe[a.k])-(d?feVal(d,b):eq.fe[b.k]))[0];
+  const corte=d?d.corte:eq.corte, cc=corte?feCol(d?d.min:eq.ciclo[corte.k]):'#22c55e';
+  const card=(t,html)=>'<div style="border:1px solid #1a3a6e;border-radius:12px;padding:12px 14px;background:#0a1024;min-width:0"><div style="font-size:10px;font-weight:800;color:#00c2ff;letter-spacing:.08em;margin-bottom:4px">'+t+'</div>'+html+'</div>';
+  body.innerHTML=
+    '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;margin-bottom:12px;background:'+cc+'12;border:1px solid '+cc+'55">'+
+      '<div style="min-width:0;flex:1 1 300px"><div style="font-size:10px;font-weight:800;color:'+cc+';letter-spacing:.06em">'+(d?feEsc(String(d.r.jugador_nombre||'')).toUpperCase()+' · ':'EL EQUIPO · ')+(corte?'SE CORTA EN '+corte.n.toUpperCase():'CICLO FLUIDO')+'</div>'+
+        '<div style="font-size:12.5px;color:#e8eff8;margin-top:3px;line-height:1.5">'+(corte?corte.corte+' <b>Qué trabajar'+(d?'':' con el grupo')+':</b> '+corte.trab:'Ningún paso por debajo de 80: sostener y darle responsabilidad.')+
+        (feBaja?' <span style="color:#94a3b8">Función ejecutiva más baja: <b style="color:#e8eff8">'+feBaja.nombre+'</b>.</span>':'')+'</div></div>'+
+      (d?'<button onclick="igAbrirPerfil(\''+d.r.id+'\')" style="flex:none;font-size:12px;font-weight:800;padding:8px 14px;border-radius:8px;cursor:pointer;color:#00c2ff;background:transparent;border:1px solid #00c2ff66">Ver perfil completo →</button>':'')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px">'+
+      card('🔄 CICLO DE DECISIÓN',ciclo)+card('🧩 FUNCIONES EJECUTIVAS',fe)+'</div>'+
+    '<div style="font-size:10.5px;color:#5d7391;margin-top:8px">'+(d?'La marca blanca es el promedio del equipo. ':'Elegí un jugador arriba para verlo contra el equipo. ')+'Escala 0–100 · verde desde 80 · amarillo desde 65. Mismos datos del perfil individual. No entra en D = T − I ni en el IDC.</div>';
 }
 async function renderCuadrantePJ(r){
   const cont = document.getElementById('pj-cuadrante');
@@ -20297,7 +20305,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='27/11/2026 · 6';
+const SC360_VERSION='27/11/2026 · 7';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
