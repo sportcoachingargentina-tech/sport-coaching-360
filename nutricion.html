@@ -215,8 +215,8 @@ function getIDNNivel(pct){
   if(pct>=90) return {label:'Elite Nutricional',color:'#22c55e',semaforo:'🟢🟢🟢',rec:'Mantener y optimizar por temporada'};
   if(pct>=80) return {label:'Alto rendimiento',color:'#16a34a',semaforo:'🟢🟢',rec:'Ajuste fino con nutricionista'};
   if(pct>=65) return {label:'En desarrollo',color:'#f59e0b',semaforo:'🟡🟡',rec:'Plan de hábitos + consulta recomendada'};
-  if(pct>=45) return {label:'Déficit moderado',color:'#ea580c',semaforo:'🟡',rec:'Consulta nutricional urgente'};
-  return {label:'Déficit crítico',color:'#ef4444',semaforo:'🔴',rec:'Derivación inmediata'};
+  if(pct>=45) return {label:'Déficit moderado',txt:'Por debajo de lo recomendado',color:'#ea580c',semaforo:'🟡',rec:'Te recomendamos una consulta con nutricionista para ordenar tus hábitos.'};
+  return {label:'Déficit crítico',txt:'Muy por debajo de lo recomendado',color:'#ef4444',semaforo:'🔴',rec:'Conviene que hagas una consulta con nutricionista. SC360 no realiza diagnóstico clínico.'};
 }
 
 var enviandoIDN=false;
@@ -290,7 +290,7 @@ function renderResultado(dimScores,dimMax,pctTotal,nivel,totalPts){
   html+='<div class="idn-hero" style="border-color:'+nivel.color+'44">'+
     '<div class="idn-label">Índice de Disponibilidad Nutricional</div>'+
     '<div class="idn-valor" style="color:'+nivel.color+'">'+totalPts+'<span style="font-size:24px;color:#8fa3bf">/80</span></div>'+
-    '<div class="idn-nivel" style="color:'+nivel.color+'">'+nivel.semaforo+' '+nivel.label+'</div>'+
+    '<div class="idn-nivel" style="color:'+nivel.color+'">'+nivel.semaforo+' '+(nivel.txt||nivel.label)+'</div>'+
     '<div class="idn-barra"><div class="idn-barra-fill" style="width:'+pctTotal+'%;background:linear-gradient(90deg,'+nivel.color+'88,'+nivel.color+')"></div></div>'+
   '</div>';
 
@@ -311,7 +311,7 @@ function renderResultado(dimScores,dimMax,pctTotal,nivel,totalPts){
 
   html+='<div class="dims-card"><h3>RECOMENDACIÓN</h3><p style="font-size:13px;color:#c0d0e8;line-height:1.6">'+nivel.rec+'</p></div>';
 
-  var waMsg=encodeURIComponent('Hola! Completé el Test de Disponibilidad Nutricional en Sport Coaching 360. Mi resultado fue '+pctTotal+'% ('+nivel.label+'). Quería consultar sobre mi alimentación.');
+  var waMsg=encodeURIComponent('Hola! Completé el Test de Disponibilidad Nutricional en Sport Coaching 360. Mi resultado fue '+pctTotal+'% ('+(nivel.txt||nivel.label)+'). Quería consultar sobre mi alimentación.');
   html+='<a class="wa-btn" href="https://wa.me/'+WA_NUTRICIONISTA_DEFAULT+'?text='+waMsg+'" target="_blank">📲 Contactar a la nutricionista</a>';
 
   el.innerHTML=html;

@@ -1971,11 +1971,11 @@ tr:hover td{background:#0d1b3e40}
         </div>
         <div class="stat">
           <div class="stat-v" id="idn-riesgo" style="color:#f59e0b">0</div>
-          <div class="stat-l">En desarrollo / déficit</div>
+          <div class="stat-l">En desarrollo / por debajo</div>
         </div>
         <div class="stat">
           <div class="stat-v" id="idn-critico" style="color:#ef4444">0</div>
-          <div class="stat-l">Déficit crítico</div>
+          <div class="stat-l">Muy por debajo</div>
         </div>
       </div>
 
@@ -1993,8 +1993,8 @@ tr:hover td{background:#0d1b3e40}
             <option value="Elite Nutricional">Elite Nutricional</option>
             <option value="Alto rendimiento">Alto rendimiento</option>
             <option value="En desarrollo">En desarrollo</option>
-            <option value="Déficit moderado">Déficit moderado</option>
-            <option value="Déficit crítico">Déficit crítico</option>
+            <option value="Déficit moderado">Por debajo</option>
+            <option value="Déficit crítico">Muy por debajo</option>
           </select>
         </div>
         <div id="idn-tabla" style="padding:0.5rem 0"></div>
@@ -2024,15 +2024,15 @@ tr:hover td{background:#0d1b3e40}
           </div>
           <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#FED7AA10;border-radius:8px;border:1px solid #f97316aa22">
             <div style="width:10px;height:10px;border-radius:50%;background:#f97316;flex-shrink:0"></div>
-            <div style="flex:1;font-size:13px;font-weight:700;color:#f97316">Déficit moderado</div>
+            <div style="flex:1;font-size:13px;font-weight:700;color:#f97316">Por debajo</div>
             <div style="font-size:12px;color:#b4c2d4">36–51 pts · 45-64%</div>
-            <div style="font-size:11px;color:#94a3b8;flex:2">Consulta nutricional urgente</div>
+            <div style="font-size:11px;color:#94a3b8;flex:2">Consulta con nutricionista recomendada</div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#FEE2E210;border-radius:8px;border:1px solid #ef444422">
             <div style="width:10px;height:10px;border-radius:50%;background:#ef4444;flex-shrink:0"></div>
-            <div style="flex:1;font-size:13px;font-weight:700;color:#ef4444">Déficit crítico</div>
+            <div style="flex:1;font-size:13px;font-weight:700;color:#ef4444">Muy por debajo</div>
             <div style="font-size:12px;color:#b4c2d4">0–35 pts · 0-44%</div>
-            <div style="font-size:11px;color:#94a3b8;flex:2">Derivación inmediata al nutricionista</div>
+            <div style="font-size:11px;color:#94a3b8;flex:2">Conviene una consulta con nutricionista</div>
           </div>
         </div>
       </div>
@@ -2067,11 +2067,11 @@ tr:hover td{background:#0d1b3e40}
       <!-- INTEGRACIÓN MDC -->
       <div style="background:#0d1b3e;border:1px solid #7c3aed44;border-left:3px solid #7c3aed;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem">
         <div style="font-size:12px;font-weight:700;color:#7c3aed;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">Integración al MDC · D = T − I</div>
-        <div style="font-size:13px;color:#c8d8f0;line-height:1.7">Un <strong>IDN bajo</strong> (Déficit moderado o crítico) opera como factor de <strong style="color:#ef4444">Interferencia (I)</strong> en la fórmula de Disponibilidad Competitiva. Un jugador con mal estado nutricional reduce su disponibilidad real para el DT independientemente de su talento: mayor fatiga, mayor riesgo de lesión (+60% con déficit de sueño y nutrición combinados) y menor capacidad de concentración sostenida.</div>
+        <div style="font-size:13px;color:#c8d8f0;line-height:1.7">Un <strong>IDN bajo</strong> (por debajo o muy por debajo) opera como factor de <strong style="color:#ef4444">Interferencia (I)</strong> en la fórmula de Disponibilidad Competitiva. Un jugador con mal estado nutricional reduce su disponibilidad real para el DT independientemente de su talento: mayor fatiga, mayor riesgo de lesión (+60% con déficit de sueño y nutrición combinados) y menor capacidad de concentración sostenida.</div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
           <div style="background:#7c3aed22;border:1px solid #7c3aed44;border-radius:8px;padding:6px 12px;font-size:12px;color:#a78bfa">IDN Elite → I nutricional ≈ 0</div>
           <div style="background:#f59e0b22;border:1px solid #f59e0b44;border-radius:8px;padding:6px 12px;font-size:12px;color:#fbbf24">IDN En desarrollo → I nutricional moderada</div>
-          <div style="background:#ef444422;border:1px solid #ef444444;border-radius:8px;padding:6px 12px;font-size:12px;color:#f87171">IDN Déficit crítico → I nutricional alta · alerta DT</div>
+          <div style="background:#ef444422;border:1px solid #ef444444;border-radius:8px;padding:6px 12px;font-size:12px;color:#f87171">IDN muy por debajo → I nutricional alta · alerta DT</div>
         </div>
       </div>
 
@@ -14488,12 +14488,15 @@ const WA_NUTRICIONISTA_DEFAULT = '5492612502454'; // Sport Coaching Pro
 const WA_MENSAJE_DEFAULT = 'Hola, me comunicó desde Sport Coaching 360 para consultar sobre nutrición deportiva.';
 
 // ── Escala IDN
+// Textos sin lenguaje clínico (26/11/2026). En la base se sigue guardando
+// 'Déficit moderado' / 'Déficit crítico' para no romper filtros ni datos viejos.
+function idnTxt(v){ return v==='Déficit crítico'?'Muy por debajo':v==='Déficit moderado'?'Por debajo':v; }
 const IDN_ESCALA = [
   { min: 72, max: 80, nivel: 'Elite Nutricional',  pct: '90-100%', color: '#22c55e', fill: '#22c55e22', semaforo: '🟢', accion: 'Mantener y optimizar por temporada' },
   { min: 64, max: 71, nivel: 'Alto rendimiento',   pct: '80-89%',  color: '#4ade80', fill: '#4ade8022', semaforo: '🟢', accion: 'Ajuste fino con nutricionista' },
   { min: 52, max: 63, nivel: 'En desarrollo',       pct: '65-79%',  color: '#f59e0b', fill: '#f59e0b22', semaforo: '🟡', accion: 'Plan de hábitos + consulta recomendada' },
-  { min: 36, max: 51, nivel: 'Déficit moderado',    pct: '45-64%',  color: '#f97316', fill: '#f9731622', semaforo: '🟡', accion: 'Consulta nutricional urgente' },
-  { min: 0,  max: 35, nivel: 'Déficit crítico',     pct: '0-44%',   color: '#ef4444', fill: '#ef444422', semaforo: '🔴', accion: 'Derivación inmediata al nutricionista' },
+  { min: 36, max: 51, nivel: 'Déficit moderado',    txt: 'Por debajo',     pct: '45-64%',  color: '#f97316', fill: '#f9731622', semaforo: '🟡', accion: 'Consulta con nutricionista recomendada' },
+  { min: 0,  max: 35, nivel: 'Déficit crítico',     txt: 'Muy por debajo', pct: '0-44%',   color: '#ef4444', fill: '#ef444422', semaforo: '🔴', accion: 'Conviene una consulta con nutricionista' },
 ];
 
 function getIDNEscala(puntaje) {
@@ -14533,7 +14536,7 @@ async function renderNutricionContacto() {
             ? 'Nutricionista asignada por tu club. Contacto directo para consultas individuales.'
             : 'Nutricionista de referencia de Sport Coaching Pro. Disponible para consultas individuales sobre hábitos, plan de alimentación y optimización del rendimiento.') +
         '</div>' +
-        '<div style="font-size:11px;color:#94a3b8">💡 Cuando el IDN indique <strong style="color:#f59e0b">Déficit moderado o crítico</strong>, la derivación es parte del protocolo del club.</div>' +
+        '<div style="font-size:11px;color:#94a3b8">💡 Cuando el IDN dé <strong style="color:#f59e0b">por debajo o muy por debajo</strong>, la consulta con nutricionista es parte del protocolo del club. SC360 no realiza diagnóstico clínico.</div>' +
       '</div>' +
       '<div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">' +
         '<a href="' + waLink + '" target="_blank" rel="noopener" onclick="registrarLeadNutri(' + JSON.stringify(!esPropioClub) + ')" style="display:flex;align-items:center;gap:8px;padding:10px 18px;background:#22c55e;color:#fff;font-weight:700;font-size:13px;border-radius:10px;text-decoration:none">' +
@@ -14647,7 +14650,7 @@ function renderNutricionPorClub(data){
     return { nombre:nombre, count:rs.length, prom:prom, riesgo:riesgo, critico:critico };
   }).sort(function(a,b){ return b.count-a.count; });
 
-  tabla.innerHTML = '<table><thead><tr><th>Club</th><th>Tests completados</th><th>IDN promedio</th><th>En riesgo</th><th>Déficit crítico</th></tr></thead><tbody>' +
+  tabla.innerHTML = '<table><thead><tr><th>Club</th><th>Tests completados</th><th>IDN promedio</th><th>Por debajo</th><th>Muy por debajo</th></tr></thead><tbody>' +
     clubes.map(function(c){
       const col = c.prom>=80?'#22c55e':c.prom>=65?'#f59e0b':'#ef4444';
       return '<tr style="cursor:pointer" onclick="abrirNutricionClub(\''+String(c.nombre).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">' +
@@ -14730,7 +14733,7 @@ function aplicarFiltroNutricion(){
         '<td style="font-weight:600;color:#fff">'+(r.jugador_nombre||'—')+'</td>' +
         '<td>'+(r.jugador_club||'—')+'</td>' +
         '<td style="color:'+col+';font-weight:700">'+pct+'%</td>' +
-        '<td style="color:'+col+'">'+(r.idn_nivel||'—')+'</td>' +
+        '<td style="color:'+col+'">'+(idnTxt(r.idn_nivel)||'—')+'</td>' +
         '<td style="color:#b4c2d4;font-size:12px">'+fecha+'</td>' +
       '</tr>';
     }).join('') + '</tbody></table>';
@@ -14816,7 +14819,7 @@ function abrirDetalleNutricion(id){
   elPct.textContent = pct+'%';
   elPct.style.color = col;
   const elNiv = document.getElementById('mo-nutri-nivel');
-  elNiv.textContent = r.idn_nivel||'—';
+  elNiv.textContent = idnTxt(r.idn_nivel)||'—';
   elNiv.style.color = col;
 
   const dims = [
@@ -20216,7 +20219,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='26/11/2026 · 3';
+const SC360_VERSION='27/11/2026 · 1';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
