@@ -1114,8 +1114,8 @@ tr:hover td{background:#0d1b3e40}
     <div class="screen" id="screen-grupal">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
         <div>
-          <div class="page-title">Informe grupal</div>
-          <div class="page-sub">Análisis colectivo por grupo</div>
+          <div class="page-title">Equipo</div>
+          <div class="page-sub">Informe grupal · análisis colectivo por grupo</div>
         </div>
         <button onclick="habilitarNuevaEvalGrupo()" style="padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:#f59e0b20;color:#f59e0b;border:1px solid #f59e0b40">🔄 Nueva evaluación grupal</button>
       </div>
@@ -1178,8 +1178,8 @@ tr:hover td{background:#0d1b3e40}
         <div id="ig-capa-alerta" style="margin:0 14px 14px"></div>
       </div>
       <div class="tw" id="ig-fe-w" style="display:none">
-        <div class="th">🧩 FUNCIONES EJECUTIVAS · CAPA 3 · REGULACIÓN Y LECTURA</div>
-        <div style="font-size:11px;color:#b4c2d4;padding:10px 14px 0">Control inhibitorio, memoria de trabajo y flexibilidad. Test y Post Partido se muestran por separado.</div>
+        <div class="th">🔄 CICLO Y FUNCIONES DEL EQUIPO</div>
+        <div style="font-size:11px;color:#b4c2d4;padding:10px 14px 0">Dónde se le corta el ciclo de decisión al equipo y a cada jugador. Usa los mismos datos del perfil individual; con "Seleccionar jugadores" mirás solo a los que elijas.</div>
         <div id="ig-fe" style="padding:10px 14px 14px"></div>
       </div>
       <div class="tw" id="ig-disc-w" style="display:none">
@@ -4014,6 +4014,7 @@ function go(name){
   document.getElementById('screen-'+name).classList.add('active');
   const navEl=document.querySelector('.nav-item[data-nav="'+name+'"]');
   try{ navRubros(); }catch(e){}
+  if(name!=='perfiljugador'){ const bv=document.getElementById('pj-volver-eq'); if(bv) bv.style.display='none'; }
   if(navEl){ navEl.classList.add('active'); const gp=navEl.closest('.nav-sub'); if(gp&&gp.style.display==='none'){ const k=gp.id.replace('navgroup-',''); toggleNavGroup(k); } }
   // Cerrar el menú desplegable mobile al elegir una pantalla
   const sb=document.querySelector('.sidebar');
@@ -19113,6 +19114,20 @@ async function renderFEPJ(r){
     '<div style="font-size:10.5px;color:#5d7391;margin-top:8px">Escala 0–100 · verde desde 80 · en amarillo desde 65. Atención, regulación y planificación se leen de dimensiones del test y preguntas de siempre del Post Partido. No entra en D = T − I ni en el IDC.</div>';
 }
 // Informe grupal: promedio del plantel por función y fuente, y jugadores con valores bajos
+// Equipo · Ciclo de decisión + funciones ejecutivas (27/11/2026). Reemplaza el
+// bloque anterior de funciones ejecutivas: misma pantalla, un solo bloque.
+// Cada jugador se lee igual que en su perfil (dimensiones del test ×20 y
+// energía del Post Partido); el equipo es el promedio de los jugadores elegidos.
+// Del cuadro del equipo al perfil, con botón para volver al equipo
+async function igAbrirPerfil(id){
+  await irAPerfilJugador(id);
+  const sc=document.getElementById('screen-perfiljugador'); if(!sc) return;
+  let b=document.getElementById('pj-volver-eq');
+  if(!b){ b=document.createElement('button'); b.id='pj-volver-eq'; b.className='bg pj-print-hide';
+    b.style.cssText='margin:0 0 10px;font-size:12.5px;padding:7px 14px;font-weight:700;color:#00c2ff;border:1px solid #00c2ff55;border-radius:8px;background:transparent;cursor:pointer';
+    b.textContent='← Volver al equipo'; b.onclick=()=>{ b.style.display='none'; go('grupal'); }; sc.insertBefore(b,sc.firstChild); }
+  b.style.display='';
+}
 async function igRenderFE(f){
   const w=document.getElementById('ig-fe-w'), box=document.getElementById('ig-fe'); if(!w||!box) return;
   if(!f||!f.length){ w.style.display='none'; return; }
@@ -19120,25 +19135,58 @@ async function igRenderFE(f){
   const N=f.length;
   let ppAll=[];
   try{ const cods=[...new Set(f.map(r=>r.grupo_codigo).filter(Boolean))];
-    if(cods.length) ppAll=await q('postpartido_jugador?grupo_codigo=in.('+cods.map(encodeURIComponent).join(',')+')&select=jugador_uid,jugador_nombre,partido_codigo,q2_pct,q3_pct,q5_pct,q13_pct,q14_pct,q17_pct,q18_pct,q19_pct,q20_pct&order=partido_codigo.desc&limit=3000')||[]; }catch(e){}
+    if(cods.length) ppAll=await q('postpartido_jugador?grupo_codigo=in.('+cods.map(encodeURIComponent).join(',')+')&select=jugador_uid,jugador_nombre,partido_codigo,q2_pct,q3_pct,q5_pct,q12_pct,q13_pct,q14_pct,q17_pct,q18_pct,q19_pct,q20_pct&order=partido_codigo.desc&limit=3000')||[]; }catch(e){}
   const ppDe=r=>ppAll.filter(p=>feMismo(p,r));
-  const datos=f.map(r=>{ const pr=ppDe(r); const o={r}; FE_FUNCS.forEach(fx=>{ const t=feTest(r,AR,fx.k,fx.dim), pp=fePPResumen(fePPFilas(pr,fx.pp)); o[fx.k]={t:t?t.v:null,pp:pp?pp.v:null}; }); return o; });
-  const celda=(v,n)=>v==null?'<span style="color:#4a5a78">—</span>':'<b style="font-size:17px;color:'+feCol(v)+'">'+v+'</b> <span style="font-size:10.5px;color:#7c8fae">'+n+'/'+N+'</span>';
-  const filas=FE_FUNCS.map(fx=>{
-    const ts=datos.map(d=>d[fx.k].t).filter(v=>v!=null), ps=datos.map(d=>d[fx.k].pp).filter(v=>v!=null);
-    return '<div style="display:grid;grid-template-columns:minmax(0,1.4fr) 1fr 1fr;gap:10px;align-items:center;padding:9px 0;border-top:1px solid #1a3a6e66;font-size:12.5px"><b style="color:#fff">'+fx.nombre+'</b>'+
-      '<span>'+celda(ts.length?Math.round(feProm(ts)):null,ts.length)+'</span><span>'+celda(ps.length?Math.round(feProm(ps)):null,ps.length)+'</span></div>';
-  }).join('');
-  const bajos=datos.map(d=>({r:d.r, b:FE_FUNCS.map(fx=>{ const x=d[fx.k], m=Math.min(x.t??100,x.pp??100); return m<65?{n:fx.nombre,m,x}:null; }).filter(Boolean)}))
-    .filter(x=>x.b.length).sort((a,b)=>Math.min(...a.b.map(y=>y.m))-Math.min(...b.b.map(y=>y.m)));
-  const hay=datos.some(d=>FE_FUNCS.some(fx=>d[fx.k].t!=null||d[fx.k].pp!=null));
-  box.innerHTML='<div style="display:grid;grid-template-columns:minmax(0,1.4fr) 1fr 1fr;gap:10px;font-size:9.5px;font-weight:800;color:#7c8fae;letter-spacing:.06em;padding-bottom:6px"><span>FUNCIÓN</span><span>TEST · PROMEDIO</span><span>POST PARTIDO · PROMEDIO</span></div>'+filas+
-    (!hay?'<div style="margin-top:10px;font-size:12px;color:#7c8fae">Sin datos todavía: se mide desde el test y el Post Partido de '+FE_DESDE+'.</div>'
-     :bajos.length?'<div style="margin-top:12px;font-size:10px;font-weight:800;color:#7c8fae;letter-spacing:.06em">JUGADORES POR DEBAJO DE 65</div>'+
-      bajos.slice(0,12).map(x=>'<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #1a3a6e55;font-size:12.5px"><b style="color:#fff;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+feEsc(x.r.jugador_nombre)+'</b><span style="font-size:11.5px;text-align:right">'+
-        x.b.map(y=>y.n+' <b style="color:'+feCol(y.m)+'">'+Math.round(y.m)+'</b>').join(' · ')+'</span></div>').join('')
-     :'<div style="margin-top:10px;font-size:12px;color:#22c55e">✓ Ningún jugador por debajo de 65 con los datos cargados.</div>')+
-    '<div style="font-size:10.5px;color:#5d7391;margin-top:8px">Escala 0–100 · verde desde 80. Junto a cada promedio, cuántos jugadores tienen el dato. No entra en D = T − I ni en el IDC.</div>';
+  const datos=f.map(r=>{ const pr=ppDe(r); const o={r,ciclo:{}};
+    FE_FUNCS.forEach(fx=>{ const t=feTest(r,AR,fx.k,fx.dim), pp=fePPResumen(fePPFilas(pr,fx.pp)); o[fx.k]={t:t?t.v:null,pp:pp?pp.v:null}; });
+    const dRes=[r].concat((AR||[]).filter(x=>x!==r&&feMismo(x,r))).filter(x=>x&&x.dims).sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')))[0];
+    const dims=(dRes&&dRes.dims)||{}, ener=pr.slice(0,5).map(x=>x.q12_pct).filter(v=>v!=null);
+    CICLO_PASOS.forEach(ps=>{ o.ciclo[ps.k]=ps.dim?(dims[ps.dim]>0?Math.round(dims[ps.dim]*20):null):(ener.length?Math.round(feProm(ener)):null); });
+    const cv=CICLO_PASOS.filter(ps=>o.ciclo[ps.k]!=null);
+    const c=cv.length?cv.slice().sort((a,b)=>o.ciclo[a.k]-o.ciclo[b.k]||(b.inter?1:0)-(a.inter?1:0))[0]:null;
+    o.corte=c&&o.ciclo[c.k]<80?c:null; o.min=c?o.ciclo[c.k]:null;
+    return o; });
+  const hayCiclo=datos.some(d=>d.min!=null);
+  if(!hayCiclo){ box.innerHTML='<div class="es">Sin test todavía: el ciclo del equipo se arma con los tests de los jugadores.</div>'; return; }
+  // 1 · Ciclo del equipo
+  const eq=CICLO_PASOS.map(ps=>{ const vs=datos.map(d=>d.ciclo[ps.k]).filter(v=>v!=null); return Object.assign({},ps,{v:vs.length?Math.round(feProm(vs)):null,cnt:vs.length}); });
+  const eqV=eq.filter(x=>x.v!=null);
+  const eqC=eqV.slice().sort((a,b)=>a.v-b.v||(b.inter?1:0)-(a.inter?1:0))[0];
+  const eqCorta=eqC&&eqC.v<80;
+  const cuenta={}; datos.forEach(d=>{ if(d.corte) cuenta[d.corte.k]=(cuenta[d.corte.k]||0)+1; });
+  const fila=eq.map(ps=>{ const c=feCol(ps.v), es=eqCorta&&ps.k===eqC.k;
+    return '<div class="cdx-st" style="'+(es?'border-color:'+c+';box-shadow:0 0 0 1px '+c+'55 inset;background:'+c+'12':'')+'">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span style="font-size:12.5px;font-weight:800;color:#fff">'+ps.n+'</span>'+
+        (ps.inter?'<span title="Acá entra la interferencia" style="font-size:9px;font-weight:800;color:#f59e0b;background:#f59e0b18;border:1px solid #f59e0b55;border-radius:8px;padding:1px 6px">⚡ INTERF.</span>':'')+'</div>'+
+      (ps.v!=null?'<div style="font-size:22px;font-weight:900;color:'+c+';margin-top:6px;line-height:1">'+ps.v+'</div>'+
+        '<div style="height:4px;background:#132449;border-radius:3px;overflow:hidden;margin-top:5px"><div style="height:100%;width:'+ps.v+'%;background:'+c+'"></div></div>'
+        :'<div style="font-size:13px;font-weight:700;color:#4a5a78;margin-top:8px">—</div>')+
+      '<div style="font-size:9.5px;color:#5d7391;margin-top:4px">'+(ps.v!=null?ps.cnt+'/'+N+' jugadores':'Sin dato')+(cuenta[ps.k]?' · <b style="color:#fbbf24">'+cuenta[ps.k]+(cuenta[ps.k]===1?' se corta acá':' se cortan acá')+'</b>':'')+'</div></div>'; }).join('');
+  const ecc=eqC?feCol(eqC.v):'#22c55e';
+  let h='<div class="cdx-row">'+fila+'</div>'+
+    (eqCorta?'<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:'+ecc+'12;border:1px solid '+ecc+'55">'+
+      '<div style="font-size:10px;font-weight:800;color:'+ecc+';letter-spacing:.06em">EL EQUIPO SE CORTA EN · '+eqC.n.toUpperCase()+'</div>'+
+      '<div style="font-size:12.5px;color:#e8eff8;margin-top:4px;line-height:1.5">'+eqC.corte+' <b>Trabajo colectivo:</b> '+eqC.trab+'</div></div>'
+     :'<div style="margin-top:10px;font-size:12.5px;color:#22c55e">✓ Ciclo del equipo fluido: ningún paso por debajo de 80 en promedio.</div>');
+  // 2 · Cuadro por jugador (tocar → perfil)
+  const orden=datos.filter(d=>d.min!=null).sort((a,b)=>a.min-b.min);
+  const celda=v=>v==null?'<td style="text-align:center;color:#4a5a78">—</td>':'<td style="text-align:center;font-weight:800;color:'+feCol(v)+';background:'+feCol(v)+'14">'+v+'</td>';
+  h+='<div style="margin-top:14px;font-size:10px;font-weight:800;color:#7c8fae;letter-spacing:.06em">POR JUGADOR · TOCÁ UNO PARA VER SU PERFIL</div>'+
+    '<div style="overflow-x:auto;margin-top:6px"><table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px"><thead><tr style="font-size:9.5px;color:#7c8fae;letter-spacing:.05em">'+
+    '<th style="text-align:left;padding:6px 8px">JUGADOR</th>'+CICLO_PASOS.map(ps=>'<th style="text-align:center;padding:6px 4px">'+ps.n.toUpperCase()+(ps.inter?' ⚡':'')+'</th>').join('')+'<th style="text-align:left;padding:6px 8px">SE CORTA EN</th></tr></thead><tbody>'+
+    orden.map(d=>'<tr onclick="igAbrirPerfil(\''+d.r.id+'\')" style="cursor:pointer;border-top:1px solid #1a3a6e66" title="Ver perfil">'+
+      '<td style="padding:7px 8px;color:#fff;font-weight:700;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis">'+feEsc(d.r.jugador_nombre)+'</td>'+
+      CICLO_PASOS.map(ps=>celda(d.ciclo[ps.k])).join('')+
+      '<td style="padding:7px 8px;white-space:nowrap;color:'+(d.corte?feCol(d.min):'#22c55e')+';font-weight:700">'+(d.corte?d.corte.n:'✓ fluido')+' →</td></tr>').join('')+
+    '</tbody></table></div>';
+  // 3 · Funciones ejecutivas en una línea
+  const fe=FE_FUNCS.map(fx=>{ const ts=datos.map(d=>d[fx.k].t).filter(v=>v!=null), ps=datos.map(d=>d[fx.k].pp).filter(v=>v!=null);
+    const t=ts.length?Math.round(feProm(ts)):null, pp=ps.length?Math.round(feProm(ps)):null;
+    return '<div style="flex:1 1 150px;min-width:0;border:1px solid #1a3a6e;border-radius:10px;padding:8px 10px;background:#0a1024"><div style="font-size:11px;font-weight:700;color:#e8eff8;line-height:1.25">'+fx.nombre+'</div>'+
+      '<div style="margin-top:4px;font-size:10.5px;color:#7c8fae">Test <b style="font-size:15px;color:'+(t==null?'#4a5a78':feCol(t))+'">'+(t==null?'—':t)+'</b> · Partidos <b style="font-size:15px;color:'+(pp==null?'#4a5a78':feCol(pp))+'">'+(pp==null?'—':pp)+'</b></div></div>'; }).join('');
+  h+='<div style="margin-top:14px;font-size:10px;font-weight:800;color:#7c8fae;letter-spacing:.06em">🧩 FUNCIONES EJECUTIVAS · PROMEDIO DEL EQUIPO</div><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">'+fe+'</div>'+
+    '<div style="font-size:10.5px;color:#5d7391;margin-top:8px">Escala 0–100 · verde desde 80 · amarillo desde 65. Mismos datos del perfil individual. No entra en D = T − I ni en el IDC.</div>';
+  box.innerHTML=h;
 }
 async function renderCuadrantePJ(r){
   const cont = document.getElementById('pj-cuadrante');
@@ -20227,7 +20275,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='27/11/2026 · 4';
+const SC360_VERSION='27/11/2026 · 5';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
