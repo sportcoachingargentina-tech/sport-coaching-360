@@ -1155,9 +1155,11 @@ tr:hover td{background:#0d1b3e40}
             </div>
           </div>
         </div>
+        <div id="ig-fe-res" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid #1a3a6e"></div>
       </div>
 
       <div class="fr">
+        <select id="ig-club" onchange="igClubCambio()" style="display:none"><option value="">Todos los clubes</option></select>
         <select id="ig" onchange="generarG()"><option value="">Todos los grupos</option></select>
         <button class="btn-p" id="btn-sel" onclick="toggleSel()" style="display:none;font-size:12px;padding:7px 14px">☑ Seleccionar jugadores</button>
       </div>
@@ -1178,8 +1180,8 @@ tr:hover td{background:#0d1b3e40}
         <div id="ig-capa-alerta" style="margin:0 14px 14px"></div>
       </div>
       <div class="tw" id="ig-fe-w" style="display:none">
-        <div class="th">🔄 CICLO Y FUNCIONES DEL EQUIPO</div>
-        <div style="font-size:11px;color:#b4c2d4;padding:10px 14px 0">Dónde se le corta el ciclo de decisión al equipo y a cada jugador. Usa los mismos datos del perfil individual; con "Seleccionar jugadores" mirás solo a los que elijas.</div>
+        <div class="th">🔄 CICLO DE DECISIÓN DEL EQUIPO</div>
+        <div style="font-size:11px;color:#b4c2d4;padding:10px 14px 0">Dónde se le corta el ciclo de decisión al equipo y en qué grupo de trabajo queda cada jugador. Tocá un nombre para ver su perfil.</div>
         <div id="ig-fe" style="padding:10px 14px 14px"></div>
       </div>
       <div class="tw" id="ig-disc-w" style="display:none">
@@ -5462,9 +5464,19 @@ async function loadGrupal(){
   const gsFilt=filtrarGrupos(gs||[]);
   const rsFilt=filtrarResultados(rs||[]);
   AG=gsFilt;AR=rsFilt;
-  updSel('ig',gSort(gsFilt).map(g=>({v:g.id,l:gLbl(g)})),'Todos los grupos');
+  // Filtro por club (27/11/2026): aparece cuando el usuario ve más de un club
+  const sc=document.getElementById('ig-club');
+  if(sc){ const clubs=[...new Set(gsFilt.map(g=>clubCorto(gClub(g))).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+    const prev=sc.value; sc.innerHTML='<option value="">Todos los clubes</option>'+clubs.map(c=>'<option value="'+decEsc(c)+'">'+decEsc(c)+'</option>').join('');
+    if(prev&&clubs.includes(prev)) sc.value=prev; sc.style.display=clubs.length>1?'':'none'; }
+  igLlenarGrupos();
   generarG();
 }
+function igGruposDelClub(){ const c=(document.getElementById('ig-club')||{}).value||''; return c?(AG||[]).filter(g=>clubCorto(gClub(g))===c):(AG||[]); }
+function igLlenarGrupos(){ const s=document.getElementById('ig'), prev=s?s.value:''; const gs=igGruposDelClub();
+  updSel('ig',gSort(gs).map(g=>({v:g.id,l:gLbl(g)})),(document.getElementById('ig-club')||{}).value?'Todas las divisiones del club':'Todos los grupos');
+  if(prev&&gs.some(g=>g.id===prev)) s.value=prev; }
+function igClubCambio(){ igLlenarGrupos(); generarG(); }
 
 let SEL_ACTIVA=false;let SEL_IDS=[];
 
@@ -5501,7 +5513,9 @@ function generarG(){
   SEL_IDS=[];SEL_ACTIVA=false;
   document.getElementById('sel-panel').style.display='none';
   const gid=document.getElementById('ig').value;
-  const f=gid?AR.filter(r=>r.grupo_id===gid):AR;
+  const club=(document.getElementById('ig-club')||{}).value||'';
+  const idsClub=club?new Set(igGruposDelClub().map(g=>g.id)):null;
+  const f=gid?AR.filter(r=>r.grupo_id===gid):idsClub?AR.filter(r=>idsClub.has(r.grupo_id)):AR;
   document.getElementById('btn-sel').style.display=f.length?'block':'none';
   renderGrupal(f);
 }
@@ -5512,7 +5526,7 @@ function renderGrupal(f){
   const dw2=document.getElementById('ig-disc-w');if(dw2)dw2.style.display='none';
   const iaw=document.getElementById('ig-ia-w');if(iaw)iaw.style.display='none';
   const few=document.getElementById('ig-fe-w');if(few)few.style.display='none';
-  document.getElementById('ig-hero').style.display='none';return;}
+  document.getElementById('ig-hero').style.display='none';const fr0=document.getElementById('ig-fe-res');if(fr0)fr0.style.display='none';return;}
   const nEvals=f.length;
   f=idcUltimaPorJugador(f);
   IG_DATOS_ACTUALES=f;
@@ -5527,7 +5541,8 @@ function renderGrupal(f){
   if(hero){
     hero.style.display='block';
     const gid=document.getElementById('ig').value;
-    const gNombre=gid?(AG||[]).find(g=>g.id===gid)?.nombre||'Grupo seleccionado':'Todos los grupos';
+    const clubSel=(document.getElementById('ig-club')||{}).value||'';
+    const gNombre=gid?(AG||[]).find(g=>g.id===gid)?.nombre||'Grupo seleccionado':clubSel?clubSel+' · todas las divisiones':'Todos los grupos';
     document.getElementById('ig-hero-grupo').textContent=gNombre+' ('+n+' jugadores'+(nEvals>n?' · '+nEvals+' evaluaciones':'')+')';
     document.getElementById('ig-prom').textContent=aD||'—';
     document.getElementById('ig-prom-label').textContent=aD>=80?'Plantel disponible':aD>=60?'Zona de precaucion':'Revisar interferencia';
@@ -19147,7 +19162,7 @@ async function igRenderFE(f){
     o.corte=c&&o.ciclo[c.k]<80?c:null; o.min=c?o.ciclo[c.k]:null;
     return o; });
   const hayCiclo=datos.some(d=>d.min!=null);
-  if(!hayCiclo){ box.innerHTML='<div class="es">Sin test todavía: el ciclo del equipo se arma con los tests de los jugadores.</div>'; return; }
+  if(!hayCiclo){ box.innerHTML='<div class="es">Sin test todavía: el ciclo del equipo se arma con los tests de los jugadores.</div>'; const fr1=document.getElementById('ig-fe-res'); if(fr1) fr1.style.display='none'; return; }
   // 1 · Ciclo del equipo
   const eq=CICLO_PASOS.map(ps=>{ const vs=datos.map(d=>d.ciclo[ps.k]).filter(v=>v!=null); return Object.assign({},ps,{v:vs.length?Math.round(feProm(vs)):null,cnt:vs.length}); });
   const eqV=eq.filter(x=>x.v!=null);
@@ -19168,24 +19183,31 @@ async function igRenderFE(f){
       '<div style="font-size:10px;font-weight:800;color:'+ecc+';letter-spacing:.06em">EL EQUIPO SE CORTA EN · '+eqC.n.toUpperCase()+'</div>'+
       '<div style="font-size:12.5px;color:#e8eff8;margin-top:4px;line-height:1.5">'+eqC.corte+' <b>Trabajo colectivo:</b> '+eqC.trab+'</div></div>'
      :'<div style="margin-top:10px;font-size:12.5px;color:#22c55e">✓ Ciclo del equipo fluido: ningún paso por debajo de 80 en promedio.</div>');
-  // 2 · Cuadro por jugador (tocar → perfil)
-  const orden=datos.filter(d=>d.min!=null).sort((a,b)=>a.min-b.min);
-  const celda=v=>v==null?'<td style="text-align:center;color:#4a5a78">—</td>':'<td style="text-align:center;font-weight:800;color:'+feCol(v)+';background:'+feCol(v)+'14">'+v+'</td>';
-  h+='<div style="margin-top:14px;font-size:10px;font-weight:800;color:#7c8fae;letter-spacing:.06em">POR JUGADOR · TOCÁ UNO PARA VER SU PERFIL</div>'+
-    '<div style="overflow-x:auto;margin-top:6px"><table style="width:100%;min-width:560px;border-collapse:collapse;font-size:12px"><thead><tr style="font-size:9.5px;color:#7c8fae;letter-spacing:.05em">'+
-    '<th style="text-align:left;padding:6px 8px">JUGADOR</th>'+CICLO_PASOS.map(ps=>'<th style="text-align:center;padding:6px 4px">'+ps.n.toUpperCase()+(ps.inter?' ⚡':'')+'</th>').join('')+'<th style="text-align:left;padding:6px 8px">SE CORTA EN</th></tr></thead><tbody>'+
-    orden.map(d=>'<tr onclick="igAbrirPerfil(\''+d.r.id+'\')" style="cursor:pointer;border-top:1px solid #1a3a6e66" title="Ver perfil">'+
-      '<td style="padding:7px 8px;color:#fff;font-weight:700;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis">'+feEsc(d.r.jugador_nombre)+'</td>'+
-      CICLO_PASOS.map(ps=>celda(d.ciclo[ps.k])).join('')+
-      '<td style="padding:7px 8px;white-space:nowrap;color:'+(d.corte?feCol(d.min):'#22c55e')+';font-weight:700">'+(d.corte?d.corte.n:'✓ fluido')+' →</td></tr>').join('')+
-    '</tbody></table></div>';
-  // 3 · Funciones ejecutivas en una línea
+  // 2 · Grupos de trabajo: cada jugador en el paso donde se le corta el ciclo
+  //     (tocar un nombre abre su perfil, con "Volver al equipo")
+  const chip=d=>{ const c=d.corte?feCol(d.min):'#22c55e';
+    return '<button onclick="igAbrirPerfil(\''+d.r.id+'\')" title="Ver perfil" style="display:inline-flex;align-items:center;gap:6px;max-width:100%;margin:0 6px 6px 0;padding:5px 9px;border-radius:16px;border:1px solid '+c+'55;background:'+c+'12;color:#e8eff8;font-size:12px;font-weight:600;cursor:pointer">'+
+      '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+feEsc(String(d.r.jugador_nombre||'').split(' ').slice(0,2).join(' '))+'</span>'+(d.corte?'<b style="color:'+c+'">'+d.min+'</b>':'')+'</button>'; };
+  const conDato=datos.filter(d=>d.min!=null);
+  const grupos=CICLO_PASOS.map(ps=>({ps,js:conDato.filter(d=>d.corte&&d.corte.k===ps.k).sort((a,b)=>a.min-b.min)})).filter(g=>g.js.length).sort((a,b)=>b.js.length-a.js.length);
+  const fluidos=conDato.filter(d=>!d.corte);
+  h+='<div style="margin-top:16px;font-size:10px;font-weight:800;color:#7c8fae;letter-spacing:.06em">GRUPOS DE TRABAJO · DÓNDE SE LE CORTA A CADA JUGADOR</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px;margin-top:8px;align-items:start">'+
+    grupos.map(g=>'<div style="border:1px solid #1a3a6e;border-radius:12px;padding:10px 12px;background:#0a1024">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px"><b style="font-size:13px;color:#fff">'+g.ps.n+(g.ps.inter?' <span style="font-size:10px;color:#f59e0b">⚡</span>':'')+'</b><span style="font-size:11px;color:#7c8fae">'+g.js.length+' jugador'+(g.js.length>1?'es':'')+'</span></div>'+
+      '<div style="font-size:11px;color:#94a3b8;margin:3px 0 8px;line-height:1.35">'+g.ps.trab+'</div>'+g.js.map(chip).join('')+'</div>').join('')+
+    (fluidos.length?'<div style="border:1px solid #22c55e44;border-radius:12px;padding:10px 12px;background:#22c55e0a">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:6px"><b style="font-size:13px;color:#22c55e">✓ Ciclo fluido</b><span style="font-size:11px;color:#7c8fae">'+fluidos.length+' jugador'+(fluidos.length>1?'es':'')+'</span></div>'+
+      '<div style="font-size:11px;color:#94a3b8;margin:3px 0 8px">Ningún paso por debajo de 80: sostener y darles responsabilidad.</div>'+fluidos.map(chip).join('')+'</div>':'')+
+    '</div>';
+  // 3 · Funciones ejecutivas → en el resumen del equipo (arriba)
   const fe=FE_FUNCS.map(fx=>{ const ts=datos.map(d=>d[fx.k].t).filter(v=>v!=null), ps=datos.map(d=>d[fx.k].pp).filter(v=>v!=null);
     const t=ts.length?Math.round(feProm(ts)):null, pp=ps.length?Math.round(feProm(ps)):null;
-    return '<div style="flex:1 1 150px;min-width:0;border:1px solid #1a3a6e;border-radius:10px;padding:8px 10px;background:#0a1024"><div style="font-size:11px;font-weight:700;color:#e8eff8;line-height:1.25">'+fx.nombre+'</div>'+
-      '<div style="margin-top:4px;font-size:10.5px;color:#7c8fae">Test <b style="font-size:15px;color:'+(t==null?'#4a5a78':feCol(t))+'">'+(t==null?'—':t)+'</b> · Partidos <b style="font-size:15px;color:'+(pp==null?'#4a5a78':feCol(pp))+'">'+(pp==null?'—':pp)+'</b></div></div>'; }).join('');
-  h+='<div style="margin-top:14px;font-size:10px;font-weight:800;color:#7c8fae;letter-spacing:.06em">🧩 FUNCIONES EJECUTIVAS · PROMEDIO DEL EQUIPO</div><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">'+fe+'</div>'+
-    '<div style="font-size:10.5px;color:#5d7391;margin-top:8px">Escala 0–100 · verde desde 80 · amarillo desde 65. Mismos datos del perfil individual. No entra en D = T − I ni en el IDC.</div>';
+    return '<div style="flex:1 1 140px;min-width:0;border:1px solid #1a3a6e;border-radius:10px;padding:7px 10px;background:#0a102499"><div style="font-size:10.5px;font-weight:700;color:#cbd5e1;line-height:1.25">'+fx.nombre+'</div>'+
+      '<div style="margin-top:3px;font-size:10px;color:#7c8fae">Test <b style="font-size:15px;color:'+(t==null?'#4a5a78':feCol(t))+'">'+(t==null?'—':t)+'</b> · Partidos <b style="font-size:15px;color:'+(pp==null?'#4a5a78':feCol(pp))+'">'+(pp==null?'—':pp)+'</b></div></div>'; }).join('');
+  const fr=document.getElementById('ig-fe-res');
+  if(fr){ fr.style.display='block'; fr.innerHTML='<div style="font-size:10px;font-weight:700;color:#00c2ff;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px">🧩 Funciones ejecutivas del equipo</div><div style="display:flex;flex-wrap:wrap;gap:8px">'+fe+'</div>'; }
+  h+='<div style="font-size:10.5px;color:#5d7391;margin-top:10px">Escala 0–100 · verde desde 80 · amarillo desde 65. Mismos datos del perfil individual. Las funciones ejecutivas del equipo están en el resumen de arriba. No entra en D = T − I ni en el IDC.</div>';
   box.innerHTML=h;
 }
 async function renderCuadrantePJ(r){
@@ -20275,7 +20297,7 @@ async function exportarInvestigacion(btn){
 // VERSIÓN DEL PANEL (se actualiza en cada entrega)
 // Sirve para saber, mirando abajo del menú, si el navegador ya tiene lo último.
 // ═══════════════════════════════════════════════════════════════
-const SC360_VERSION='27/11/2026 · 5';
+const SC360_VERSION='27/11/2026 · 6';
 function mostrarVersion(){ document.querySelectorAll('.sc-version').forEach(e=>{ e.textContent='Versión '+SC360_VERSION; }); }
 document.addEventListener('DOMContentLoaded',mostrarVersion); setTimeout(mostrarVersion,0);
 // ── AVISO DE VERSIÓN NUEVA ───────────────────────────────────────────
